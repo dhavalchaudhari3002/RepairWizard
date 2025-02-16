@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertRepairRequestSchema } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
+import { getRepairAnswer } from "./services/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/repair-requests", async (req, res) => {
@@ -28,6 +29,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/repair-requests/:id/estimate", async (req, res) => {
     const estimate = generateMockEstimate(req.query.productType as string);
     res.json(estimate);
+  });
+
+  app.post("/api/repair-questions", async (req, res) => {
+    try {
+      const { question, productType } = req.body;
+      if (!question || !productType) {
+        res.status(400).json({ error: "Question and product type are required" });
+        return;
+      }
+
+      const answer = await getRepairAnswer(question, productType);
+      res.json(answer);
+    } catch (error) {
+      console.error("Error processing repair question:", error);
+      res.status(500).json({ error: "Failed to get repair answer" });
+    }
   });
 
   const httpServer = createServer(app);

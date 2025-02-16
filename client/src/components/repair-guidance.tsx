@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
+import { RepairQuestions } from "./repair-questions";
 
 export function RepairGuidance({ data }: { data: any }) {
   return (
@@ -37,6 +38,11 @@ export function RepairGuidance({ data }: { data: any }) {
               </li>
             ))}
           </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-4">Ask about your repair</h3>
+          <RepairQuestions productType={data.productType} />
         </div>
       </CardContent>
     </Card>
