@@ -12,23 +12,18 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { insertRepairRequestSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { RepairShops } from "./repair-shops";
+import { Upload } from "lucide-react";
 
 export function RepairForm() {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(insertRepairRequestSchema),
@@ -59,6 +54,28 @@ export function RepairForm() {
     mutation.mutate(values);
   }
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      // Handle the file upload here
+      const file = e.dataTransfer.files[0];
+      // TODO: Implement file upload
+      console.log("File dropped:", file);
+    }
+  };
+
   if (step === 2) {
     return (
       <div className="space-y-8">
@@ -78,18 +95,9 @@ export function RepairForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Product Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="laptop">Laptop</SelectItem>
-                  <SelectItem value="tablet">Tablet</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input placeholder="Enter product type (e.g., Phone, Laptop)" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -117,9 +125,34 @@ export function RepairForm() {
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL (Optional)</FormLabel>
+              <FormLabel>Upload Image</FormLabel>
               <FormControl>
-                <Input placeholder="URL to image of the issue" {...field} />
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                    ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                >
+                  <input
+                    id="file-upload"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        // TODO: Implement file upload
+                        console.log("File selected:", e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Drag and drop an image here, or click to select
+                  </p>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
