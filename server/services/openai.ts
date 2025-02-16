@@ -33,19 +33,19 @@ export async function generateRepairGuide(productType: string, issue: string): P
     console.log("Starting repair guide generation for:", { productType, issue });
 
     const systemPrompt = 
-      "You are an expert repair technician creating detailed repair guides. " +
-      "Generate a comprehensive, step-by-step guide with safety warnings, " +
-      "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos. " +
-      "Format your response as a valid JSON object with the following structure:\n" +
-      "{\n" +
-      "  'title': 'string',\n" +
-      "  'difficulty': 'Beginner' | 'Intermediate' | 'Advanced',\n" +
-      "  'estimatedTime': 'string',\n" +
-      "  'steps': [{ 'step': number, 'title': 'string', 'description': 'string', 'imageDescription': 'string', 'safetyWarnings': ['string'], 'tools': ['string'] }],\n" +
-      "  'warnings': ['string'],\n" +
-      "  'tools': ['string'],\n" +
-      "  'videoKeywords': ['string']\n" +
-      "}";
+      'You are an expert repair technician creating detailed repair guides. ' +
+      'Generate a comprehensive, step-by-step guide with safety warnings, ' +
+      'required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos. ' +
+      'Format your response as a valid JSON object using double quotes (") instead of single quotes (\') with the following structure:\n' +
+      '{\n' +
+      '  "title": "string",\n' +
+      '  "difficulty": "Beginner" | "Intermediate" | "Advanced",\n' +
+      '  "estimatedTime": "string",\n' +
+      '  "steps": [{ "step": number, "title": "string", "description": "string", "imageDescription": "string", "safetyWarnings": ["string"], "tools": ["string"] }],\n' +
+      '  "warnings": ["string"],\n' +
+      '  "tools": ["string"],\n' +
+      '  "videoKeywords": ["string"]\n' +
+      '}';
 
     console.log("Calling OpenAI API...");
     const response = await openai.chat.completions.create({
@@ -72,7 +72,9 @@ export async function generateRepairGuide(productType: string, issue: string): P
     console.log("Parsing response content...");
     let result: RepairGuide;
     try {
-      result = JSON.parse(content);
+      // Convert single quotes to double quotes if necessary
+      const jsonString = content.replace(/'/g, '"').replace(/\s+/g, ' ');
+      result = JSON.parse(jsonString);
     } catch (parseError) {
       console.error("Failed to parse OpenAI response:", content);
       throw new Error("Invalid JSON response from OpenAI");
@@ -94,10 +96,10 @@ export async function generateRepairGuide(productType: string, issue: string): P
 export async function getRepairAnswer({ question, productType, issueDescription, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {
   try {
     const systemPrompt = 
-      "You are a repair expert specializing in electronics and appliances. " +
-      "Provide helpful, accurate, and concise answers to repair-related questions. " +
-      "Focus on safety and practical solutions. When uncertain, recommend professional help. " +
-      "Format your response as a JSON object with an 'answer' field containing your response.";
+      'You are a repair expert specializing in electronics and appliances. ' +
+      'Provide helpful, accurate, and concise answers to repair-related questions. ' +
+      'Focus on safety and practical solutions. When uncertain, recommend professional help. ' +
+      'Format your response as a JSON object with an "answer" field containing your response.';
 
     const messages: any[] = [
       {
@@ -144,7 +146,8 @@ export async function getRepairAnswer({ question, productType, issueDescription,
     }
 
     try {
-      const result = JSON.parse(content);
+      const jsonString = content.replace(/'/g, '"').replace(/\s+/g, ' ');
+      const result = JSON.parse(jsonString);
       return { answer: result.answer };
     } catch (error) {
       // If JSON parsing fails, return the content directly
