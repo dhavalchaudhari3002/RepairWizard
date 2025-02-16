@@ -53,7 +53,7 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
 
       <RepairGuide 
         productType={data.productType} 
-        issue={data.issueDescription || ''} 
+        issue={data.issueDescription || 'General repair guidance needed'} 
       />
 
       <Card>
