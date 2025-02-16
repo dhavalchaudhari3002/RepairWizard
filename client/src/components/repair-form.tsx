@@ -39,20 +39,24 @@ export function RepairForm() {
 
   const mutation = useMutation({
     mutationFn: async (values: InsertRepairRequest) => {
-      const res = await apiRequest("POST", "/api/repair-requests", values);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to submit repair request');
-      }
+      // First, submit the repair request
+      const res = await apiRequest(
+        "POST", 
+        "/api/repair-requests", 
+        values
+      );
+      if (!res.ok) throw new Error('Failed to submit repair request');
+
       const data = await res.json();
 
+      // Then, get the estimate
+      const estimateUrl = `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`;
       const estimateRes = await apiRequest(
         "GET",
-        `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`
+        estimateUrl
       );
-      if (!estimateRes.ok) {
-        throw new Error('Failed to get repair estimate');
-      }
+      if (!estimateRes.ok) throw new Error('Failed to get repair estimate');
+
       return await estimateRes.json();
     },
     onSuccess: (data) => {
