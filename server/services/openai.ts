@@ -6,10 +6,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 interface RepairQuestionInput {
   question: string;
   productType: string;
+  issueDescription?: string;
   imageUrl?: string;
 }
 
-export async function getRepairAnswer({ question, productType, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {
+export async function getRepairAnswer({ question, productType, issueDescription, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {
   try {
     const systemPrompt = 
       "You are a repair expert specializing in electronics and appliances. " +
@@ -24,13 +25,15 @@ export async function getRepairAnswer({ question, productType, imageUrl }: Repai
       }
     ];
 
+    const contextPrompt = `Product Type: ${productType}${issueDescription ? `\nReported Issue: ${issueDescription}` : ''}`;
+
     if (imageUrl) {
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: `Please analyze this image and provide repair guidance for this ${productType}. Question: ${question}\nRespond in JSON format.`
+            text: `${contextPrompt}\nAnalyze this image and answer this question: ${question}\nRespond in JSON format.`
           },
           {
             type: "image_url",
@@ -43,7 +46,7 @@ export async function getRepairAnswer({ question, productType, imageUrl }: Repai
     } else {
       messages.push({
         role: "user",
-        content: `Please provide repair guidance for this ${productType}. Question: ${question}\nRespond in JSON format.`
+        content: `${contextPrompt}\nQuestion: ${question}\nRespond in JSON format.`
       });
     }
 

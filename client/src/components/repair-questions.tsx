@@ -4,7 +4,12 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Upload, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-export function RepairQuestions({ productType }: { productType: string }) {
+interface RepairQuestionsProps {
+  productType: string;
+  issueDescription?: string;
+}
+
+export function RepairQuestions({ productType, issueDescription }: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +61,12 @@ export function RepairQuestions({ productType }: { productType: string }) {
       const response = await apiRequest(
         "POST", 
         "/api/repair-questions",
-        { question, productType, imageUrl: imagePreview }
+        { 
+          question, 
+          productType, 
+          issueDescription,
+          imageUrl: imagePreview 
+        }
       );
       const data = await response.json();
       setAnswer(data.answer);

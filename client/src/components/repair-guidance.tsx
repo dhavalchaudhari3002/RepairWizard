@@ -8,7 +8,14 @@ import {
 import { CheckCircle2 } from "lucide-react";
 import { RepairQuestions } from "./repair-questions";
 
-export function RepairGuidance({ data }: { data: any }) {
+interface RepairGuidanceData {
+  productType: string;
+  issueDescription?: string;
+  commonIssues: string[];
+  recommendations: string[];
+}
+
+export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
   return (
     <Card>
       <CardHeader>
@@ -42,7 +49,10 @@ export function RepairGuidance({ data }: { data: any }) {
 
         <div>
           <h3 className="font-semibold mb-4">Ask about your repair</h3>
-          <RepairQuestions productType={data.productType} />
+          <RepairQuestions 
+            productType={data.productType} 
+            issueDescription={data.issueDescription}
+          />
         </div>
       </CardContent>
     </Card>
