@@ -47,23 +47,38 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
 
     setLoading(true);
     try {
-      console.log("Generating guide for:", { productType, issue });
+      console.log("Attempting to generate guide for:", { productType, issue });
       const response = await apiRequest(
         "POST",
         "/api/repair-guides",
         { productType, issue }
       );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Guide generation API error:", errorData);
+        throw new Error(errorData.details || errorData.error || "Failed to generate guide");
+      }
+
       const data = await response.json();
-      if (!data || !data.title) {
+      console.log("Received guide data:", data);
+
+      if (!data || !data.title || !Array.isArray(data.steps)) {
+        console.error("Invalid guide data received:", data);
         throw new Error("Invalid guide data received");
       }
+
       setGuide(data);
       setCurrentStep(0);
+      toast({
+        title: "Success",
+        description: "Repair guide generated successfully.",
+      });
     } catch (error) {
       console.error("Failed to generate guide:", error);
       toast({
         title: "Error",
-        description: "Failed to generate repair guide. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate repair guide. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -81,8 +96,8 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <Button 
-            onClick={generateGuide} 
+          <Button
+            onClick={generateGuide}
             disabled={loading || !productType || !issue}
             className="w-full"
           >
@@ -108,8 +123,8 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
             <Clock className="h-4 w-4" />
             <span>{guide.estimatedTime}</span>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={openYoutubeSearch}
             className="ml-auto"

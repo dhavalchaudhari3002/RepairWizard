@@ -40,26 +40,36 @@ export function RepairForm() {
   const mutation = useMutation({
     mutationFn: async (values: InsertRepairRequest) => {
       try {
+        console.log("Submitting repair request:", values);
         const res = await apiRequest("POST", "/api/repair-requests", values);
         if (!res.ok) {
-          throw new Error('Failed to submit repair request');
+          const errorData = await res.json();
+          console.error("API Error:", errorData);
+          throw new Error(errorData.error || 'Failed to submit repair request');
         }
         const data = await res.json();
+        console.log("Repair request submitted successfully:", data);
 
+        console.log("Fetching repair estimate...");
         const estimateRes = await apiRequest(
           "GET",
-          `/api/repair-requests/${data.id}/estimate?productType=${values.productType}`
+          `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`
         );
         if (!estimateRes.ok) {
-          throw new Error('Failed to get repair estimate');
+          const errorData = await estimateRes.json();
+          console.error("Estimate API Error:", errorData);
+          throw new Error(errorData.error || 'Failed to get repair estimate');
         }
-        return await estimateRes.json();
+        const estimateData = await estimateRes.json();
+        console.log("Estimate received:", estimateData);
+        return estimateData;
       } catch (error) {
         console.error('Mutation error:', error);
         throw error;
       }
     },
     onSuccess: (data) => {
+      console.log("Setting estimate data:", data);
       setEstimateData(data);
       setStep(2);
       toast({
@@ -67,13 +77,13 @@ export function RepairForm() {
         description: "Your repair request has been submitted.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('Form submission error:', error);
       toast({
         title: "Error",
-        description: "Failed to submit repair request. Please try again.",
+        description: error.message || "Failed to submit repair request. Please try again.",
         variant: "destructive",
       });
-      console.error('Form submission error:', error);
     },
   });
 
