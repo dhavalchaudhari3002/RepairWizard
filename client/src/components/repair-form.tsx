@@ -146,11 +146,11 @@ export function RepairForm() {
               <FormLabel>Upload Image</FormLabel>
               <FormControl>
                 {imagePreview ? (
-                  <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                  <div className="relative w-full rounded-lg overflow-hidden">
                     <img 
                       src={imagePreview} 
                       alt="Preview" 
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-[400px] h-auto mx-auto rounded-lg"
                     />
                     <button
                       type="button"
