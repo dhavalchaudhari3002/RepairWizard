@@ -51,11 +51,6 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
         </CardContent>
       </Card>
 
-      <RepairGuide 
-        productType={data.productType} 
-        issue={data.issueDescription || 'General repair guidance needed'} 
-      />
-
       <Card>
         <CardHeader>
           <CardTitle>Ask about your repair</CardTitle>
@@ -67,6 +62,11 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
           />
         </CardContent>
       </Card>
+
+      <RepairGuide 
+        productType={data.productType} 
+        issue={data.issueDescription || 'General repair guidance needed'} 
+      />
     </div>
   );
 }
