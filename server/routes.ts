@@ -55,11 +55,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      console.log("Generating repair guide for:", { productType, issue });
       const guide = await generateRepairGuide(productType, issue);
+
+      if (!guide || !guide.title || !Array.isArray(guide.steps)) {
+        console.error("Invalid guide generated:", guide);
+        res.status(500).json({ error: "Generated guide is invalid" });
+        return;
+      }
+
       res.json(guide);
     } catch (error) {
       console.error("Error generating repair guide:", error);
-      res.status(500).json({ error: "Failed to generate repair guide" });
+      res.status(500).json({ 
+        error: "Failed to generate repair guide",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

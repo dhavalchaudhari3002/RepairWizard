@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface RepairGuideStep {
   step: number;
@@ -32,20 +33,39 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const generateGuide = async () => {
+    if (!productType || !issue) {
+      toast({
+        title: "Missing Information",
+        description: "Product type and issue description are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log("Generating guide for:", { productType, issue });
       const response = await apiRequest(
         "POST",
         "/api/repair-guides",
         { productType, issue }
       );
       const data = await response.json();
+      if (!data || !data.title) {
+        throw new Error("Invalid guide data received");
+      }
       setGuide(data);
       setCurrentStep(0);
     } catch (error) {
       console.error("Failed to generate guide:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate repair guide. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -63,7 +83,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
         <CardContent className="pt-6">
           <Button 
             onClick={generateGuide} 
-            disabled={loading}
+            disabled={loading || !productType || !issue}
             className="w-full"
           >
             {loading ? "Generating Guide..." : "Generate Repair Guide"}
