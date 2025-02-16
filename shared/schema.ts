@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -10,11 +10,17 @@ export const repairRequests = pgTable("repair_requests", {
   status: text("status").notNull().default("pending"),
 });
 
-export const insertRepairRequestSchema = createInsertSchema(repairRequests).pick({
-  productType: true,
-  issueDescription: true,
-  imageUrl: true,
-});
+export const insertRepairRequestSchema = createInsertSchema(repairRequests)
+  .pick({
+    productType: true,
+    issueDescription: true,
+    imageUrl: true,
+  })
+  .extend({
+    productType: z.string().min(1, "Product type is required"),
+    issueDescription: z.string().min(1, "Issue description is required"),
+    imageUrl: z.string().optional(),
+  });
 
 export type InsertRepairRequest = z.infer<typeof insertRepairRequestSchema>;
 export type RepairRequest = typeof repairRequests.$inferSelect;

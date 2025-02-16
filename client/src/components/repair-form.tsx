@@ -39,37 +39,23 @@ export function RepairForm() {
 
   const mutation = useMutation({
     mutationFn: async (values: InsertRepairRequest) => {
-      try {
-        console.log("Submitting repair request:", values);
-        const res = await apiRequest("POST", "/api/repair-requests", values);
-        if (!res.ok) {
-          const errorData = await res.json();
-          console.error("API Error:", errorData);
-          throw new Error(errorData.error || 'Failed to submit repair request');
-        }
-        const data = await res.json();
-        console.log("Repair request submitted successfully:", data);
-
-        console.log("Fetching repair estimate...");
-        const estimateRes = await apiRequest(
-          "GET",
-          `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`
-        );
-        if (!estimateRes.ok) {
-          const errorData = await estimateRes.json();
-          console.error("Estimate API Error:", errorData);
-          throw new Error(errorData.error || 'Failed to get repair estimate');
-        }
-        const estimateData = await estimateRes.json();
-        console.log("Estimate received:", estimateData);
-        return estimateData;
-      } catch (error) {
-        console.error('Mutation error:', error);
-        throw error;
+      const res = await apiRequest("POST", "/api/repair-requests", values);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to submit repair request');
       }
+      const data = await res.json();
+
+      const estimateRes = await apiRequest(
+        "GET",
+        `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`
+      );
+      if (!estimateRes.ok) {
+        throw new Error('Failed to get repair estimate');
+      }
+      return await estimateRes.json();
     },
     onSuccess: (data) => {
-      console.log("Setting estimate data:", data);
       setEstimateData(data);
       setStep(2);
       toast({
@@ -78,7 +64,6 @@ export function RepairForm() {
       });
     },
     onError: (error: Error) => {
-      console.error('Form submission error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to submit repair request. Please try again.",
@@ -97,36 +82,11 @@ export function RepairForm() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const base64String = e.target?.result as string;
-        setImagePreview(base64String);
-        form.setValue('imageUrl', base64String, { shouldValidate: true });
-      } catch (error) {
-        console.error('Image processing error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to process image",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.onerror = () => {
-      toast({
-        title: "Error",
-        description: "Failed to read image file",
-        variant: "destructive",
-      });
+      const base64String = e.target?.result as string;
+      setImagePreview(base64String);
+      form.setValue('imageUrl', base64String, { shouldValidate: true });
     };
     reader.readAsDataURL(file);
   };
@@ -155,17 +115,8 @@ export function RepairForm() {
     form.setValue('imageUrl', '', { shouldValidate: true });
   };
 
-  const onSubmit = async (values: InsertRepairRequest) => {
-    try {
-      mutation.mutate(values);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit form. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const onSubmit = (values: InsertRepairRequest) => {
+    mutation.mutate(values);
   };
 
   if (step === 2) {
@@ -215,6 +166,7 @@ export function RepairForm() {
               <FormControl>
                 <Textarea
                   placeholder="What's wrong with your device?"
+                  className="min-h-[100px]"
                   {...field}
                 />
               </FormControl>
