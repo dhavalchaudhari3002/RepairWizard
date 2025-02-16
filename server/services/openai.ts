@@ -1,15 +1,12 @@
 import OpenAI from "openai";
+import { env } from "process";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: env.OPENAI_API_KEY
+});
 
-interface RepairQuestionInput {
-  question: string;
-  productType: string;
-  issueDescription?: string;
-  imageUrl?: string;
-}
-
-interface RepairGuideStep {
+interface RepairStep {
   step: number;
   title: string;
   description: string;
@@ -20,139 +17,135 @@ interface RepairGuideStep {
 
 interface RepairGuide {
   title: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
   estimatedTime: string;
-  steps: RepairGuideStep[];
+  steps: RepairStep[];
   warnings: string[];
   tools: string[];
   videoKeywords: string[];
 }
 
-export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
-  try {
-    console.log("Starting repair guide generation for:", { productType, issue });
-
-    const systemPrompt = `You are an expert repair technician creating detailed repair guides.
-Generate a comprehensive, step-by-step guide with safety warnings, required tools, and descriptions for helpful images.
-Include search keywords for relevant tutorial videos.
-
-Your response MUST be a valid JSON object with this exact structure:
-{
-  "title": "string",
-  "difficulty": "Beginner" | "Intermediate" | "Advanced",
-  "estimatedTime": "string",
-  "steps": [
-    {
-      "step": number,
-      "title": "string",
-      "description": "string",
-      "imageDescription": "string",
-      "safetyWarnings": ["string"],
-      "tools": ["string"]
-    }
-  ],
-  "warnings": ["string"],
-  "tools": ["string"],
-  "videoKeywords": ["string"]
+interface RepairQuestionInput {
+  question: string;
+  productType: string;
+  issueDescription?: string;
+  imageUrl?: string;
 }
 
-Important formatting rules:
-1. Use double quotes (") for ALL strings
-2. Use proper JSON syntax with commas between items
-3. Do not include explanations or markdown formatting
-4. Only return the JSON object, nothing else`;
+export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
+  try {
+    const systemPrompt = `You are a repair expert specializing in electronics and appliances.
+Generate comprehensive, step-by-step repair guides with a focus on safety and best practices.
+Return your response as a valid JSON object with this structure:
+{
+  "title": "Guide title",
+  "difficulty": "Beginner|Intermediate|Advanced",
+  "estimatedTime": "Estimated completion time",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Step title",
+      "description": "Detailed step description",
+      "imageDescription": "Description of what image would be helpful here",
+      "safetyWarnings": ["List of safety warnings specific to this step"],
+      "tools": ["Tools needed for this step"]
+    }
+  ],
+  "warnings": ["General safety warnings"],
+  "tools": ["All required tools"],
+  "videoKeywords": ["Keywords for finding relevant video tutorials"]
+}`;
 
-    console.log("Calling OpenAI API...");
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         { role: "system", content: systemPrompt },
-        { 
-          role: "user", 
-          content: `Create a detailed repair guide for ${productType} with the following issue: ${issue}`
+        {
+          role: "user",
+          content: `Generate a repair guide for ${productType}. Issue: ${issue}`
         }
       ],
       temperature: 0.7,
-      max_tokens: 1500,
+      max_tokens: 2000,
       response_format: { type: "json_object" }
     });
 
-    console.log("OpenAI API response received");
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error("Empty response from OpenAI");
     }
 
-    console.log("Raw response content:", content);
-
     let result: RepairGuide;
     try {
       result = JSON.parse(content);
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", content);
-      throw new Error("Invalid JSON response from OpenAI");
+    } catch (error) {
+      console.error("Failed to parse JSON response:", content);
+      throw new Error("Invalid JSON in OpenAI response");
     }
 
-    if (!result.title || !Array.isArray(result.steps)) {
-      console.error("Invalid guide format:", result);
-      throw new Error("Generated guide does not match expected format");
+    // Validate guide structure
+    if (!result.title || !Array.isArray(result.steps) || result.steps.length === 0) {
+      console.error("Invalid guide structure:", result);
+      throw new Error("Generated guide does not match required format");
     }
 
-    console.log("Successfully generated repair guide:", result);
+    // Validate each step
+    result.steps.forEach((step, index) => {
+      if (!step.title || !step.description || !step.imageDescription) {
+        throw new Error(`Step ${index + 1} is missing required fields`);
+      }
+    });
+
     return result;
   } catch (error) {
     console.error("Error in generateRepairGuide:", error);
-    throw new Error(
-      "Failed to generate repair guide: " + 
+    throw new Error("Failed to generate repair guide: " + 
       (error instanceof Error ? error.message : String(error))
     );
   }
 }
 
-export async function getRepairAnswer({ question, productType, issueDescription, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {
+export async function getRepairAnswer(input: RepairQuestionInput): Promise<{ answer: string }> {
   try {
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
 Provide helpful, accurate, and concise answers to repair-related questions.
 Focus on safety and practical solutions. When uncertain, recommend professional help.
-
-Format your response as a JSON object:
+Return your response as a valid JSON object with this structure:
 {
   "answer": "your detailed response here"
-}
+}`;
 
-Use double quotes and proper JSON syntax.`;
+    const contextPrompt = `Product Type: ${input.productType}${
+      input.issueDescription ? `\nReported Issue: ${input.issueDescription}` : ''
+    }`;
 
     const messages: any[] = [
       { role: "system", content: systemPrompt }
     ];
 
-    const contextPrompt = `Product Type: ${productType}${
-      issueDescription ? `\nReported Issue: ${issueDescription}` : ''
-    }`;
-
-    if (imageUrl) {
+    if (input.imageUrl) {
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: `${contextPrompt}\nAnalyze this image and answer this question: ${question}`
+            text: `${contextPrompt}\nAnalyze this image and answer this question: ${input.question}`
           },
           {
             type: "image_url",
-            image_url: { url: imageUrl }
+            image_url: { url: input.imageUrl }
           }
-        ],
+        ]
       });
     } else {
       messages.push({
         role: "user",
-        content: `${contextPrompt}\nQuestion: ${question}`
+        content: `${contextPrompt}\nQuestion: ${input.question}`
       });
     }
 
     const response = await openai.chat.completions.create({
-      model: imageUrl ? "gpt-4-vision-preview" : "gpt-4",
+      model: input.imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
       temperature: 0.7,
       max_tokens: 500,
@@ -165,16 +158,14 @@ Use double quotes and proper JSON syntax.`;
     }
 
     try {
-      const result = JSON.parse(content);
-      return { answer: result.answer };
+      return JSON.parse(content);
     } catch (error) {
-      console.error("Failed to parse OpenAI response:", content);
+      console.error("Failed to parse response:", content);
       throw new Error("Invalid JSON response from OpenAI");
     }
   } catch (error) {
-    console.error("Error in getRepairAnswer:", error);
-    throw new Error(
-      "Failed to get repair answer: " + 
+    console.error("Error getting repair answer:", error);
+    throw new Error("Failed to get repair answer: " + 
       (error instanceof Error ? error.message : String(error))
     );
   }
