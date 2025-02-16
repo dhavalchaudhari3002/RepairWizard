@@ -19,12 +19,14 @@ import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { RepairShops } from "./repair-shops";
 import { Upload, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function RepairForm() {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(insertRepairRequestSchema),
@@ -48,16 +50,36 @@ export function RepairForm() {
     onSuccess: (data) => {
       setEstimateData(data);
       setStep(2);
+      toast({
+        title: "Success!",
+        description: "Your repair request has been submitted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to submit repair request. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
-  function onSubmit(values: any) {
-    mutation.mutate(values);
-  }
-
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+      toast({
+        title: "Invalid file",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -66,6 +88,13 @@ export function RepairForm() {
       const base64String = e.target?.result as string;
       setImagePreview(base64String);
       form.setValue('imageUrl', base64String);
+    };
+    reader.onerror = () => {
+      toast({
+        title: "Error",
+        description: "Failed to read image file",
+        variant: "destructive",
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -100,13 +129,24 @@ export function RepairForm() {
         <CostEstimate data={estimateData} />
         <RepairGuidance data={estimateData} />
         <RepairShops />
+        <Button 
+          onClick={() => {
+            setStep(1);
+            form.reset();
+            setImagePreview(null);
+          }}
+          variant="outline"
+          className="w-full"
+        >
+          Submit Another Request
+        </Button>
       </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(mutation.mutate)} className="space-y-6">
         <FormField
           control={form.control}
           name="productType"
@@ -143,7 +183,7 @@ export function RepairForm() {
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Upload Image</FormLabel>
+              <FormLabel>Upload Image (Optional)</FormLabel>
               <FormControl>
                 {imagePreview ? (
                   <div className="relative w-full rounded-lg overflow-hidden">
@@ -193,7 +233,11 @@ export function RepairForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={mutation.isPending}
+        >
           {mutation.isPending ? "Analyzing..." : "Get Repair Estimate"}
         </Button>
       </form>
