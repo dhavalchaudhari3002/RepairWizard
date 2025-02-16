@@ -9,9 +9,14 @@ interface RepairQuestionsProps {
   issueDescription?: string;
 }
 
+interface QuestionAnswer {
+  question: string;
+  answer: string;
+}
+
 export function RepairQuestions({ productType, issueDescription }: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<QuestionAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -69,7 +74,8 @@ export function RepairQuestions({ productType, issueDescription }: RepairQuestio
         }
       );
       const data = await response.json();
-      setAnswer(data.answer);
+      setConversation(prev => [...prev, { question, answer: data.answer }]);
+      setQuestion(""); // Clear input after successful response
     } catch (error) {
       console.error("Failed to get answer:", error);
     } finally {
@@ -122,29 +128,39 @@ export function RepairQuestions({ productType, issueDescription }: RepairQuestio
         </div>
       )}
 
-      <div className="flex gap-2">
-        <Input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask a question about your repair..."
-          onKeyPress={(e) => e.key === "Enter" && handleAskQuestion()}
-        />
-        <Button 
-          onClick={handleAskQuestion}
-          disabled={isLoading || !question.trim()}
-        >
-          {isLoading ? "Thinking..." : "Ask"}
-        </Button>
-      </div>
-
-      {answer && (
-        <div className="rounded-lg bg-muted p-4">
-          <div className="flex gap-2 items-start">
-            <MessageCircle className="h-5 w-5 mt-0.5 text-primary" />
-            <p className="text-sm">{answer}</p>
+      <div className="space-y-4">
+        {/* Conversation History */}
+        {conversation.map((qa, index) => (
+          <div key={index} className="space-y-2">
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <p className="text-sm font-medium">You asked:</p>
+              <p className="text-sm">{qa.question}</p>
+            </div>
+            <div className="bg-muted p-3 rounded-lg">
+              <div className="flex gap-2 items-start">
+                <MessageCircle className="h-5 w-5 mt-0.5 text-primary" />
+                <p className="text-sm">{qa.answer}</p>
+              </div>
+            </div>
           </div>
+        ))}
+
+        {/* Question Input */}
+        <div className="flex gap-2">
+          <Input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask a question about your repair..."
+            onKeyPress={(e) => e.key === "Enter" && handleAskQuestion()}
+          />
+          <Button 
+            onClick={handleAskQuestion}
+            disabled={isLoading || !question.trim()}
+          >
+            {isLoading ? "Thinking..." : "Ask"}
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
