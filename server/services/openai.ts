@@ -36,7 +36,7 @@ export async function generateRepairGuide(productType: string, issue: string): P
       "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos.";
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         { role: "system", content: systemPrompt },
         { 
@@ -47,14 +47,15 @@ export async function generateRepairGuide(productType: string, issue: string): P
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
-    if (!response.choices[0].message.content) {
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
       throw new Error("Empty response from OpenAI");
     }
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(content);
     return result as RepairGuide;
   } catch (error) {
     console.error("OpenAI API error:", error);
@@ -103,14 +104,19 @@ export async function getRepairAnswer({ question, productType, issueDescription,
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
       response_format: { type: "json_object" },
       temperature: 0.7,
       max_tokens: 500,
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const result = JSON.parse(content);
     return { answer: result.answer };
   } catch (error) {
     console.error("OpenAI API error:", error);
