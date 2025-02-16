@@ -18,12 +18,13 @@ import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { RepairShops } from "./repair-shops";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 
 export function RepairForm() {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(insertRepairRequestSchema),
@@ -54,6 +55,21 @@ export function RepairForm() {
     mutation.mutate(values);
   }
 
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target?.result as string;
+      setImagePreview(base64String);
+      form.setValue('imageUrl', base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -69,11 +85,13 @@ export function RepairForm() {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      // Handle the file upload here
-      const file = e.dataTransfer.files[0];
-      // TODO: Implement file upload
-      console.log("File dropped:", file);
+      handleImageUpload(e.dataTransfer.files[0]);
     }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    form.setValue('imageUrl', '');
   };
 
   if (step === 2) {
@@ -127,32 +145,48 @@ export function RepairForm() {
             <FormItem>
               <FormLabel>Upload Image</FormLabel>
               <FormControl>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                    ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                >
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        // TODO: Implement file upload
-                        console.log("File selected:", e.target.files[0]);
-                      }
-                    }}
-                  />
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop an image here, or click to select
-                  </p>
-                </div>
+                {imagePreview ? (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                      ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleImageUpload(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag and drop an image here, or click to select
+                    </p>
+                  </div>
+                )}
               </FormControl>
               <FormMessage />
             </FormItem>
