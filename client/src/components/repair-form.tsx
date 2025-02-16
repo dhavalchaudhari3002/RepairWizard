@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { insertRepairRequestSchema } from "@shared/schema";
+import { insertRepairRequestSchema, type InsertRepairRequest } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
@@ -28,7 +28,7 @@ export function RepairForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const form = useForm({
+  const form = useForm<InsertRepairRequest>({
     resolver: zodResolver(insertRepairRequestSchema),
     defaultValues: {
       productType: "",
@@ -38,7 +38,7 @@ export function RepairForm() {
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: InsertRepairRequest) => {
       const res = await apiRequest("POST", "/api/repair-requests", values);
       const data = await res.json();
       const estimate = await apiRequest(
@@ -123,6 +123,10 @@ export function RepairForm() {
     form.setValue('imageUrl', '');
   };
 
+  const onSubmit = async (values: InsertRepairRequest) => {
+    mutation.mutate(values);
+  };
+
   if (step === 2) {
     return (
       <div className="space-y-8">
@@ -146,7 +150,7 @@ export function RepairForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(mutation.mutate)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="productType"
