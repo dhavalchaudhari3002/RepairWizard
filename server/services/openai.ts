@@ -34,9 +34,11 @@ interface RepairQuestionInput {
 
 export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
   try {
+    console.log("Starting guide generation for:", { productType, issue });
+
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
 Generate comprehensive, step-by-step repair guides with a focus on safety and best practices.
-Return your response as a valid JSON object with this structure:
+Provide your response in this exact JSON format:
 {
   "title": "Guide title",
   "difficulty": "Beginner|Intermediate|Advanced",
@@ -66,8 +68,7 @@ Return your response as a valid JSON object with this structure:
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: "json_object" }
+      max_tokens: 2000
     });
 
     const content = response.choices[0]?.message?.content;
@@ -75,12 +76,14 @@ Return your response as a valid JSON object with this structure:
       throw new Error("Empty response from OpenAI");
     }
 
+    console.log("Received response from OpenAI:", content);
+
     let result: RepairGuide;
     try {
       result = JSON.parse(content);
     } catch (error) {
       console.error("Failed to parse JSON response:", content);
-      throw new Error("Invalid JSON in OpenAI response");
+      throw new Error("Invalid JSON response from OpenAI");
     }
 
     // Validate guide structure
@@ -110,10 +113,7 @@ export async function getRepairAnswer(input: RepairQuestionInput): Promise<{ ans
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
 Provide helpful, accurate, and concise answers to repair-related questions.
 Focus on safety and practical solutions. When uncertain, recommend professional help.
-Return your response as a valid JSON object with this structure:
-{
-  "answer": "your detailed response here"
-}`;
+Format your response as a JSON object with an "answer" field containing your response.`;
 
     const contextPrompt = `Product Type: ${input.productType}${
       input.issueDescription ? `\nReported Issue: ${input.issueDescription}` : ''
@@ -148,8 +148,7 @@ Return your response as a valid JSON object with this structure:
       model: input.imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
       temperature: 0.7,
-      max_tokens: 500,
-      response_format: { type: "json_object" }
+      max_tokens: 500
     });
 
     const content = response.choices[0]?.message?.content;
@@ -160,8 +159,8 @@ Return your response as a valid JSON object with this structure:
     try {
       return JSON.parse(content);
     } catch (error) {
-      console.error("Failed to parse response:", content);
-      throw new Error("Invalid JSON response from OpenAI");
+      // If parsing fails, wrap the response in a JSON structure
+      return { answer: content };
     }
   } catch (error) {
     console.error("Error getting repair answer:", error);
