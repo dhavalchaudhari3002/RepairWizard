@@ -1,0 +1,178 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+
+interface RepairGuideStep {
+  step: number;
+  title: string;
+  description: string;
+  imageDescription: string;
+  safetyWarnings?: string[];
+  tools?: string[];
+}
+
+interface RepairGuide {
+  title: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedTime: string;
+  steps: RepairGuideStep[];
+  warnings: string[];
+  tools: string[];
+  videoKeywords: string[];
+}
+
+interface RepairGuideProps {
+  productType: string;
+  issue: string;
+}
+
+export function RepairGuide({ productType, issue }: RepairGuideProps) {
+  const [guide, setGuide] = useState<RepairGuide | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const generateGuide = async () => {
+    setLoading(true);
+    try {
+      const response = await apiRequest(
+        "POST",
+        "/api/repair-guides",
+        { productType, issue }
+      );
+      const data = await response.json();
+      setGuide(data);
+      setCurrentStep(0);
+    } catch (error) {
+      console.error("Failed to generate guide:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openYoutubeSearch = () => {
+    if (!guide) return;
+    const searchQuery = encodeURIComponent(`${guide.title} ${guide.videoKeywords.join(' ')}`);
+    window.open(`https://www.youtube.com/results?search_query=${searchQuery}`, '_blank');
+  };
+
+  if (!guide) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <Button 
+            onClick={generateGuide} 
+            disabled={loading}
+            className="w-full"
+          >
+            {loading ? "Generating Guide..." : "Generate Repair Guide"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const step = guide.steps[currentStep];
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>{guide.title}</CardTitle>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Wrench className="h-4 w-4" />
+            <span>{guide.difficulty}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            <span>{guide.estimatedTime}</span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={openYoutubeSearch}
+            className="ml-auto"
+          >
+            <PlayCircle className="h-4 w-4 mr-2" />
+            Find Video Tutorials
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Safety Warnings */}
+        {guide.warnings.length > 0 && (
+          <div className="bg-destructive/10 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-destructive mb-2">
+              <AlertTriangle className="h-5 w-5" />
+              <h3 className="font-semibold">Safety Warnings</h3>
+            </div>
+            <ul className="list-disc list-inside space-y-1">
+              {guide.warnings.map((warning, i) => (
+                <li key={i} className="text-sm">{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tools Required */}
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Tools Required
+          </h3>
+          <ul className="list-disc list-inside grid grid-cols-2 gap-2">
+            {guide.tools.map((tool, i) => (
+              <li key={i} className="text-sm">{tool}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Step Instructions */}
+        <div className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Step {step.step} of {guide.steps.length}</h3>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                disabled={currentStep === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentStep(prev => Math.min(guide.steps.length - 1, prev + 1))}
+                disabled={currentStep === guide.steps.length - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <h4 className="font-medium mb-2">{step.title}</h4>
+          <p className="text-sm mb-4">{step.description}</p>
+
+          {step.safetyWarnings && step.safetyWarnings.length > 0 && (
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded p-3 mb-4">
+              <h5 className="text-sm font-medium mb-1">Step-specific Safety Notes:</h5>
+              <ul className="list-disc list-inside text-sm space-y-1">
+                {step.safetyWarnings.map((warning, i) => (
+                  <li key={i}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="bg-muted rounded p-3">
+            <h5 className="text-sm font-medium mb-1">Visual Guide:</h5>
+            <p className="text-sm text-muted-foreground">{step.imageDescription}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

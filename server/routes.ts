@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertRepairRequestSchema } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
-import { getRepairAnswer } from "./services/openai";
+import { getRepairAnswer, generateRepairGuide } from "./services/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/repair-requests", async (req, res) => {
@@ -44,6 +44,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing repair question:", error);
       res.status(500).json({ error: "Failed to get repair answer" });
+    }
+  });
+
+  app.post("/api/repair-guides", async (req, res) => {
+    try {
+      const { productType, issue } = req.body;
+      if (!productType || !issue) {
+        res.status(400).json({ error: "Product type and issue are required" });
+        return;
+      }
+
+      const guide = await generateRepairGuide(productType, issue);
+      res.json(guide);
+    } catch (error) {
+      console.error("Error generating repair guide:", error);
+      res.status(500).json({ error: "Failed to generate repair guide" });
     }
   });
 

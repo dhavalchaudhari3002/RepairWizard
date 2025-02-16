@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 interface RepairQuestionInput {
@@ -8,6 +7,59 @@ interface RepairQuestionInput {
   productType: string;
   issueDescription?: string;
   imageUrl?: string;
+}
+
+interface RepairGuideStep {
+  step: number;
+  title: string;
+  description: string;
+  imageDescription: string;
+  safetyWarnings?: string[];
+  tools?: string[];
+}
+
+interface RepairGuide {
+  title: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedTime: string;
+  steps: RepairGuideStep[];
+  warnings: string[];
+  tools: string[];
+  videoKeywords: string[];
+}
+
+export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
+  try {
+    const systemPrompt = 
+      "You are an expert repair technician creating detailed repair guides. " +
+      "Generate a comprehensive, step-by-step guide in JSON format with safety warnings, " +
+      "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos.";
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { 
+          role: "user", 
+          content: `Create a detailed repair guide for ${productType} with the following issue: ${issue}. ` +
+                   `Include step-by-step instructions, required tools, safety warnings, and image descriptions for each step.`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+
+    if (!response.choices[0].message.content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const result = JSON.parse(response.choices[0].message.content);
+    return result as RepairGuide;
+  } catch (error) {
+    console.error("OpenAI API error:", error);
+    throw new Error("Failed to generate repair guide");
+  }
 }
 
 export async function getRepairAnswer({ question, productType, issueDescription, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {

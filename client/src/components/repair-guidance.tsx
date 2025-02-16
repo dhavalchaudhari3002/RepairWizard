@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { RepairQuestions } from "./repair-questions";
+import { RepairGuide } from "./repair-guide";
 
 interface RepairGuidanceData {
   productType: string;
@@ -17,44 +18,55 @@ interface RepairGuidanceData {
 
 export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Repair Guidance</CardTitle>
-        <CardDescription>Common issues and recommendations</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <h3 className="font-semibold mb-2">Common Issues</h3>
-          <ul className="space-y-2">
-            {data.commonIssues.map((issue: string, i: number) => (
-              <li key={i} className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>{issue}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Repair Guidance</CardTitle>
+          <CardDescription>Common issues and recommendations</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="font-semibold mb-2">Common Issues</h3>
+            <ul className="space-y-2">
+              {data.commonIssues.map((issue: string, i: number) => (
+                <li key={i} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>{issue}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        <div>
-          <h3 className="font-semibold mb-2">Recommendations</h3>
-          <ul className="space-y-2">
-            {data.recommendations.map((rec: string, i: number) => (
-              <li key={i} className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div>
+            <h3 className="font-semibold mb-2">Recommendations</h3>
+            <ul className="space-y-2">
+              {data.recommendations.map((rec: string, i: number) => (
+                <li key={i} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div>
-          <h3 className="font-semibold mb-4">Ask about your repair</h3>
+      <RepairGuide 
+        productType={data.productType} 
+        issue={data.issueDescription || ''} 
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ask about your repair</CardTitle>
+        </CardHeader>
+        <CardContent>
           <RepairQuestions 
             productType={data.productType} 
             issueDescription={data.issueDescription}
           />
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
