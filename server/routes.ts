@@ -33,13 +33,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/repair-questions", async (req, res) => {
     try {
-      const { question, productType } = req.body;
+      const { question, productType, imageUrl } = req.body;
       if (!question || !productType) {
         res.status(400).json({ error: "Question and product type are required" });
         return;
       }
 
-      const answer = await getRepairAnswer(question, productType);
+      const answer = await getRepairAnswer({ question, productType, imageUrl });
       res.json(answer);
     } catch (error) {
       console.error("Error processing repair question:", error);
