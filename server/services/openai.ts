@@ -11,13 +11,16 @@ interface RepairQuestionInput {
 
 export async function getRepairAnswer({ question, productType, imageUrl }: RepairQuestionInput): Promise<{ answer: string }> {
   try {
+    const systemPrompt = 
+      "You are a repair expert specializing in electronics and appliances. " +
+      "Provide helpful, accurate, and concise answers to repair-related questions. " +
+      "Focus on safety and practical solutions. When uncertain, recommend professional help. " +
+      "Respond with JSON in this format: { 'answer': 'your detailed answer here' }";
+
     const messages: any[] = [
       {
         role: "system",
-        content: 
-          "You are a repair expert specializing in electronics and appliances. " +
-          "Provide helpful, accurate, and concise answers to repair-related questions. " +
-          "Focus on safety and practical solutions. When uncertain, recommend professional help."
+        content: systemPrompt
       }
     ];
 
@@ -27,7 +30,7 @@ export async function getRepairAnswer({ question, productType, imageUrl }: Repai
         content: [
           {
             type: "text",
-            text: `Product Type: ${productType}\nQuestion: ${question}\nPlease analyze the image and provide repair guidance.`
+            text: `Please analyze this image and provide repair guidance for this ${productType}. Question: ${question}\nRespond in JSON format.`
           },
           {
             type: "image_url",
@@ -40,7 +43,7 @@ export async function getRepairAnswer({ question, productType, imageUrl }: Repai
     } else {
       messages.push({
         role: "user",
-        content: `Product Type: ${productType}\nQuestion: ${question}`
+        content: `Please provide repair guidance for this ${productType}. Question: ${question}\nRespond in JSON format.`
       });
     }
 
