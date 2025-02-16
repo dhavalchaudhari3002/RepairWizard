@@ -39,13 +39,25 @@ export function RepairForm() {
 
   const mutation = useMutation({
     mutationFn: async (values: InsertRepairRequest) => {
-      const res = await apiRequest("POST", "/api/repair-requests", values);
-      const data = await res.json();
-      const estimate = await apiRequest(
-        "GET",
-        `/api/repair-requests/${data.id}/estimate?productType=${values.productType}`
-      );
-      return await estimate.json();
+      try {
+        const res = await apiRequest("POST", "/api/repair-requests", values);
+        if (!res.ok) {
+          throw new Error('Failed to submit repair request');
+        }
+        const data = await res.json();
+
+        const estimateRes = await apiRequest(
+          "GET",
+          `/api/repair-requests/${data.id}/estimate?productType=${values.productType}`
+        );
+        if (!estimateRes.ok) {
+          throw new Error('Failed to get repair estimate');
+        }
+        return await estimateRes.json();
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       setEstimateData(data);
@@ -61,6 +73,7 @@ export function RepairForm() {
         description: "Failed to submit repair request. Please try again.",
         variant: "destructive",
       });
+      console.error('Form submission error:', error);
     },
   });
 
@@ -85,9 +98,18 @@ export function RepairForm() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64String = e.target?.result as string;
-      setImagePreview(base64String);
-      form.setValue('imageUrl', base64String);
+      try {
+        const base64String = e.target?.result as string;
+        setImagePreview(base64String);
+        form.setValue('imageUrl', base64String, { shouldValidate: true });
+      } catch (error) {
+        console.error('Image processing error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to process image",
+          variant: "destructive",
+        });
+      }
     };
     reader.onerror = () => {
       toast({
@@ -120,18 +142,27 @@ export function RepairForm() {
 
   const removeImage = () => {
     setImagePreview(null);
-    form.setValue('imageUrl', '');
+    form.setValue('imageUrl', '', { shouldValidate: true });
   };
 
   const onSubmit = async (values: InsertRepairRequest) => {
-    mutation.mutate(values);
+    try {
+      mutation.mutate(values);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit form. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (step === 2) {
     return (
       <div className="space-y-8">
         <CostEstimate data={estimateData} />
-        <RepairGuidance data={estimateData} />
+        <RepairGuidance data={{ ...estimateData, productType: form.getValues('productType') }} />
         <RepairShops />
         <Button 
           onClick={() => {
