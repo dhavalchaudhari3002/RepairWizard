@@ -30,11 +30,14 @@ interface RepairGuide {
 
 export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
   try {
+    console.log("Starting repair guide generation for:", { productType, issue });
+
     const systemPrompt = 
       "You are an expert repair technician creating detailed repair guides. " +
       "Generate a comprehensive, step-by-step guide in JSON format with safety warnings, " +
       "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos.";
 
+    console.log("Calling OpenAI API...");
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -50,16 +53,26 @@ export async function generateRepairGuide(productType: string, issue: string): P
       max_tokens: 1500,
     });
 
+    console.log("OpenAI API response received:", response.choices[0]?.message);
+
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error("Empty response from OpenAI");
     }
 
+    console.log("Parsing response content...");
     const result = JSON.parse(content);
+
+    if (!result.title || !Array.isArray(result.steps)) {
+      console.error("Invalid guide format:", result);
+      throw new Error("Generated guide does not match expected format");
+    }
+
+    console.log("Successfully generated repair guide");
     return result as RepairGuide;
   } catch (error) {
     console.error("OpenAI API error:", error);
-    throw new Error("Failed to generate repair guide");
+    throw new Error("Failed to generate repair guide: " + (error instanceof Error ? error.message : String(error)));
   }
 }
 
