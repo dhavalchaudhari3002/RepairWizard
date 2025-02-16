@@ -34,8 +34,18 @@ export async function generateRepairGuide(productType: string, issue: string): P
 
     const systemPrompt = 
       "You are an expert repair technician creating detailed repair guides. " +
-      "Generate a comprehensive, step-by-step guide in JSON format with safety warnings, " +
-      "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos.";
+      "Generate a comprehensive, step-by-step guide with safety warnings, " +
+      "required tools, and descriptions for helpful images. Include search keywords for relevant tutorial videos. " +
+      "Format your response as a valid JSON object with the following structure:\n" +
+      "{\n" +
+      "  'title': 'string',\n" +
+      "  'difficulty': 'Beginner' | 'Intermediate' | 'Advanced',\n" +
+      "  'estimatedTime': 'string',\n" +
+      "  'steps': [{ 'step': number, 'title': 'string', 'description': 'string', 'imageDescription': 'string', 'safetyWarnings': ['string'], 'tools': ['string'] }],\n" +
+      "  'warnings': ['string'],\n" +
+      "  'tools': ['string'],\n" +
+      "  'videoKeywords': ['string']\n" +
+      "}";
 
     console.log("Calling OpenAI API...");
     const response = await openai.chat.completions.create({
@@ -48,12 +58,11 @@ export async function generateRepairGuide(productType: string, issue: string): P
                    `Include step-by-step instructions, required tools, safety warnings, and image descriptions for each step.`
         }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.7,
       max_tokens: 1500,
     });
 
-    console.log("OpenAI API response received:", response.choices[0]?.message);
+    console.log("OpenAI API response received");
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
@@ -61,7 +70,13 @@ export async function generateRepairGuide(productType: string, issue: string): P
     }
 
     console.log("Parsing response content...");
-    const result = JSON.parse(content);
+    let result: RepairGuide;
+    try {
+      result = JSON.parse(content);
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", content);
+      throw new Error("Invalid JSON response from OpenAI");
+    }
 
     if (!result.title || !Array.isArray(result.steps)) {
       console.error("Invalid guide format:", result);
@@ -69,7 +84,7 @@ export async function generateRepairGuide(productType: string, issue: string): P
     }
 
     console.log("Successfully generated repair guide");
-    return result as RepairGuide;
+    return result;
   } catch (error) {
     console.error("OpenAI API error:", error);
     throw new Error("Failed to generate repair guide: " + (error instanceof Error ? error.message : String(error)));
@@ -82,7 +97,7 @@ export async function getRepairAnswer({ question, productType, issueDescription,
       "You are a repair expert specializing in electronics and appliances. " +
       "Provide helpful, accurate, and concise answers to repair-related questions. " +
       "Focus on safety and practical solutions. When uncertain, recommend professional help. " +
-      "Respond with JSON in this format: { 'answer': 'your detailed answer here' }";
+      "Format your response as a JSON object with an 'answer' field containing your response.";
 
     const messages: any[] = [
       {
@@ -99,7 +114,7 @@ export async function getRepairAnswer({ question, productType, issueDescription,
         content: [
           {
             type: "text",
-            text: `${contextPrompt}\nAnalyze this image and answer this question: ${question}\nRespond in JSON format.`
+            text: `${contextPrompt}\nAnalyze this image and answer this question: ${question}`
           },
           {
             type: "image_url",
@@ -112,14 +127,13 @@ export async function getRepairAnswer({ question, productType, issueDescription,
     } else {
       messages.push({
         role: "user",
-        content: `${contextPrompt}\nQuestion: ${question}\nRespond in JSON format.`
+        content: `${contextPrompt}\nQuestion: ${question}`
       });
     }
 
     const response = await openai.chat.completions.create({
       model: imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
-      response_format: { type: "json_object" },
       temperature: 0.7,
       max_tokens: 500,
     });
@@ -129,8 +143,13 @@ export async function getRepairAnswer({ question, productType, issueDescription,
       throw new Error("Empty response from OpenAI");
     }
 
-    const result = JSON.parse(content);
-    return { answer: result.answer };
+    try {
+      const result = JSON.parse(content);
+      return { answer: result.answer };
+    } catch (error) {
+      // If JSON parsing fails, return the content directly
+      return { answer: content };
+    }
   } catch (error) {
     console.error("OpenAI API error:", error);
     throw new Error("Failed to get repair answer");
