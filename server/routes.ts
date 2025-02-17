@@ -23,13 +23,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Repair request routes
+  // Repair request routes with notification creation
   app.post("/api/repair-requests", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const data = insertRepairRequestSchema.parse(req.body);
-      const repairRequest = await storage.createRepairRequest(data);
+      const repairRequest = await storage.createRepairRequest({
+        ...data,
+        customerId: req.user.id
+      });
+
+      // Create notification for the customer
+      await storage.createNotification({
+        userId: req.user.id,
+        title: "Repair Request Created",
+        message: `Your repair request for ${data.productType} has been submitted successfully.`,
+        type: "repair_update",
+        relatedEntityId: repairRequest.id
+      });
+
       res.json(repairRequest);
     } catch (error) {
+      console.error("Error creating repair request:", error);
       res.status(400).json({ error: "Invalid request data" });
     }
   });
@@ -82,6 +100,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Add notification creation for repair request status updates
+  app.patch("/api/repair-requests/:id/status", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const requestId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      const repairRequest = await storage.updateRepairRequestStatus(requestId, status);
+
+      if (repairRequest.customerId) {
+        await storage.createNotification({
+          userId: repairRequest.customerId,
+          title: "Repair Status Updated",
+          message: `Your repair request status has been updated to: ${status}`,
+          type: "repair_update",
+          relatedEntityId: requestId
+        });
+      }
+
+      res.json(repairRequest);
+    } catch (error) {
+      console.error("Error updating repair request status:", error);
+      res.status(500).json({ error: "Failed to update repair request status" });
     }
   });
 

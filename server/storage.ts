@@ -20,6 +20,11 @@ export interface IStorage {
   // Repairers
   createRepairer(repairer: InsertRepairer): Promise<Repairer>;
 
+  // Repair requests
+  createRepairRequest(request: Omit<InsertRepairRequest, "status">): Promise<RepairRequest>;
+  getRepairRequest(id: number): Promise<RepairRequest | undefined>;
+  updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest>;
+
   // Session store
   sessionStore: session.Store;
 
@@ -97,6 +102,32 @@ export class DatabaseStorage implements IStorage {
       .values([repairerData])
       .returning();
     return repairer;
+  }
+
+  // Repair request methods
+  async createRepairRequest(requestData: Omit<InsertRepairRequest, "status">): Promise<RepairRequest> {
+    const [request] = await db
+      .insert(repairRequests)
+      .values({ ...requestData, status: "pending" })
+      .returning();
+    return request;
+  }
+
+  async getRepairRequest(id: number): Promise<RepairRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(repairRequests)
+      .where(eq(repairRequests.id, id));
+    return request;
+  }
+
+  async updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest> {
+    const [request] = await db
+      .update(repairRequests)
+      .set({ status })
+      .where(eq(repairRequests.id, id))
+      .returning();
+    return request;
   }
 
   // Notification methods
