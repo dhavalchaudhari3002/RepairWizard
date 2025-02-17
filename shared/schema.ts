@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,6 +48,18 @@ export const repairRequests = pgTable("repair_requests", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type", { enum: ["repair_update", "system", "message"] }).notNull(),
+  read: boolean("read").default(false).notNull(),
+  relatedEntityId: integer("related_entity_id"), // Can be repairRequestId or other entity IDs
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -91,16 +103,6 @@ export const insertRepairerSchema = createInsertSchema(repairers)
     experience: z.string().optional(),
   });
 
-//Export types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
-export type RepairShop = typeof repairShops.$inferSelect;
-
-export type InsertRepairer = z.infer<typeof insertRepairerSchema>;
-export type Repairer = typeof repairers.$inferSelect;
-
 export const insertRepairRequestSchema = createInsertSchema(repairRequests)
   .pick({
     productType: true,
@@ -113,5 +115,31 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     imageUrl: z.string().optional(),
   });
 
+export const insertNotificationSchema = createInsertSchema(notifications)
+  .omit({
+    id: true,
+    createdAt: true,
+    read: true,
+  })
+  .extend({
+    title: z.string().min(1, "Title is required"),
+    message: z.string().min(1, "Message is required"),
+    type: z.enum(["repair_update", "system", "message"]),
+    relatedEntityId: z.number().optional(),
+  });
+
+//Export types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
+export type RepairShop = typeof repairShops.$inferSelect;
+
+export type InsertRepairer = z.infer<typeof insertRepairerSchema>;
+export type Repairer = typeof repairers.$inferSelect;
+
 export type InsertRepairRequest = z.infer<typeof insertRepairRequestSchema>;
 export type RepairRequest = typeof repairRequests.$inferSelect;
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
