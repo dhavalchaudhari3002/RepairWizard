@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Wrench, Store, User, Info } from "lucide-react";
+import { Wrench, Store, User, Info, Plus, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,12 +22,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useState } from "react";
+import * as z from "zod";
 
 type FormData = {
   username: string;
   password: string;
   email: string;
   role: "customer" | "repairer";
+  // Additional fields for repairers
+  specialties?: string[];
+  experience?: string;
+  shopName?: string;
+  shopAddress?: string;
+  phoneNumber?: string;
 };
 
 const roleDescriptions = {
@@ -57,22 +65,57 @@ const roleDescriptions = {
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [newSpecialty, setNewSpecialty] = useState("");
+
   const form = useForm<FormData>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(
+      insertUserSchema.extend({
+        specialties: z.array(z.string()).optional(),
+        experience: z.string().optional(),
+        shopName: z.string().optional(),
+        shopAddress: z.string().optional(),
+        phoneNumber: z.string().optional(),
+      })
+    ),
     defaultValues: {
       username: "",
       password: "",
       email: "",
       role: "customer",
+      specialties: [],
+      experience: "",
+      shopName: "",
+      shopAddress: "",
+      phoneNumber: "",
     },
   });
+
+  const role = form.watch("role");
 
   // Redirect if already logged in
   if (user) {
     return <Redirect to="/" />;
   }
 
+  const addSpecialty = () => {
+    if (newSpecialty && !specialties.includes(newSpecialty)) {
+      setSpecialties([...specialties, newSpecialty]);
+      form.setValue("specialties", [...specialties, newSpecialty]);
+      setNewSpecialty("");
+    }
+  };
+
+  const removeSpecialty = (specialty: string) => {
+    const updated = specialties.filter(s => s !== specialty);
+    setSpecialties(updated);
+    form.setValue("specialties", updated);
+  };
+
   const onSubmit = form.handleSubmit(async (data) => {
+    if (data.role === "repairer" && (!data.specialties?.length || !data.shopName || !data.shopAddress || !data.phoneNumber)) {
+      return;
+    }
     await registerMutation.mutateAsync(data);
   });
 
@@ -212,6 +255,108 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
+                      {role === "repairer" && (
+                        <>
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="shopName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Shop Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Your Repair Shop" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="shopAddress"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Shop Address</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="123 Repair Street" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="phoneNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Phone Number</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="+1 (555) 123-4567" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="specialties"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Specialties</FormLabel>
+                                  <div className="space-y-2">
+                                    <div className="flex gap-2">
+                                      <Input
+                                        placeholder="Add a specialty"
+                                        value={newSpecialty}
+                                        onChange={(e) => setNewSpecialty(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
+                                      />
+                                      <Button type="button" onClick={addSpecialty} className="shrink-0">
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {specialties.map((specialty) => (
+                                        <div
+                                          key={specialty}
+                                          className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center gap-2"
+                                        >
+                                          <span>{specialty}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => removeSpecialty(specialty)}
+                                            className="hover:text-destructive"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <FormMessage />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="experience"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Experience</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Years of experience or certifications" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </>
+                      )}
                       <Button
                         type="submit"
                         className="w-full"

@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, InsertUser, InsertRepairShop, InsertRepairer } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -47,30 +47,30 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async function verify(username: string, password: string, done) {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
+    new LocalStrategy(function verify(username: string, password: string, done) {
+      storage.getUserByUsername(username).then(
+        (user) => {
+          if (!user || !comparePasswords(password, user.password)) {
+            return done(null, false, { message: "Invalid username or password" });
+          }
+          return done(null, user);
+        },
+        (err) => done(err)
+      );
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      if (!user) {
-        return done(null, false);
-      }
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
+  passport.deserializeUser((id: number, done) => {
+    storage.getUser(id).then(
+      (user) => {
+        if (!user) {
+          return done(null, false);
+        }
+        done(null, user);
+      },
+      (err) => done(err)
+    );
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -81,10 +81,37 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(req.body.password);
-      const user = await storage.createUser({
-        ...req.body,
+      const userData: InsertUser = {
+        username: req.body.username,
         password: hashedPassword,
-      });
+        email: req.body.email,
+        role: req.body.role,
+      };
+
+      const user = await storage.createUser(userData);
+
+      // If the user is a repairer, create their shop and repairer profile
+      if (req.body.role === "repairer") {
+        const shopData: InsertRepairShop = {
+          ownerId: user.id,
+          name: req.body.shopName,
+          description: "",
+          address: req.body.shopAddress,
+          phoneNumber: req.body.phoneNumber,
+          specialties: req.body.specialties,
+        };
+
+        const shop = await storage.createRepairShop(shopData);
+
+        const repairerData: InsertRepairer = {
+          userId: user.id,
+          shopId: shop.id,
+          specialties: req.body.specialties,
+          experience: req.body.experience || "",
+        };
+
+        await storage.createRepairer(repairerData);
+      }
 
       req.login(user, (err) => {
         if (err) return next(err);

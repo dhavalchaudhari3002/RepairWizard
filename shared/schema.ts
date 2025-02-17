@@ -64,12 +64,10 @@ export const insertUserSchema = createInsertSchema(users)
   });
 
 export const insertRepairShopSchema = createInsertSchema(repairShops)
-  .pick({
-    name: true,
-    description: true,
-    address: true,
-    phoneNumber: true,
-    specialties: true,
+  .omit({
+    id: true,
+    createdAt: true,
+    rating: true,
   })
   .extend({
     name: z.string().min(1, "Shop name is required"),
@@ -79,14 +77,24 @@ export const insertRepairShopSchema = createInsertSchema(repairShops)
   });
 
 export const insertRepairerSchema = createInsertSchema(repairers)
-  .pick({
-    specialties: true,
-    experience: true,
+  .omit({
+    id: true,
+    createdAt: true,
   })
   .extend({
     specialties: z.array(z.string()).min(1, "At least one specialty is required"),
     experience: z.string().optional(),
   });
+
+//Export types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
+export type RepairShop = typeof repairShops.$inferSelect;
+
+export type InsertRepairer = z.infer<typeof insertRepairerSchema>;
+export type Repairer = typeof repairers.$inferSelect;
 
 export const insertRepairRequestSchema = createInsertSchema(repairRequests)
   .pick({
@@ -99,16 +107,6 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     issueDescription: z.string().min(1, "Issue description is required"),
     imageUrl: z.string().optional(),
   });
-
-// Export types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
-export type RepairShop = typeof repairShops.$inferSelect;
-
-export type InsertRepairer = z.infer<typeof insertRepairerSchema>;
-export type Repairer = typeof repairers.$inferSelect;
 
 export type InsertRepairRequest = z.infer<typeof insertRepairRequestSchema>;
 export type RepairRequest = typeof repairRequests.$inferSelect;

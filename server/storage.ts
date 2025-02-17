@@ -1,4 +1,4 @@
-import { repairRequests, users, repairShops, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop } from "@shared/schema";
+import { repairRequests, users, repairShops, repairers, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop, type InsertRepairShop, type Repairer, type InsertRepairer } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -12,14 +12,13 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
 
-  // Repair requests
-  createRepairRequest(request: InsertRepairRequest): Promise<RepairRequest>;
-  getRepairRequest(id: number): Promise<RepairRequest | undefined>;
-  getAllRepairRequests(): Promise<RepairRequest[]>;
-
   // Repair shops
   getAllRepairShops(): Promise<RepairShop[]>;
   getRepairShop(id: number): Promise<RepairShop | undefined>;
+  createRepairShop(shop: InsertRepairShop): Promise<RepairShop>;
+
+  // Repairers
+  createRepairer(repairer: InsertRepairer): Promise<Repairer>;
 
   // Session store
   sessionStore: session.Store;
@@ -29,7 +28,6 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Initialize session store with PostgreSQL
     this.sessionStore = new PostgresSessionStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
@@ -77,29 +75,21 @@ export class DatabaseStorage implements IStorage {
     return shop;
   }
 
-  // Repair request methods
-  async createRepairRequest(request: InsertRepairRequest): Promise<RepairRequest> {
-    const [repairRequest] = await db
-      .insert(repairRequests)
-      .values({
-        ...request,
-        status: "pending",
-        customerId: 1, // TODO: Update this with actual user ID once auth is implemented
-      })
+  async createRepairShop(shopData: InsertRepairShop): Promise<RepairShop> {
+    const [shop] = await db
+      .insert(repairShops)
+      .values([shopData])
       .returning();
-    return repairRequest;
+    return shop;
   }
 
-  async getRepairRequest(id: number): Promise<RepairRequest | undefined> {
-    const [repairRequest] = await db
-      .select()
-      .from(repairRequests)
-      .where(eq(repairRequests.id, id));
-    return repairRequest;
-  }
-
-  async getAllRepairRequests(): Promise<RepairRequest[]> {
-    return await db.select().from(repairRequests);
+  // Repairer methods
+  async createRepairer(repairerData: InsertRepairer): Promise<Repairer> {
+    const [repairer] = await db
+      .insert(repairers)
+      .values([repairerData])
+      .returning();
+    return repairer;
   }
 }
 
