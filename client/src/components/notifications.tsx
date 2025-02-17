@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Notification } from "@shared/schema";
 
 export function NotificationBadge() {
   const { unreadCount } = useNotifications();
@@ -29,7 +30,7 @@ export function NotificationBadge() {
   );
 }
 
-export function NotificationItem({ notification }: { notification: any }) {
+export function NotificationItem({ notification }: { notification: Notification }) {
   const { markAsRead } = useNotifications();
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -91,14 +92,14 @@ export function NotificationList() {
           variant="ghost"
           size="sm"
           onClick={() => markAllAsRead.mutate()}
-          disabled={!notifications.some((n) => !n.read)}
+          disabled={!notifications.some((n: Notification) => !n.read)}
         >
           Mark all as read
         </Button>
       </div>
       <ScrollArea className="h-[400px]">
         <div className="flex flex-col gap-2 p-4">
-          {notifications.map((notification) => (
+          {notifications.map((notification: Notification) => (
             <NotificationItem
               key={notification.id}
               notification={notification}

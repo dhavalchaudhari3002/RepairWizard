@@ -8,26 +8,29 @@ export function useNotifications() {
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey,
-    queryFn: () => apiRequest<Notification[]>("/api/notifications"),
+    queryFn: async () => {
+      const response = await apiRequest("/api/notifications");
+      return response as Notification[];
+    },
   });
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
 
   const markAsRead = useMutation({
-    mutationFn: (notificationId: number) =>
+    mutationFn: async (notificationId: number) =>
       apiRequest(`/api/notifications/${notificationId}/read`, {
         method: "PATCH",
-      }),
+      } as RequestInit),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
   });
 
   const markAllAsRead = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       apiRequest("/api/notifications/read-all", {
         method: "PATCH",
-      }),
+      } as RequestInit),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
