@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { NavBar } from "@/components/navbar";
 
 function Router() {
   return (
@@ -22,7 +23,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <div className="min-h-screen flex flex-col">
+          <NavBar />
+          <main className="flex-1">
+            <Router />
+          </main>
+        </div>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
