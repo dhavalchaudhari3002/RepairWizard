@@ -10,6 +10,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
   setupAuth(app);
 
+  // Repair shops endpoint
+  app.get("/api/repair-shops", async (_req, res) => {
+    try {
+      const shops = await storage.getAllRepairShops();
+      res.json(shops);
+    } catch (error) {
+      console.error("Error fetching repair shops:", error);
+      res.status(500).json({ error: "Failed to fetch repair shops" });
+    }
+  });
+
   // Existing repair request routes
   app.post("/api/repair-requests", async (req, res) => {
     try {

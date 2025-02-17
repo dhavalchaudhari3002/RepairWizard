@@ -1,4 +1,4 @@
-import { repairRequests, users, type RepairRequest, type InsertRepairRequest, type User, type InsertUser } from "@shared/schema";
+import { repairRequests, users, repairShops, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -16,6 +16,10 @@ export interface IStorage {
   createRepairRequest(request: InsertRepairRequest): Promise<RepairRequest>;
   getRepairRequest(id: number): Promise<RepairRequest | undefined>;
   getAllRepairRequests(): Promise<RepairRequest[]>;
+
+  // Repair shops
+  getAllRepairShops(): Promise<RepairShop[]>;
+  getRepairShop(id: number): Promise<RepairShop | undefined>;
 
   // Session store
   sessionStore: session.Store;
@@ -60,7 +64,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Repair request methods (existing code)
+  // Repair shop methods
+  async getAllRepairShops(): Promise<RepairShop[]> {
+    return await db.select().from(repairShops);
+  }
+
+  async getRepairShop(id: number): Promise<RepairShop | undefined> {
+    const [shop] = await db
+      .select()
+      .from(repairShops)
+      .where(eq(repairShops.id, id));
+    return shop;
+  }
+
+  // Repair request methods
   async createRepairRequest(request: InsertRepairRequest): Promise<RepairRequest> {
     const [repairRequest] = await db
       .insert(repairRequests)
