@@ -4,8 +4,13 @@ import { storage } from "./storage";
 import { insertRepairRequestSchema } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide } from "./services/openai";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
+  setupAuth(app);
+
+  // Existing repair request routes
   app.post("/api/repair-requests", async (req, res) => {
     try {
       const data = insertRepairRequestSchema.parse(req.body);
