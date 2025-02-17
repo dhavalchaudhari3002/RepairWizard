@@ -6,15 +6,16 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const queryKey = ["/api/notifications"];
 
-  const { data: notifications = [], isLoading, error } = useQuery({
+  const { data: notifications = [], isLoading, error } = useQuery<Notification[]>({
     queryKey,
-    // Using apiRequest for consistent error handling
     queryFn: async () => {
       try {
         console.log("Fetching notifications...");
-        const data = await apiRequest("/api/notifications");
+        const data = await apiRequest("/api/notifications", {
+          method: "GET"
+        });
         console.log("Received notifications:", data);
-        return data;
+        return data as Notification[];
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
         throw error;
@@ -22,12 +23,10 @@ export function useNotifications() {
     },
   });
 
-  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
-
   const markAsRead = useMutation({
     mutationFn: async (notificationId: number) => {
       return apiRequest(`/api/notifications/${notificationId}/read`, {
-        method: "PATCH",
+        method: "PATCH"
       });
     },
     onSuccess: () => {
@@ -38,7 +37,7 @@ export function useNotifications() {
   const markAllAsRead = useMutation({
     mutationFn: async () => {
       return apiRequest("/api/notifications/read-all", {
-        method: "PATCH",
+        method: "PATCH"
       });
     },
     onSuccess: () => {
@@ -48,7 +47,7 @@ export function useNotifications() {
 
   return {
     notifications,
-    unreadCount,
+    unreadCount: notifications.filter(n => !n.read).length,
     isLoading,
     error,
     markAsRead,
