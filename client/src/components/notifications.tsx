@@ -16,8 +16,10 @@ import { cn } from "@/lib/utils";
 import type { Notification } from "@shared/schema";
 
 export function NotificationBadge() {
-  const { unreadCount } = useNotifications();
+  const { notifications = [], isLoading } = useNotifications();
+  if (isLoading) return null;
 
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
   if (!unreadCount) return null;
 
   return (
@@ -62,7 +64,7 @@ export function NotificationItem({ notification }: { notification: Notification 
 }
 
 export function NotificationList() {
-  const { notifications, isLoading, error, markAllAsRead } = useNotifications();
+  const { notifications = [], isLoading, error, markAllAsRead } = useNotifications();
 
   if (error) {
     return (
@@ -129,7 +131,8 @@ export function NotificationList() {
   );
 }
 
-export function NotificationsMenu() {
+// Export NotificationsMenu as NotificationsPopover for compatibility
+export function NotificationsPopover() {
   return (
     <Sheet>
       <SheetTrigger asChild>

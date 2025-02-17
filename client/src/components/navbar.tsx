@@ -14,10 +14,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, User } from "lucide-react";
+import { Bell, Menu, User } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
+import { NotificationsPopover } from "@/components/notifications";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
+  const { notifications = [], isLoading: notificationsLoading } = useNotifications();
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,9 +44,12 @@ export function NavBar() {
             )}
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             {user ? (
               <>
+                {/* Notifications */}
+                <NotificationsPopover />
+
                 {/* Desktop menu */}
                 <div className="hidden md:flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">
