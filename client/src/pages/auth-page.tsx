@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Wrench, Store, User } from "lucide-react";
+import { Wrench, Store, User, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,12 +16,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type FormData = {
   username: string;
   password: string;
   email: string;
   role: "customer" | "repairer" | "shop_owner";
+};
+
+const roleDescriptions = {
+  customer: {
+    title: "Customer",
+    description: "Get expert repair help and find trusted repair shops",
+    features: [
+      "Get AI-powered repair guidance",
+      "Find and connect with local repair shops",
+      "Track repair requests and history",
+      "Get cost estimates before repairs"
+    ]
+  },
+  repairer: {
+    title: "Repairer",
+    description: "Join repair shops and showcase your expertise",
+    features: [
+      "Connect with repair shops hiring experts",
+      "Showcase your repair specialties",
+      "Manage repair requests",
+      "Build your reputation with reviews"
+    ]
+  },
+  shop_owner: {
+    title: "Repair Shop Owner",
+    description: "List your services and grow your business",
+    features: [
+      "List your repair shop services",
+      "Manage team of repairers",
+      "Track business analytics",
+      "Get more customers through the platform"
+    ]
+  }
 };
 
 export default function AuthPage() {
@@ -78,7 +117,19 @@ export default function AuthPage() {
                       name="role"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Account Type</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            Account Type
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Info className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Choose your role in the repair ecosystem</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
@@ -89,26 +140,21 @@ export default function AuthPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="customer">
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4" />
-                                  <span>Customer</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="shop_owner">
-                                <div className="flex items-center gap-2">
-                                  <Store className="h-4 w-4" />
-                                  <span>Repair Shop Owner</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="repairer">
-                                <div className="flex items-center gap-2">
-                                  <Wrench className="h-4 w-4" />
-                                  <span>Repairer</span>
-                                </div>
-                              </SelectItem>
+                              {Object.entries(roleDescriptions).map(([role, info]) => (
+                                <SelectItem key={role} value={role}>
+                                  <div className="flex items-center gap-2">
+                                    {role === "customer" && <User className="h-4 w-4" />}
+                                    {role === "shop_owner" && <Store className="h-4 w-4" />}
+                                    {role === "repairer" && <Wrench className="h-4 w-4" />}
+                                    <span>{info.title}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {roleDescriptions[field.value].description}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -218,55 +264,43 @@ export default function AuthPage() {
           </CardContent>
         </Card>
 
-        {/* Right column: Hero section */}
+        {/* Right column: Role information */}
         <div className="hidden lg:block">
-          <div className="flex h-full flex-col justify-center space-y-4">
+          <div className="flex h-full flex-col justify-center space-y-6">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold">
                 Your One-Stop Repair Solution
               </h1>
               <p className="text-muted-foreground">
-                Join our platform to get expert repair assistance, connect with repair shops,
-                or offer your repair services to others.
+                Join our platform and become part of the repair ecosystem. Choose your role and get started today!
               </p>
             </div>
 
-            <div className="grid gap-4">
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <User className="h-6 w-6 text-primary" />
+            <div className="grid gap-6">
+              {Object.entries(roleDescriptions).map(([role, info]) => (
+                <div key={role} className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-lg bg-primary/10 p-2">
+                      {role === "customer" && <User className="h-6 w-6 text-primary" />}
+                      {role === "shop_owner" && <Store className="h-6 w-6 text-primary" />}
+                      {role === "repairer" && <Wrench className="h-6 w-6 text-primary" />}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{info.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {info.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="ml-12 space-y-1">
+                    {info.features.map((feature, index) => (
+                      <li key={index} className="text-sm text-muted-foreground">
+                        • {feature}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div>
-                  <h3 className="font-semibold">For Customers</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Get AI-powered repair guidance and find trusted repair shops
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Store className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">For Repair Shops</h3>
-                  <p className="text-sm text-muted-foreground">
-                    List your services and connect with customers in your area
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Wrench className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">For Repairers</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Join repair shops and showcase your expertise
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
