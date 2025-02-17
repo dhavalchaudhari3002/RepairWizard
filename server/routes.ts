@@ -30,11 +30,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const data = insertRepairRequestSchema.parse(req.body);
-      const repairRequest = await storage.createRepairRequest({
-        ...data,
+      const data = insertRepairRequestSchema.parse({
+        ...req.body,
+        status: "pending",
         customerId: req.user.id
       });
+
+      const repairRequest = await storage.createRepairRequest(data);
 
       // Create notification for the customer
       await storage.createNotification({
@@ -42,6 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: "Repair Request Created",
         message: `Your repair request for ${data.productType} has been submitted successfully.`,
         type: "repair_update",
+        read: false,
         relatedEntityId: repairRequest.id
       });
 
@@ -173,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(guide);
     } catch (error) {
       console.error("Error generating repair guide:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to generate repair guide",
         details: error instanceof Error ? error.message : String(error)
       });

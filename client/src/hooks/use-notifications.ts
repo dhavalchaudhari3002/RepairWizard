@@ -9,28 +9,41 @@ export function useNotifications() {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      const response = await apiRequest("/api/notifications");
-      return response as Notification[];
+      const response = await fetch("/api/notifications");
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+      }
+      return response.json();
     },
   });
 
   const unreadCount = notifications.filter((n: Notification) => !n.read).length;
 
   const markAsRead = useMutation({
-    mutationFn: async (notificationId: number) =>
-      apiRequest(`/api/notifications/${notificationId}/read`, {
+    mutationFn: async (notificationId: number) => {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: "PATCH",
-      } as RequestInit),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to mark notification as read');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
   });
 
   const markAllAsRead = useMutation({
-    mutationFn: async () =>
-      apiRequest("/api/notifications/read-all", {
+    mutationFn: async () => {
+      const response = await fetch("/api/notifications/read-all", {
         method: "PATCH",
-      } as RequestInit),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to mark all notifications as read');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
