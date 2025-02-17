@@ -47,30 +47,33 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(function verify(username: string, password: string, done) {
-      storage.getUserByUsername(username).then(
-        (user) => {
-          if (!user || !comparePasswords(password, user.password)) {
-            return done(null, false, { message: "Invalid username or password" });
-          }
-          return done(null, user);
-        },
-        (err) => done(err)
-      );
-    }),
+    new LocalStrategy(async (username: string, password: string, done: (error: any, user?: any, options?: { message: string }) => void) => {
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser((id: number, done) => {
-    storage.getUser(id).then(
-      (user) => {
-        if (!user) {
-          return done(null, false);
-        }
-        done(null, user);
-      },
-      (err) => done(err)
-    );
+  passport.serializeUser((user: Express.User, done: (err: any, id?: number) => void) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: number, done: (err: any, user?: Express.User | false) => void) => {
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -123,7 +126,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
