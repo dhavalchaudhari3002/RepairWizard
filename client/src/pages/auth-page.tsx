@@ -271,6 +271,16 @@ export default function AuthPage() {
                                 {...field}
                               />
                             </FormControl>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Password must contain:
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li>At least 8 characters</li>
+                                <li>At least one uppercase letter</li>
+                                <li>At least one lowercase letter</li>
+                                <li>At least one number</li>
+                                <li>At least one special character</li>
+                              </ul>
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -456,6 +466,16 @@ export default function AuthPage() {
                                 {...field}
                               />
                             </FormControl>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Password must contain:
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li>At least 8 characters</li>
+                                <li>At least one uppercase letter</li>
+                                <li>At least one lowercase letter</li>
+                                <li>At least one number</li>
+                                <li>At least one special character</li>
+                              </ul>
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
