@@ -124,7 +124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: "Repair Status Updated",
           message: `Your repair request status has been updated to: ${status}`,
           type: "repair_update",
-          relatedEntityId: requestId
+          relatedEntityId: requestId,
+          read: false // Added read property here as well
         });
       }
 

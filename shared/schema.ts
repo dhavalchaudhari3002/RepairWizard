@@ -115,17 +115,18 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     imageUrl: z.string().optional(),
   });
 
+// Update the insert schema for notifications
 export const insertNotificationSchema = createInsertSchema(notifications)
   .omit({
     id: true,
     createdAt: true,
-    read: true,
   })
   .extend({
     title: z.string().min(1, "Title is required"),
     message: z.string().min(1, "Message is required"),
     type: z.enum(["repair_update", "system", "message"]),
     relatedEntityId: z.number().optional(),
+    read: z.boolean().optional().default(false),
   });
 
 //Export types
