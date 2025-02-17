@@ -67,7 +67,17 @@ export function NotificationList() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-sm text-destructive">Failed to load notifications</p>
+        <p className="text-sm text-destructive">
+          {error instanceof Error ? error.message : "Failed to load notifications"}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </Button>
       </div>
     );
   }

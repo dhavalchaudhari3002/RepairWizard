@@ -144,7 +144,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
-      .orderBy(notifications.createdAt);
+      .orderBy(notifications.createdAt, "desc");
   }
 
   async markNotificationAsRead(notificationId: number): Promise<void> {
