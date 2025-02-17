@@ -37,6 +37,7 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === "production",
       sameSite: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     },
   };
 
@@ -46,7 +47,7 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy(async function verify(username: string, password: string, done) {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
@@ -63,6 +64,9 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
       done(err);
@@ -112,7 +116,9 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
     res.json(req.user);
   });
 }
