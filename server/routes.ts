@@ -23,24 +23,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Repair request routes with notification creation
+  // Update the repair request creation endpoint
   app.post("/api/repair-requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const data = insertRepairRequestSchema.parse({
-        ...req.body,
-        status: "pending",
-        customerId: req.user.id
+      const data = insertRepairRequestSchema.parse(req.body);
+      const repairRequest = await storage.createRepairRequest({
+        ...data,
+        customerId: req.user.id // Ensure we set the customer ID from the authenticated user
       });
-
-      const repairRequest = await storage.createRepairRequest(data);
 
       // Create notification for the customer
       await storage.createNotification({
-        userId: req.user.id,
+        userId: req.user.id, // Use userId instead of customerId for notifications
         title: "Repair Request Created",
         message: `Your repair request for ${data.productType} has been submitted successfully.`,
         type: "repair_update",
@@ -71,7 +69,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
+      console.log("Fetching notifications for user:", req.user.id);
       const notifications = await storage.getUserNotifications(req.user.id);
+      console.log("Found notifications:", notifications);
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
