@@ -11,9 +11,17 @@ export function useNotifications() {
     queryFn: async () => {
       try {
         console.log("Fetching notifications...");
-        const data = await apiRequest("/api/notifications", {
-          method: "GET"
+        const response = await fetch("/api/notifications", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include"
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
         console.log("Received notifications:", data);
         return data as Notification[];
       } catch (error) {
@@ -25,9 +33,17 @@ export function useNotifications() {
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: number) => {
-      return apiRequest(`/api/notifications/${notificationId}/read`, {
-        method: "PATCH"
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include"
       });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -36,9 +52,17 @@ export function useNotifications() {
 
   const markAllAsRead = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/notifications/read-all", {
-        method: "PATCH"
+      const response = await fetch("/api/notifications/read-all", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include"
       });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
