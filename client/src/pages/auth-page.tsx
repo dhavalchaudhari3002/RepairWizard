@@ -4,11 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Redirect } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Wrench, Store, User, Info, Plus, X } from "lucide-react";
+import { Wrench, Store, User, Info, Plus, X, Upload } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import * as z from "zod";
 
 type FormData = {
@@ -33,6 +33,7 @@ type FormData = {
   // Additional fields for repairers
   specialties?: string[];
   experience?: string;
+  certificate?: File;
   shopName?: string;
   shopAddress?: string;
   phoneNumber?: string;
@@ -67,12 +68,15 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [newSpecialty, setNewSpecialty] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(
       insertUserSchema.extend({
         specialties: z.array(z.string()).optional(),
         experience: z.string().optional(),
+        certificate: z.instanceof(File).optional(),
         shopName: z.string().optional(),
         shopAddress: z.string().optional(),
         phoneNumber: z.string().optional(),
@@ -98,10 +102,18 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSpecialty();
+    }
+  };
+
   const addSpecialty = () => {
     if (newSpecialty && !specialties.includes(newSpecialty)) {
-      setSpecialties([...specialties, newSpecialty]);
-      form.setValue("specialties", [...specialties, newSpecialty]);
+      const updatedSpecialties = [...specialties, newSpecialty];
+      setSpecialties(updatedSpecialties);
+      form.setValue("specialties", updatedSpecialties);
       setNewSpecialty("");
     }
   };
@@ -110,6 +122,14 @@ export default function AuthPage() {
     const updated = specialties.filter(s => s !== specialty);
     setSpecialties(updated);
     form.setValue("specialties", updated);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      form.setValue("certificate", file);
+    }
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -312,7 +332,7 @@ export default function AuthPage() {
                                         placeholder="Add a specialty"
                                         value={newSpecialty}
                                         onChange={(e) => setNewSpecialty(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
+                                        onKeyPress={handleKeyPress}
                                       />
                                       <Button type="button" onClick={addSpecialty} className="shrink-0">
                                         <Plus className="h-4 w-4" />
@@ -347,10 +367,49 @@ export default function AuthPage() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Experience</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Years of experience or certifications" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
+                                  <div className="space-y-2">
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Years of experience or certifications"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        className="hidden"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full"
+                                      >
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {selectedFile ? selectedFile.name : "Upload Certificate (Optional)"}
+                                      </Button>
+                                      {selectedFile && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => {
+                                            setSelectedFile(null);
+                                            form.setValue("certificate", undefined);
+                                            if (fileInputRef.current) {
+                                              fileInputRef.current.value = "";
+                                            }
+                                          }}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <FormMessage />
+                                  </div>
                                 </FormItem>
                               )}
                             />
