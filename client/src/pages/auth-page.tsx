@@ -27,38 +27,30 @@ type FormData = {
   username: string;
   password: string;
   email: string;
-  role: "customer" | "repairer" | "shop_owner";
+  role: "customer" | "repairer";
 };
 
 const roleDescriptions = {
   customer: {
     title: "Customer",
-    description: "Get expert repair help and find trusted repair shops",
+    description: "Get expert repair assistance for your devices",
     features: [
-      "Get AI-powered repair guidance",
-      "Find and connect with local repair shops",
-      "Track repair requests and history",
-      "Get cost estimates before repairs"
+      "Submit repair requests with AI-powered diagnostics",
+      "Get instant cost estimates",
+      "Connect with skilled repairers",
+      "Track repair status in real-time",
+      "Access repair guides and documentation"
     ]
   },
   repairer: {
     title: "Repairer",
-    description: "Join repair shops and showcase your expertise",
+    description: "Offer your repair expertise and grow your business",
     features: [
-      "Connect with repair shops hiring experts",
-      "Showcase your repair specialties",
-      "Manage repair requests",
-      "Build your reputation with reviews"
-    ]
-  },
-  shop_owner: {
-    title: "Repair Shop Owner",
-    description: "List your services and grow your business",
-    features: [
-      "List your repair shop services",
-      "Manage team of repairers",
-      "Track business analytics",
-      "Get more customers through the platform"
+      "Showcase your repair specialties and expertise",
+      "Receive repair requests from customers",
+      "Provide expert diagnostics and estimates",
+      "Build your reputation with customer reviews",
+      "Access AI-powered repair guides and documentation"
     ]
   }
 };
@@ -142,16 +134,18 @@ export default function AuthPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {Object.entries(roleDescriptions).map(([role, info]) => (
-                                  <SelectItem key={role} value={role}>
-                                    <div className="flex items-center gap-2">
-                                      {role === "customer" && <User className="h-4 w-4" />}
-                                      {role === "shop_owner" && <Store className="h-4 w-4" />}
-                                      {role === "repairer" && <Wrench className="h-4 w-4" />}
-                                      <span>{info.title}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
+                                <SelectItem value="customer">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    <span>Customer</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="repairer">
+                                  <div className="flex items-center gap-2">
+                                    <Wrench className="h-4 w-4" />
+                                    <span>Repairer</span>
+                                  </div>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                             <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
@@ -295,7 +289,6 @@ export default function AuthPage() {
                   <div className="flex items-center gap-4">
                     <div className="rounded-lg bg-primary/10 p-3">
                       {role === "customer" && <User className="h-6 w-6 text-primary" />}
-                      {role === "shop_owner" && <Store className="h-6 w-6 text-primary" />}
                       {role === "repairer" && <Wrench className="h-6 w-6 text-primary" />}
                     </div>
                     <div>
@@ -334,7 +327,6 @@ export default function AuthPage() {
                   <div className="flex items-center gap-3 mb-3">
                     <div className="rounded-lg bg-primary/10 p-2">
                       {role === "customer" && <User className="h-5 w-5 text-primary" />}
-                      {role === "shop_owner" && <Store className="h-5 w-5 text-primary" />}
                       {role === "repairer" && <Wrench className="h-5 w-5 text-primary" />}
                     </div>
                     <div>

@@ -7,7 +7,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["customer", "repairer", "shop_owner"] }).notNull(),
+  role: text("role", { enum: ["customer", "repairer"] }).notNull(),
   email: text("email").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -60,7 +60,7 @@ export const insertUserSchema = createInsertSchema(users)
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     email: z.string().email("Invalid email address"),
-    role: z.enum(["customer", "repairer", "shop_owner"]),
+    role: z.enum(["customer", "repairer"]),
   });
 
 export const insertRepairShopSchema = createInsertSchema(repairShops)
