@@ -1,14 +1,114 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
 import { storage } from "./storage";
 import { insertRepairRequestSchema } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide } from "./services/openai";
 import { setupAuth } from "./auth";
+import type { IncomingMessage } from "http";
+import { parse as parseCookie } from "cookie";
+import { promisify } from "util";
+
+// Keep track of connected clients and their user IDs
+const clients = new Map<string, { ws: WebSocket; userId: number }>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
   setupAuth(app);
+
+  const httpServer = createServer(app);
+
+  // Initialize WebSocket server
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+
+  // Helper function to get session and user from request
+  const getUserFromRequest = async (req: IncomingMessage) => {
+    try {
+      const cookieHeader = req.headers.cookie;
+      if (!cookieHeader) {
+        console.log('No cookie header found');
+        return null;
+      }
+
+      const cookies = parseCookie(cookieHeader);
+      const sessionId = cookies['connect.sid'];
+      if (!sessionId) {
+        console.log('No session ID found in cookies');
+        return null;
+      }
+
+      // Extract actual session ID from the signed cookie
+      const actualSessionId = sessionId.split('.')[0].slice(2);
+      console.log('Extracted session ID:', actualSessionId);
+
+      // Get session from storage
+      const getSession = promisify(storage.sessionStore.get.bind(storage.sessionStore));
+      const session = await getSession(actualSessionId);
+
+      if (!session?.passport?.user) {
+        console.log('No user found in session');
+        return null;
+      }
+
+      const user = await storage.getUser(session.passport.user);
+      console.log('Found user:', user?.id);
+      return user;
+    } catch (error) {
+      console.error('Error getting user from session:', error);
+      return null;
+    }
+  };
+
+  wss.on('connection', async (ws, req) => {
+    console.log('New WebSocket connection attempt');
+
+    // Authenticate the connection
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      console.log('WebSocket connection rejected - unauthorized');
+      ws.close(1008, 'Unauthorized');
+      return;
+    }
+
+    console.log('WebSocket connection authenticated for user:', user.id);
+
+    // Add client to our map with user ID
+    const clientId = req.headers['sec-websocket-key'];
+    if (clientId) {
+      clients.set(clientId, { ws, userId: user.id });
+    }
+
+    ws.on('close', () => {
+      if (clientId) {
+        clients.delete(clientId);
+      }
+      console.log('Client disconnected:', user.id);
+    });
+
+    // Send initial connection success message
+    ws.send(JSON.stringify({
+      type: 'connection',
+      data: { message: 'Connected successfully' }
+    }));
+  });
+
+  // Helper function to broadcast notifications
+  const broadcastNotification = (userId: number, notification: any) => {
+    clients.forEach(({ ws, userId: clientUserId }) => {
+      // Only send to the specific user
+      if (clientUserId === userId && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'notification',
+          data: notification
+        }));
+      }
+    });
+  };
 
   // Repair shops endpoint
   app.get("/api/repair-shops", async (_req, res) => {
@@ -23,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update the repair request creation endpoint
+  // Update the repair request creation endpoint to use WebSocket
   app.post("/api/repair-requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -33,18 +133,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertRepairRequestSchema.parse(req.body);
       const repairRequest = await storage.createRepairRequest({
         ...data,
-        customerId: req.user.id // Ensure we set the customer ID from the authenticated user
+        customerId: req.user.id
       });
 
-      // Create notification for the customer
-      await storage.createNotification({
-        userId: req.user.id, // Use userId instead of customerId for notifications
+      // Create notification
+      const notification = await storage.createNotification({
+        userId: req.user.id,
         title: "Repair Request Created",
         message: `Your repair request for ${data.productType} has been submitted successfully.`,
         type: "repair_update",
         read: false,
         relatedEntityId: repairRequest.id
       });
+
+      // Broadcast the notification through WebSocket
+      broadcastNotification(req.user.id, notification);
 
       res.json(repairRequest);
     } catch (error) {
@@ -125,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Your repair request status has been updated to: ${status}`,
           type: "repair_update",
           relatedEntityId: requestId,
-          read: false // Added read property here as well
+          read: false 
         });
       }
 
@@ -184,6 +287,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }

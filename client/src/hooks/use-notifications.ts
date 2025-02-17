@@ -1,10 +1,82 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Notification } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useRef, useCallback } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useNotifications() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const queryKey = ["/api/notifications"];
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 1000;
+
+  const connectWebSocket = useCallback(() => {
+    if (!user) {
+      console.log('No user, skipping WebSocket connection');
+      return;
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('WebSocket connected successfully');
+      reconnectAttempts.current = 0;
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Received WebSocket message:', message);
+
+        if (message.type === 'notification') {
+          queryClient.invalidateQueries({ queryKey });
+        } else if (message.type === 'connection') {
+          console.log('Connection confirmed:', message.data);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket connection closed:', event.code, event.reason);
+      wsRef.current = null;
+
+      // Attempt to reconnect if not explicitly closed and under max attempts
+      if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+        console.log(`Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+        reconnectAttempts.current++;
+        setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts.current);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, 'Component unmounting');
+      }
+    };
+  }, [user, queryClient]);
+
+  useEffect(() => {
+    const cleanup = connectWebSocket();
+    return () => {
+      cleanup?.();
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmounting');
+      }
+    };
+  }, [connectWebSocket]);
 
   const { data: notifications = [], isLoading, error } = useQuery<Notification[]>({
     queryKey,
@@ -29,6 +101,7 @@ export function useNotifications() {
         throw error;
       }
     },
+    enabled: !!user,
   });
 
   const markAsRead = useMutation({
