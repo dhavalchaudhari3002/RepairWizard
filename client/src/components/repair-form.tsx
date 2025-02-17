@@ -18,13 +18,12 @@ import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { RepairShops } from "./repair-shops";
-import { Upload, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function RepairForm() {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
-  const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -93,25 +92,6 @@ export function RepairForm() {
       form.setValue('imageUrl', base64String, { shouldValidate: true });
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageUpload(e.dataTransfer.files[0]);
-    }
   };
 
   const removeImage = () => {
@@ -186,31 +166,27 @@ export function RepairForm() {
             <FormItem>
               <FormLabel>Upload Image (Optional)</FormLabel>
               <FormControl>
-                {imagePreview ? (
-                  <div className="relative w-full rounded-lg overflow-hidden">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="max-w-full max-h-[400px] h-auto mx-auto rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                      ${dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                  >
+                <div className="space-y-4">
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="h-[120px] rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-sm"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  <div className="flex items-center gap-2">
                     <input
                       id="file-upload"
                       type="file"
@@ -222,12 +198,17 @@ export function RepairForm() {
                         }
                       }}
                     />
-                    <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Drag and drop an image here, or click to select
-                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
+                      <ImagePlus className="h-4 w-4 mr-2" />
+                      {imagePreview ? "Change Image" : "Upload Image"}
+                    </Button>
                   </div>
-                )}
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
