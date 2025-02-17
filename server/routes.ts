@@ -169,43 +169,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notification routes
   app.get("/api/notifications", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Unauthorized notification request");
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
       console.log("Fetching notifications for user:", req.user.id);
       const notifications = await storage.getUserNotifications(req.user.id);
-      console.log("Found notifications:", notifications);
+      console.log("Found notifications:", notifications.length);
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      res.status(500).json({ error: "Failed to fetch notifications" });
+      res.status(500).json({ 
+        error: "Failed to fetch notifications",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
   app.patch("/api/notifications/:id/read", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Unauthorized attempt to mark notification as read");
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
       const notificationId = parseInt(req.params.id);
+      if (isNaN(notificationId)) {
+        return res.status(400).json({ error: "Invalid notification ID" });
+      }
+
       await storage.markNotificationAsRead(notificationId);
+      console.log(`Marked notification ${notificationId} as read for user ${req.user.id}`);
       res.sendStatus(200);
     } catch (error) {
       console.error("Error marking notification as read:", error);
-      res.status(500).json({ error: "Failed to mark notification as read" });
+      res.status(500).json({ 
+        error: "Failed to mark notification as read",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
   app.patch("/api/notifications/read-all", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Unauthorized attempt to mark all notifications as read");
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
       await storage.markAllNotificationsAsRead(req.user.id);
+      console.log(`Marked all notifications as read for user ${req.user.id}`);
       res.sendStatus(200);
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
-      res.status(500).json({ error: "Failed to mark all notifications as read" });
+      res.status(500).json({ 
+        error: "Failed to mark all notifications as read",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
