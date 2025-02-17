@@ -13,7 +13,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Repair shops endpoint
   app.get("/api/repair-shops", async (_req, res) => {
     try {
+      console.log("Fetching repair shops...");
       const shops = await storage.getAllRepairShops();
+      console.log("Found shops:", shops);
       res.json(shops);
     } catch (error) {
       console.error("Error fetching repair shops:", error);
@@ -21,7 +23,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Existing repair request routes
+  // Repair request routes
   app.post("/api/repair-requests", async (req, res) => {
     try {
       const data = insertRepairRequestSchema.parse(req.body);

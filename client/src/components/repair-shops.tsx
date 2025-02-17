@@ -14,6 +14,8 @@ export function RepairShops() {
     queryKey: ["/api/repair-shops"],
   });
 
+  console.log("Repair shops data:", { shops, isLoading, error }); // Add logging
+
   if (isLoading) {
     return (
       <Card>
@@ -31,12 +33,13 @@ export function RepairShops() {
   }
 
   if (error) {
+    console.error("Repair shops error:", error); // Add error logging
     return (
       <Card>
         <CardHeader>
           <CardTitle>Recommended Repair Shops</CardTitle>
           <CardDescription className="text-destructive">
-            Failed to load repair shops
+            Failed to load repair shops: {error.message}
           </CardDescription>
         </CardHeader>
       </Card>
