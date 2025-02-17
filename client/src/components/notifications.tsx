@@ -62,7 +62,15 @@ export function NotificationItem({ notification }: { notification: Notification 
 }
 
 export function NotificationList() {
-  const { notifications, isLoading, markAllAsRead } = useNotifications();
+  const { notifications, isLoading, error, markAllAsRead } = useNotifications();
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-sm text-destructive">Failed to load notifications</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -77,7 +85,7 @@ export function NotificationList() {
     );
   }
 
-  if (!notifications.length) {
+  if (!notifications?.length) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <p className="text-sm text-muted-foreground">No notifications yet</p>

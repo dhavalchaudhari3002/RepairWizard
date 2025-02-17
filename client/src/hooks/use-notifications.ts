@@ -6,14 +6,19 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const queryKey = ["/api/notifications"];
 
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading, error } = useQuery({
     queryKey,
     queryFn: async () => {
+      console.log("Fetching notifications...");
       const response = await fetch("/api/notifications");
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        const error = await response.json();
+        console.error("Failed to fetch notifications:", error);
+        throw new Error(error.message || 'Failed to fetch notifications');
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Received notifications:", data);
+      return data;
     },
   });
 
@@ -53,6 +58,7 @@ export function useNotifications() {
     notifications,
     unreadCount,
     isLoading,
+    error,
     markAsRead,
     markAllAsRead,
   };
