@@ -34,6 +34,7 @@ export class DatabaseStorage implements IStorage {
         ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
       },
       createTableIfMissing: true,
+      tableName: 'session'
     });
   }
 
