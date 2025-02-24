@@ -17,6 +17,7 @@ type FormData = {
   confirmPassword?: string;
   email?: string;
   acceptTerms?: boolean;
+  role?: "customer" | "repairer";
 };
 
 const registerSchema = insertUserSchema
@@ -32,7 +33,7 @@ const registerSchema = insertUserSchema
   });
 
 export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger: React.ReactNode }) {
-  const { loginMutation } = useAuth();
+  const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"login" | "forgot" | "register">("login");
@@ -51,25 +52,33 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
       confirmPassword: "",
       email: "",
       acceptTerms: false,
+      role: "customer",
     },
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       if (view === "login") {
-        await loginMutation.mutateAsync(data);
+        await loginMutation.mutateAsync({
+          username: data.username,
+          password: data.password,
+        });
+        setIsOpen(false);
       } else if (view === "forgot") {
         toast({
           title: "Password Reset",
           description: "If an account exists with that email, you will receive password reset instructions.",
         });
+        setIsOpen(false);
       } else if (view === "register") {
-        toast({
-          title: "Registration Request",
-          description: "Your registration request has been received. Our support team will review it and contact you shortly.",
+        await registerMutation.mutateAsync({
+          username: data.username,
+          password: data.password,
+          email: data.email!,
+          role: data.role,
         });
+        setIsOpen(false);
       }
-      setIsOpen(false);
       form.reset();
     } catch (error) {
       // Error handling is done in the mutations
@@ -220,7 +229,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
             <Button
               type="submit"
               className="w-full"
-              disabled={loginMutation.isPending}
+              disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
             >
               {view === "login" 
                 ? loginMutation.isPending ? "Logging in..." : "Login"

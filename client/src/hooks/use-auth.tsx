@@ -14,9 +14,20 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
+  registerMutation: UseMutationResult<{ message: string; user: Partial<SelectUser> }, Error, RegisterData>;
 };
 
-type LoginData = Pick<InsertUser, "username" | "password">;
+type LoginData = {
+  username: string;
+  password: string;
+};
+
+type RegisterData = {
+  username: string;
+  password: string;
+  email: string;
+  role?: "customer" | "repairer";
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -47,6 +58,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterData) => {
+      const res = await apiRequest("POST", "/api/register", {
+        ...data,
+        role: data.role || "customer", // Default to customer if role not specified
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Registration failed");
+      }
+      return await res.json();
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Registration successful!",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
@@ -71,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         loginMutation,
         logoutMutation,
+        registerMutation,
       }}
     >
       {children}
