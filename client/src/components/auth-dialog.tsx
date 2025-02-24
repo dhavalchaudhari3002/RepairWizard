@@ -2,18 +2,34 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { insertUserSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 type FormData = {
   username: string;
   password: string;
+  confirmPassword?: string;
   email?: string;
+  acceptTerms?: boolean;
 };
+
+const registerSchema = insertUserSchema
+  .extend({
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      message: "You must accept the terms and conditions",
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger: React.ReactNode }) {
   const { loginMutation } = useAuth();
@@ -25,12 +41,16 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
     resolver: zodResolver(
       view === "forgot" 
         ? insertUserSchema.pick({ email: true })
+        : view === "register"
+        ? registerSchema
         : insertUserSchema.pick({ username: true, password: true })
     ),
     defaultValues: {
       username: "",
       password: "",
+      confirmPassword: "",
       email: "",
+      acceptTerms: false,
     },
   });
 
@@ -45,8 +65,8 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
         });
       } else if (view === "register") {
         toast({
-          title: "Registration",
-          description: "Please contact support to create a new account.",
+          title: "Registration Request",
+          description: "Your registration request has been received. Our support team will review it and contact you shortly.",
         });
       }
       setIsOpen(false);
@@ -66,7 +86,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {view === "login" 
@@ -101,6 +121,23 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
                     </FormItem>
                   )}
                 />
+
+                {view === "register" && (
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="john@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <FormField
                   control={form.control}
                   name="password"
@@ -108,12 +145,59 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {view === "register" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="••••••••" 
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="acceptTerms"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Accept terms and conditions
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </>
             )}
 
