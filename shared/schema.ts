@@ -2,13 +2,15 @@ import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table with role-based auth
+// Users table with role-based auth and email verification
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role", { enum: ["customer", "repairer"] }).notNull(),
   email: text("email").notNull(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  verificationToken: text("verification_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -78,6 +80,8 @@ export const insertUserSchema = createInsertSchema(users)
       .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     email: z.string().email("Invalid email address"),
     role: z.enum(["customer", "repairer"]),
+    verificationToken: z.string().optional(),
+    emailVerified: z.boolean().optional(),
   });
 
 export const insertRepairShopSchema = createInsertSchema(repairShops)

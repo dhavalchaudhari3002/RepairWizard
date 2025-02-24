@@ -4,6 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { User as SelectUser, InsertUser, InsertRepairShop, InsertRepairer } from "@shared/schema";
 
@@ -14,6 +15,40 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
+
+async function sendVerificationEmail(email: string, token: string, username: string) {
+  const verificationLink = `${process.env.APP_URL}/api/verify?token=${token}`;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Verify Your Email",
+    html: `
+      <h2>Welcome ${username}!</h2>
+      <p>Thank you for registering. Please click the button below to verify your email address:</p>
+      <a href="${verificationLink}" 
+         style="background-color: #4CAF50; color: white; padding: 14px 20px; 
+                text-align: center; text-decoration: none; display: inline-block; 
+                border-radius: 4px; margin: 10px 0;">
+        Verify Email
+      </a>
+      <p>If the button doesn't work, copy and paste this link into your browser:</p>
+      <p>${verificationLink}</p>
+      <p>This link will expire in 24 hours.</p>
+    `,
+  });
+}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -53,6 +88,9 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Invalid username or password" });
         }
+        if (!user.emailVerified) {
+          return done(null, false, { message: "Please verify your email before logging in" });
+        }
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -83,7 +121,9 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
+      const verificationToken = randomBytes(32).toString("hex");
       const hashedPassword = await hashPassword(req.body.password);
+
       const userData: InsertUser = {
         username: req.body.username,
         password: hashedPassword,
@@ -91,7 +131,14 @@ export function setupAuth(app: Express) {
         role: req.body.role,
       };
 
-      const user = await storage.createUser(userData);
+      const user = await storage.createUser({
+        ...userData,
+        verificationToken,
+        emailVerified: false,
+      });
+
+      // Send verification email
+      await sendVerificationEmail(user.email, verificationToken, user.username);
 
       // If the user is a repairer, create their shop and repairer profile
       if (req.body.role === "repairer") {
@@ -116,12 +163,40 @@ export function setupAuth(app: Express) {
         await storage.createRepairer(repairerData);
       }
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
+      res.status(201).json({
+        message: "Registration successful! Please check your email to verify your account.",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
       });
     } catch (err) {
       next(err);
+    }
+  });
+
+  app.get("/api/verify", async (req, res) => {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(400).json({ message: "Verification token is required" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token as string);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      await storage.updateUser(user.id, {
+        emailVerified: true,
+        verificationToken: null,
+      });
+
+      res.redirect("/auth?verified=true");
+    } catch (err) {
+      res.status(500).json({ message: "Error verifying email" });
     }
   });
 
