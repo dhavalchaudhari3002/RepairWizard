@@ -112,9 +112,50 @@ export function NavBar() {
                 </div>
               </>
             ) : (
-              <Button asChild>
-                <Link href="/auth">Login</Link>
-              </Button>
+              <>
+                {/* Desktop auth buttons */}
+                <div className="hidden md:flex items-center gap-2">
+                  <Button variant="ghost" asChild>
+                    <Link href="/auth?tab=login">Login</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/auth?tab=register">Register</Link>
+                  </Button>
+                </div>
+
+                {/* Mobile auth button */}
+                <div className="md:hidden">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle menu</span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right">
+                      <SheetHeader>
+                        <SheetTitle>Menu</SheetTitle>
+                      </SheetHeader>
+                      <div className="grid gap-4 py-4">
+                        <Button
+                          variant="ghost"
+                          className="justify-start"
+                          asChild
+                        >
+                          <Link href="/auth?tab=login">Login</Link>
+                        </Button>
+                        <Button
+                          variant="default"
+                          className="justify-start"
+                          asChild
+                        >
+                          <Link href="/auth?tab=register">Register</Link>
+                        </Button>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </>
             )}
           </div>
         </nav>
