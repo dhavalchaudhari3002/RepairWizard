@@ -113,13 +113,7 @@ export function NavBar() {
                   <AuthDialog 
                     mode="login" 
                     trigger={
-                      <Button variant="ghost">Login</Button>
-                    } 
-                  />
-                  <AuthDialog 
-                    mode="register" 
-                    trigger={
-                      <Button>Register</Button>
+                      <Button>Login</Button>
                     } 
                   />
                 </div>
@@ -141,16 +135,8 @@ export function NavBar() {
                         <AuthDialog
                           mode="login"
                           trigger={
-                            <Button variant="ghost" className="justify-start">
-                              Login
-                            </Button>
-                          }
-                        />
-                        <AuthDialog
-                          mode="register"
-                          trigger={
                             <Button variant="default" className="justify-start">
-                              Register
+                              Login
                             </Button>
                           }
                         />

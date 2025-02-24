@@ -15,8 +15,8 @@ type FormData = {
   email?: string;
 };
 
-export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "register", trigger: React.ReactNode }) {
-  const { loginMutation, registerMutation } = useAuth();
+export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger: React.ReactNode }) {
+  const { loginMutation } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"login" | "forgot">("login");
@@ -133,30 +133,13 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
 
             <div className="space-y-2 text-center text-sm">
               {view === "login" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => switchView("forgot")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Forgot password?
-                  </button>
-                  <p>
-                    Don't have an account?{" "}
-                    <AuthDialog
-                      mode="register"
-                      trigger={
-                        <button
-                          type="button"
-                          className="font-medium text-primary hover:underline"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          Register
-                        </button>
-                      }
-                    />
-                  </p>
-                </>
+                <button
+                  type="button"
+                  onClick={() => switchView("forgot")}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  Forgot password?
+                </button>
               )}
               {view === "forgot" && (
                 <p>
