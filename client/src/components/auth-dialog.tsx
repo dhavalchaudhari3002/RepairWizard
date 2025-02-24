@@ -71,16 +71,28 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
         });
         setIsOpen(false);
       } else if (view === "register") {
-        await registerMutation.mutateAsync({
+        console.log("Registration data:", {
+          username: data.username,
+          password: data.password,
+          email: data.email,
+          role: data.role,
+        });
+
+        const result = await registerMutation.mutateAsync({
           username: data.username,
           password: data.password,
           email: data.email!,
-          role: data.role,
+          role: data.role ?? "customer",
         });
+
+        console.log("Registration result:", result);
+
+        // Reset form and close dialog only after successful registration
+        form.reset();
         setIsOpen(false);
       }
-      form.reset();
     } catch (error) {
+      console.error("Form submission error:", error);
       // Error handling is done in the mutations
     }
   });
@@ -229,13 +241,13 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
             <Button
               type="submit"
               className="w-full"
-              disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
+              disabled={view === "login" ? loginMutation.isPending : view === "register" ? registerMutation.isPending : false}
             >
               {view === "login" 
                 ? loginMutation.isPending ? "Logging in..." : "Login"
                 : view === "forgot"
                 ? "Reset Password"
-                : "Register"}
+                : registerMutation.isPending ? "Registering..." : "Register"}
             </Button>
 
             <div className="space-y-2 text-center text-sm">
