@@ -19,13 +19,13 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
   const { loginMutation } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState<"login" | "forgot">("login");
+  const [view, setView] = useState<"login" | "forgot" | "register">("login");
 
   const form = useForm<FormData>({
     resolver: zodResolver(
-      view === "login" 
-        ? insertUserSchema.pick({ username: true, password: true })
-        : insertUserSchema.pick({ email: true })
+      view === "forgot" 
+        ? insertUserSchema.pick({ email: true })
+        : insertUserSchema.pick({ username: true, password: true })
     ),
     defaultValues: {
       username: "",
@@ -43,6 +43,11 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
           title: "Password Reset",
           description: "If an account exists with that email, you will receive password reset instructions.",
         });
+      } else if (view === "register") {
+        toast({
+          title: "Registration",
+          description: "Please contact support to create a new account.",
+        });
       }
       setIsOpen(false);
       form.reset();
@@ -51,7 +56,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
     }
   });
 
-  const switchView = (newView: "login" | "forgot") => {
+  const switchView = (newView: "login" | "forgot" | "register") => {
     setView(newView);
     form.reset();
   };
@@ -63,17 +68,25 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Welcome Back</DialogTitle>
+          <DialogTitle>
+            {view === "login" 
+              ? "Welcome Back" 
+              : view === "forgot"
+              ? "Reset Password"
+              : "Create Account"}
+          </DialogTitle>
           <DialogDescription>
             {view === "login" 
               ? "Login to your account" 
-              : "Reset your password"}
+              : view === "forgot"
+              ? "Reset your password"
+              : "Register for a new account"}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
-            {view === "login" && (
+            {(view === "login" || view === "register") && (
               <>
                 <FormField
                   control={form.control}
@@ -127,21 +140,34 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
             >
               {view === "login" 
                 ? loginMutation.isPending ? "Logging in..." : "Login"
-                : "Reset Password"
-              }
+                : view === "forgot"
+                ? "Reset Password"
+                : "Register"}
             </Button>
 
             <div className="space-y-2 text-center text-sm">
               {view === "login" && (
-                <button
-                  type="button"
-                  onClick={() => switchView("forgot")}
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Forgot password?
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => switchView("forgot")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Forgot password?
+                  </button>
+                  <p>
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchView("register")}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Register
+                    </button>
+                  </p>
+                </>
               )}
-              {view === "forgot" && (
+              {(view === "forgot" || view === "register") && (
                 <p>
                   Remember your password?{" "}
                   <button
