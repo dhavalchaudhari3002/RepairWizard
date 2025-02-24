@@ -17,6 +17,7 @@ import {
 import { Bell, Menu, User } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
+import { AuthDialog } from "@/components/auth-dialog";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -34,7 +35,6 @@ export function NavBar() {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="flex flex-1 items-center justify-between space-x-2">
           <div className="hidden md:flex">
             {user && (
@@ -47,7 +47,6 @@ export function NavBar() {
           <div className="flex items-center gap-2">
             {user ? (
               <>
-                {/* Notifications */}
                 <NotificationsPopover />
 
                 {/* Desktop menu */}
@@ -91,11 +90,7 @@ export function NavBar() {
                           <User className="h-4 w-4" />
                           <span className="text-sm">{user.username}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          className="justify-start"
-                          asChild
-                        >
+                        <Button variant="ghost" className="justify-start" asChild>
                           <Link href="/">Dashboard</Link>
                         </Button>
                         <Button
@@ -115,12 +110,18 @@ export function NavBar() {
               <>
                 {/* Desktop auth buttons */}
                 <div className="hidden md:flex items-center gap-2">
-                  <Button variant="ghost" asChild>
-                    <Link href="/auth?tab=login">Login</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/auth?tab=register">Register</Link>
-                  </Button>
+                  <AuthDialog 
+                    mode="login" 
+                    trigger={
+                      <Button variant="ghost">Login</Button>
+                    } 
+                  />
+                  <AuthDialog 
+                    mode="register" 
+                    trigger={
+                      <Button>Register</Button>
+                    } 
+                  />
                 </div>
 
                 {/* Mobile auth button */}
@@ -137,20 +138,22 @@ export function NavBar() {
                         <SheetTitle>Menu</SheetTitle>
                       </SheetHeader>
                       <div className="grid gap-4 py-4">
-                        <Button
-                          variant="ghost"
-                          className="justify-start"
-                          asChild
-                        >
-                          <Link href="/auth?tab=login">Login</Link>
-                        </Button>
-                        <Button
-                          variant="default"
-                          className="justify-start"
-                          asChild
-                        >
-                          <Link href="/auth?tab=register">Register</Link>
-                        </Button>
+                        <AuthDialog
+                          mode="login"
+                          trigger={
+                            <Button variant="ghost" className="justify-start">
+                              Login
+                            </Button>
+                          }
+                        />
+                        <AuthDialog
+                          mode="register"
+                          trigger={
+                            <Button variant="default" className="justify-start">
+                              Register
+                            </Button>
+                          }
+                        />
                       </div>
                     </SheetContent>
                   </Sheet>
