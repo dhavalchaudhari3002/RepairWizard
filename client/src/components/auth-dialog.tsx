@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 type FormData = {
   username: string;
@@ -17,14 +19,17 @@ type FormData = {
 
 export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "register", trigger: React.ReactNode }) {
   const { loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"login" | "register">(mode);
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot">(mode);
 
   const form = useForm<FormData>({
     resolver: zodResolver(
-      mode === "login" 
+      activeTab === "login" 
         ? insertUserSchema.pick({ username: true, password: true })
-        : insertUserSchema.pick({ username: true, password: true, email: true })
+        : activeTab === "register"
+        ? insertUserSchema.pick({ username: true, password: true, email: true })
+        : insertUserSchema.pick({ email: true })
     ),
     defaultValues: {
       username: "",
@@ -37,8 +42,14 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
     try {
       if (activeTab === "login") {
         await loginMutation.mutateAsync(data);
-      } else {
+      } else if (activeTab === "register") {
         await registerMutation.mutateAsync({ ...data, role: "customer" });
+      } else if (activeTab === "forgot") {
+        // Here we would implement password reset
+        toast({
+          title: "Password Reset",
+          description: "If an account exists with that email, you will receive password reset instructions.",
+        });
       }
       setIsOpen(false);
       form.reset();
@@ -46,6 +57,11 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
       // Error handling is done in the mutations
     }
   });
+
+  const switchTab = (tab: "login" | "register" | "forgot") => {
+    setActiveTab(tab);
+    form.reset();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -56,11 +72,15 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
         <DialogHeader>
           <DialogTitle>Welcome</DialogTitle>
           <DialogDescription>
-            {activeTab === "login" ? "Login to your account" : "Create a new account"}
+            {activeTab === "login" 
+              ? "Login to your account" 
+              : activeTab === "register"
+              ? "Create a new account"
+              : "Reset your password"}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
+        <Tabs value={activeTab} onValueChange={(value) => switchTab(value as "login" | "register" | "forgot")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
@@ -102,6 +122,25 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
                 >
                   {loginMutation.isPending ? "Logging in..." : "Login"}
                 </Button>
+                <div className="space-y-2 text-center text-sm">
+                  <button
+                    type="button"
+                    onClick={() => switchTab("forgot")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Forgot password?
+                  </button>
+                  <p>
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchTab("register")}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Register
+                    </button>
+                  </p>
+                </div>
               </form>
             </Form>
           </TabsContent>
@@ -155,6 +194,52 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
                 >
                   {registerMutation.isPending ? "Creating account..." : "Create account"}
                 </Button>
+                <p className="text-center text-sm">
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchTab("login")}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Login
+                  </button>
+                </p>
+              </form>
+            </Form>
+          </TabsContent>
+
+          <TabsContent value="forgot" className="space-y-4">
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="john@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                >
+                  Reset Password
+                </Button>
+                <p className="text-center text-sm">
+                  Remember your password?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchTab("login")}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Login
+                  </button>
+                </p>
               </form>
             </Form>
           </TabsContent>
