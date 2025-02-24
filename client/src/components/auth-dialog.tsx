@@ -19,14 +19,12 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
   const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState<"login" | "register" | "forgot">(mode);
+  const [view, setView] = useState<"login" | "forgot">("login");
 
   const form = useForm<FormData>({
     resolver: zodResolver(
       view === "login" 
         ? insertUserSchema.pick({ username: true, password: true })
-        : view === "register"
-        ? insertUserSchema.pick({ username: true, password: true, email: true })
         : insertUserSchema.pick({ email: true })
     ),
     defaultValues: {
@@ -40,8 +38,6 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
     try {
       if (view === "login") {
         await loginMutation.mutateAsync(data);
-      } else if (view === "register") {
-        await registerMutation.mutateAsync({ ...data, role: "customer" });
       } else if (view === "forgot") {
         toast({
           title: "Password Reset",
@@ -55,7 +51,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
     }
   });
 
-  const switchView = (newView: "login" | "register" | "forgot") => {
+  const switchView = (newView: "login" | "forgot") => {
     setView(newView);
     form.reset();
   };
@@ -71,44 +67,41 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
           <DialogDescription>
             {view === "login" 
               ? "Login to your account" 
-              : view === "register"
-              ? "Create a new account"
               : "Reset your password"}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
-            {(view === "login" || view === "register") && (
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="johndoe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {view === "register" && (
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="john@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {view === "login" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input placeholder="johndoe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
 
             {view === "forgot" && (
@@ -127,31 +120,13 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
               />
             )}
 
-            {(view === "login" || view === "register") && (
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <Button
               type="submit"
               className="w-full"
-              disabled={loginMutation.isPending || registerMutation.isPending}
+              disabled={loginMutation.isPending}
             >
               {view === "login" 
                 ? loginMutation.isPending ? "Logging in..." : "Login"
-                : view === "register"
-                ? registerMutation.isPending ? "Creating account..." : "Create account"
                 : "Reset Password"
               }
             </Button>
@@ -168,27 +143,20 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login" | "regis
                   </button>
                   <p>
                     Don't have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => switchView("register")}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      Register
-                    </button>
+                    <AuthDialog
+                      mode="register"
+                      trigger={
+                        <button
+                          type="button"
+                          className="font-medium text-primary hover:underline"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Register
+                        </button>
+                      }
+                    />
                   </p>
                 </>
-              )}
-              {view === "register" && (
-                <p>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchView("login")}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    Login
-                  </button>
-                </p>
               )}
               {view === "forgot" && (
                 <p>
