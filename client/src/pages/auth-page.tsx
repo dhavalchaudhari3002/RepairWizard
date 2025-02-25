@@ -15,7 +15,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
+      <main className="container relative z-10 mx-auto px-4 py-8 pointer-events-auto">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
             Your One-Stop Repair Solution
@@ -28,7 +28,7 @@ export default function AuthPage() {
             variant="default"
             size="lg"
             onClick={() => setShowAuthDialog(true)}
-            className="inline-flex items-center"
+            className="inline-flex items-center pointer-events-auto relative z-20"
           >
             Get Started
           </Button>
