@@ -1,6 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Wrench, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/auth-dialog";
 import { useState } from "react";
@@ -16,70 +15,23 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">
+      <main className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
             Your One-Stop Repair Solution
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Join our platform and become part of the repair ecosystem. Choose your role and get started today!
+            Join our platform and get started today!
           </p>
 
-          {/* Simplified button container */}
+          {/* Simple button implementation */}
           <Button
-            variant="default"
-            size="lg"
             onClick={() => setShowAuthDialog(true)}
-            className="mb-16 w-[200px] h-[50px] text-lg"
+            size="lg"
+            className="mb-8"
           >
             Get Started
           </Button>
-
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Customer Role Card */}
-            <div className="rounded-lg border bg-card p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-3">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Customer</h3>
-                  <p className="text-muted-foreground">
-                    Get expert repair assistance for your devices
-                  </p>
-                </div>
-              </div>
-              <ul className="space-y-2">
-                <li className="text-muted-foreground">• Submit repair requests with AI-powered diagnostics</li>
-                <li className="text-muted-foreground">• Get instant cost estimates</li>
-                <li className="text-muted-foreground">• Connect with skilled repairers</li>
-                <li className="text-muted-foreground">• Track repair status in real-time</li>
-                <li className="text-muted-foreground">• Access repair guides and documentation</li>
-              </ul>
-            </div>
-
-            {/* Repairer Role Card */}
-            <div className="rounded-lg border bg-card p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-3">
-                  <Wrench className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Repairer</h3>
-                  <p className="text-muted-foreground">
-                    Offer your repair expertise and grow your business
-                  </p>
-                </div>
-              </div>
-              <ul className="space-y-2">
-                <li className="text-muted-foreground">• Showcase your repair specialties and expertise</li>
-                <li className="text-muted-foreground">• Receive repair requests from customers</li>
-                <li className="text-muted-foreground">• Provide expert diagnostics and estimates</li>
-                <li className="text-muted-foreground">• Build your reputation with customer reviews</li>
-                <li className="text-muted-foreground">• Access AI-powered repair guides and documentation</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         {/* Auth Dialog */}

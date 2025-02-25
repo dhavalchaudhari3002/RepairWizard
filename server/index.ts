@@ -15,6 +15,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint
+app.get('/ping', (_req, res) => {
+  res.send('pong');
+});
+
 // Initialize server
 (async () => {
   try {
