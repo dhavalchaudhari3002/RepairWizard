@@ -15,107 +15,71 @@ import { promisify } from "util";
 const clients = new Map<string, { ws: WebSocket; userId: number }>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
-  setupAuth(app);
-
   const httpServer = createServer(app);
+  console.log("Created HTTP server instance");
 
   // Initialize WebSocket server
   const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws' 
+    server: httpServer,
+    path: '/ws'
   });
+  console.log("WebSocket server initialized");
+
+  // Setup authentication before any routes
+  setupAuth(app);
+  console.log("Authentication setup complete");
 
   // Helper function to get session and user from request
   const getUserFromRequest = async (req: IncomingMessage) => {
     try {
       const cookieHeader = req.headers.cookie;
-      if (!cookieHeader) {
-        console.log('No cookie header found');
-        return null;
-      }
+      if (!cookieHeader) return null;
 
       const cookies = parseCookie(cookieHeader);
       const sessionId = cookies['connect.sid'];
-      if (!sessionId) {
-        console.log('No session ID found in cookies');
-        return null;
-      }
+      if (!sessionId) return null;
 
-      // Extract actual session ID from the signed cookie
       const actualSessionId = sessionId.split('.')[0].slice(2);
-      console.log('Extracted session ID:', actualSessionId);
-
-      // Get session from storage
       const getSession = promisify(storage.sessionStore.get.bind(storage.sessionStore));
       const session = await getSession(actualSessionId);
 
-      if (!session?.passport?.user) {
-        console.log('No user found in session');
-        return null;
-      }
-
-      const user = await storage.getUser(session.passport.user);
-      console.log('Found user:', user?.id);
-      return user;
+      if (!session?.passport?.user) return null;
+      return await storage.getUser(session.passport.user);
     } catch (error) {
       console.error('Error getting user from session:', error);
       return null;
     }
   };
 
+  // WebSocket connection handler
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection attempt');
-
-    // Authenticate the connection
     const user = await getUserFromRequest(req);
+
     if (!user) {
-      console.log('WebSocket connection rejected - unauthorized');
       ws.close(1008, 'Unauthorized');
       return;
     }
 
-    console.log('WebSocket connection authenticated for user:', user.id);
-
-    // Add client to our map with user ID
     const clientId = req.headers['sec-websocket-key'];
     if (clientId) {
       clients.set(clientId, { ws, userId: user.id });
     }
 
     ws.on('close', () => {
-      if (clientId) {
-        clients.delete(clientId);
-      }
-      console.log('Client disconnected:', user.id);
+      if (clientId) clients.delete(clientId);
     });
 
-    // Send initial connection success message
     ws.send(JSON.stringify({
       type: 'connection',
       data: { message: 'Connected successfully' }
     }));
   });
 
-  // Helper function to broadcast notifications
-  const broadcastNotification = (userId: number, notification: any) => {
-    clients.forEach(({ ws, userId: clientUserId }) => {
-      // Only send to the specific user
-      if (clientUserId === userId && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'notification',
-          data: notification
-        }));
-      }
-    });
-  };
-
-  // Repair shops endpoint
+  // API Routes
   app.get("/api/repair-shops", async (_req, res) => {
     try {
-      console.log("Fetching repair shops...");
       const shops = await storage.getAllRepairShops();
-      console.log("Found shops:", shops);
       res.json(shops);
     } catch (error) {
       console.error("Error fetching repair shops:", error);
@@ -123,7 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update the repair request creation endpoint to use WebSocket
   app.post("/api/repair-requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -136,7 +99,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: req.user.id
       });
 
-      // Create notification
       const notification = await storage.createNotification({
         userId: req.user.id,
         title: "Repair Request Created",
@@ -146,8 +108,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedEntityId: repairRequest.id
       });
 
-      // Broadcast the notification through WebSocket
-      broadcastNotification(req.user.id, notification);
+      // Broadcast notification
+      const clientEntries = Array.from(clients.values());
+      const targetClient = clientEntries.find(({ userId }) => userId === req.user.id);
+      if (targetClient?.ws.readyState === WebSocket.OPEN) {
+        targetClient.ws.send(JSON.stringify({
+          type: 'notification',
+          data: notification
+        }));
+      }
 
       res.json(repairRequest);
     } catch (error) {
@@ -166,7 +135,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(repairRequest);
   });
 
-  // Notification routes
   app.get("/api/notifications", async (req, res) => {
     if (!req.isAuthenticated()) {
       console.log("Unauthorized notification request");
@@ -227,7 +195,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add notification creation for repair request status updates
   app.patch("/api/repair-requests/:id/status", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -305,5 +272,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  console.log("All routes registered successfully");
   return httpServer;
 }
