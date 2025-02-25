@@ -41,7 +41,7 @@ app.get('/ping', (_req, res) => {
     log("Setting up Vite development server...");
     await setupVite(app, server);
 
-    // Start server
+    // ALWAYS serve the app on port 5000
     const PORT = 5000;
     const HOST = "0.0.0.0";
 
