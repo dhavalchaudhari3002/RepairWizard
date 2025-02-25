@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
+import session from "express-session";
+import { storage } from "./storage";
 
 // Initialize Express app
 const app = express();
@@ -8,6 +10,21 @@ const app = express();
 // Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // Simple request logging
 app.use((req, res, next) => {
@@ -31,9 +48,12 @@ app.get('/ping', (_req, res) => {
     log("Routes registered successfully");
 
     // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
-      res.status(500).json({ message: "Internal Server Error" });
+      res.status(500).json({ 
+        error: "Internal Server Error",
+        message: err.message 
+      });
     });
 
     // Force development mode since we're using Vite
