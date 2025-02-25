@@ -13,6 +13,12 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
+  // Handler for opening auth dialog
+  const handleGetStarted = () => {
+    console.log("Opening auth dialog"); // Debug log
+    setShowAuthDialog(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
@@ -24,21 +30,23 @@ export default function AuthPage() {
             Join our platform and get started today!
           </p>
 
-          {/* Button with explicit cursor and hover styling */}
-          <Button
-            onClick={() => setShowAuthDialog(true)}
+          <Button 
+            onClick={handleGetStarted}
             size="lg"
-            className="mb-8 cursor-pointer hover:scale-105 transition-transform"
+            className="mb-8 !cursor-pointer hover:scale-105 transition-transform"
           >
             Get Started
           </Button>
         </div>
 
-        {/* Auth Dialog */}
+        {/* Auth Dialog with explicit open state control */}
         <AuthDialog
           mode="login"
           isOpen={showAuthDialog}
-          onOpenChange={setShowAuthDialog}
+          onOpenChange={(open) => {
+            console.log("Dialog state changing to:", open); // Debug log
+            setShowAuthDialog(open);
+          }}
         />
       </main>
     </div>

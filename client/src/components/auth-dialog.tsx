@@ -41,6 +41,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
   const onSubmit = async (data: FormData) => {
     try {
+      console.log("Form submitted:", { ...data, password: "[REDACTED]" }); // Debug log
+
       if (view === "login") {
         await loginMutation.mutateAsync({
           username: data.username,
@@ -52,7 +54,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           username: data.username,
           password: data.password,
           email: data.email!,
-          role: "customer", // Default role
+          role: "customer",
         });
         onOpenChange(false);
       }
@@ -68,7 +70,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {view === "login" ? "Welcome Back" : "Create Account"}
@@ -127,10 +129,10 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             <div className="flex flex-col gap-4">
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full !cursor-pointer"
                 disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
               >
-                {view === "login" 
+                {view === "login"
                   ? loginMutation.isPending ? "Logging in..." : "Login"
                   : registerMutation.isPending ? "Registering..." : "Register"}
               </Button>
@@ -138,6 +140,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               <Button
                 type="button"
                 variant="ghost"
+                className="!cursor-pointer"
                 onClick={() => setView(view === "login" ? "register" : "login")}
               >
                 {view === "login" ? "Need an account? Register" : "Already have an account? Login"}
