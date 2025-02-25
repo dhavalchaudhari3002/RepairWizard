@@ -33,15 +33,15 @@ const registerSchema = insertUserSchema
   });
 
 type AuthDialogProps = {
-  mode: "login";
+  mode: "login" | "register";
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export function AuthDialog({ mode, isOpen, onOpenChange }: AuthDialogProps) {
+export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }: AuthDialogProps) {
   const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState<"login" | "forgot" | "register">("login");
+  const [view, setView] = useState(initialMode);
 
   const form = useForm<FormData>({
     resolver: zodResolver(
@@ -61,7 +61,7 @@ export function AuthDialog({ mode, isOpen, onOpenChange }: AuthDialogProps) {
     },
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: FormData) => {
     try {
       if (view === "login") {
         await loginMutation.mutateAsync({
@@ -87,8 +87,13 @@ export function AuthDialog({ mode, isOpen, onOpenChange }: AuthDialogProps) {
       }
     } catch (error) {
       console.error("Form submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred. Please try again.",
+      });
     }
-  });
+  };
 
   const switchView = (newView: "login" | "forgot" | "register") => {
     setView(newView);
@@ -116,7 +121,7 @@ export function AuthDialog({ mode, isOpen, onOpenChange }: AuthDialogProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {(view === "login" || view === "register") && (
               <>
                 <FormField
