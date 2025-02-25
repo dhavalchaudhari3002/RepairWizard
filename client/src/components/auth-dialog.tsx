@@ -94,7 +94,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
         <DialogHeader>
           <DialogTitle>
             {view === "login" ? "Welcome Back" : "Create Account"}

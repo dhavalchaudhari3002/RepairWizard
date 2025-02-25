@@ -24,15 +24,16 @@ export default function AuthPage() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Join our platform and become part of the repair ecosystem. Choose your role and get started today!
           </p>
-          <div className="mb-16 relative">
-            <Button
-              size="lg"
-              onClick={() => setShowAuthDialog(true)}
-              className="pointer-events-auto relative"
-            >
-              Get Started
-            </Button>
-          </div>
+
+          {/* Simplified button container */}
+          <Button
+            variant="default"
+            size="lg"
+            onClick={() => setShowAuthDialog(true)}
+            className="mb-16 w-[200px] h-[50px] text-lg"
+          >
+            Get Started
+          </Button>
 
           <div className="grid gap-8 md:grid-cols-2">
             {/* Customer Role Card */}
@@ -80,6 +81,8 @@ export default function AuthPage() {
             </div>
           </div>
         </div>
+
+        {/* Auth Dialog */}
         <AuthDialog
           mode="login"
           isOpen={showAuthDialog}
