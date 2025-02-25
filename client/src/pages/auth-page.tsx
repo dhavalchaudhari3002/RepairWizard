@@ -19,7 +19,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="container min-h-screen px-4 py-8 md:py-12">
+    <div className="min-h-screen px-4 py-8 md:py-12">
       <div className="mx-auto max-w-6xl">
         <div className="space-y-8">
           <div className="space-y-3 text-center">
@@ -29,14 +29,13 @@ export default function AuthPage() {
             <p className="text-muted-foreground text-lg">
               Join our platform and become part of the repair ecosystem. Choose your role and get started today!
             </p>
-            <div className="pt-4">
+            <div className="relative z-10 mt-6">
               <Button 
                 type="button"
-                variant="primary"
+                variant="default"
                 size="lg"
-                className="w-full cursor-pointer sm:w-auto"
+                className="relative z-20 min-w-[120px] cursor-pointer"
                 onClick={handleGetStarted}
-                aria-label="Get Started"
               >
                 Get Started
               </Button>
