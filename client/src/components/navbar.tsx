@@ -113,7 +113,7 @@ export function NavBar() {
                   <AuthDialog 
                     mode="login" 
                     trigger={
-                      <Button>Login</Button>
+                      <Button variant="default">Login</Button>
                     } 
                   />
                 </div>
