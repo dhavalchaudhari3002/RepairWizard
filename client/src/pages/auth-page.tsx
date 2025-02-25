@@ -14,9 +14,7 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
-  const handleClick = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const handleClick = () => {
     setShowAuthDialog(true);
   };
 
@@ -34,7 +32,7 @@ export default function AuthPage() {
             <Button
               onClick={handleClick}
               size="lg"
-              className="pointer-events-auto cursor-pointer"
+              className="relative z-10"
             >
               Get Started
             </Button>
