@@ -23,13 +23,13 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col">
+        <div className="relative min-h-screen flex flex-col">
           <NavBar />
-          <main className="flex-1">
+          <main className="flex-1 relative z-0">
             <Router />
           </main>
+          <Toaster />
         </div>
-        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );
