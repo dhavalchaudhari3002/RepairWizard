@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
+import { setupAuth } from "./auth";
 
 // Initialize Express app
 const app = express();
@@ -12,19 +13,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    store: storage.sessionStore,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
+const sessionSettings = {
+  secret: process.env.SESSION_SECRET || "your-secret-key",
+  resave: false,
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+};
+
+app.set("trust proxy", 1);
+app.use(session(sessionSettings));
+
+// Setup authentication before routes
+setupAuth(app);
 
 // Simple request logging
 app.use((req, res, next) => {
@@ -42,7 +47,7 @@ app.get('/ping', (_req, res) => {
   try {
     log("Starting server initialization...");
 
-    // Register API routes
+    // Register API routes after auth setup
     log("Registering routes...");
     const server = await registerRoutes(app);
     log("Routes registered successfully");
