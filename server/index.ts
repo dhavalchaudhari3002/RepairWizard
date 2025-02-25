@@ -23,10 +23,12 @@ app.get('/ping', (_req, res) => {
 // Initialize server
 (async () => {
   try {
-    log("Starting server...");
+    log("Starting server initialization...");
 
     // Register API routes
+    log("Registering routes...");
     const server = await registerRoutes(app);
+    log("Routes registered successfully");
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -40,14 +42,27 @@ app.get('/ping', (_req, res) => {
     // In development, always use Vite middleware
     log("Setting up Vite development server...");
     await setupVite(app, server);
+    log("Vite setup complete");
 
     // ALWAYS serve the app on port 5000
     const PORT = 5000;
     const HOST = "0.0.0.0";
 
     server.listen(PORT, HOST, () => {
-      log(`Server running at http://${HOST}:${PORT}`);
+      log(`Server is now listening on http://${HOST}:${PORT}`);
+      log("Server initialization complete - ready to handle requests");
     });
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      } else {
+        console.error('Server error:', error);
+      }
+      process.exit(1);
+    });
+
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
