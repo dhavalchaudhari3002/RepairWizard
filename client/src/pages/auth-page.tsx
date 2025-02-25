@@ -14,10 +14,6 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
-  const handleClick = () => {
-    setShowAuthDialog(true);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">
@@ -28,11 +24,11 @@ export default function AuthPage() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Join our platform and become part of the repair ecosystem. Choose your role and get started today!
           </p>
-          <div className="mb-16">
+          <div className="mb-16 relative">
             <Button
-              onClick={handleClick}
               size="lg"
-              className="relative z-10"
+              onClick={() => setShowAuthDialog(true)}
+              className="pointer-events-auto relative"
             >
               Get Started
             </Button>
@@ -84,13 +80,12 @@ export default function AuthPage() {
             </div>
           </div>
         </div>
+        <AuthDialog
+          mode="login"
+          isOpen={showAuthDialog}
+          onOpenChange={setShowAuthDialog}
+        />
       </main>
-
-      <AuthDialog
-        mode="login"
-        isOpen={showAuthDialog}
-        onOpenChange={setShowAuthDialog}
-      />
     </div>
   );
 }
