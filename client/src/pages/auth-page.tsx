@@ -24,11 +24,11 @@ export default function AuthPage() {
             Join our platform and get started today!
           </p>
 
-          {/* Simple button implementation */}
+          {/* Button with explicit cursor and hover styling */}
           <Button
             onClick={() => setShowAuthDialog(true)}
             size="lg"
-            className="mb-8"
+            className="mb-8 cursor-pointer hover:scale-105 transition-transform"
           >
             Get Started
           </Button>
