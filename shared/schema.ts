@@ -112,11 +112,13 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     productType: true,
     issueDescription: true,
     imageUrl: true,
+    customerId: true, // Add customerId to the schema
   })
   .extend({
     productType: z.string().min(1, "Product type is required"),
     issueDescription: z.string().min(1, "Issue description is required"),
     imageUrl: z.string().optional(),
+    customerId: z.number().optional(), // Make it optional since it's added by the server
   });
 
 // Update the insert schema for notifications

@@ -14,6 +14,15 @@ declare global {
   }
 }
 
+// Add session type declaration
+declare module "express-session" {
+  interface SessionData {
+    passport: {
+      user: number;
+    };
+  }
+}
+
 const scryptAsync = promisify(scrypt);
 
 // Email configuration
