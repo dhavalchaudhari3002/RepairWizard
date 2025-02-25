@@ -56,7 +56,7 @@ export function NavBar() {
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="cursor-pointer">
                         <User className="h-5 w-5" />
                         <span className="sr-only">User menu</span>
                       </Button>
@@ -65,6 +65,7 @@ export function NavBar() {
                       <DropdownMenuItem
                         onClick={() => logoutMutation.mutate()}
                         disabled={logoutMutation.isPending}
+                        className="cursor-pointer"
                       >
                         {logoutMutation.isPending ? "Logging out..." : "Log out"}
                       </DropdownMenuItem>
@@ -78,6 +79,7 @@ export function NavBar() {
                   <Button 
                     variant="default"
                     onClick={() => setShowAuthDialog(true)}
+                    className="cursor-pointer"
                   >
                     Login
                   </Button>
@@ -91,7 +93,7 @@ export function NavBar() {
                 <div className="md:hidden">
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="cursor-pointer">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Toggle menu</span>
                       </Button>
@@ -104,6 +106,7 @@ export function NavBar() {
                         <Button
                           variant="default"
                           onClick={() => setShowAuthDialog(true)}
+                          className="cursor-pointer"
                         >
                           Login
                         </Button>

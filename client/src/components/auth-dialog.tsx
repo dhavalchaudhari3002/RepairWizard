@@ -41,14 +41,11 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
   const onSubmit = async (data: FormData) => {
     try {
-      console.log("Form submitted:", { ...data, password: "[REDACTED]" }); // Debug log
-
       if (view === "login") {
         await loginMutation.mutateAsync({
           username: data.username,
           password: data.password,
         });
-        onOpenChange(false);
       } else {
         await registerMutation.mutateAsync({
           username: data.username,
@@ -56,8 +53,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           email: data.email!,
           role: "customer",
         });
-        onOpenChange(false);
       }
+      onOpenChange(false);
     } catch (error) {
       console.error("Auth error:", error);
       toast({
@@ -129,8 +126,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             <div className="flex flex-col gap-4">
               <Button
                 type="submit"
-                className="w-full !cursor-pointer"
                 disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
+                className="w-full"
               >
                 {view === "login"
                   ? loginMutation.isPending ? "Logging in..." : "Login"
@@ -140,8 +137,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               <Button
                 type="button"
                 variant="ghost"
-                className="!cursor-pointer"
                 onClick={() => setView(view === "login" ? "register" : "login")}
+                className="w-full"
               >
                 {view === "login" ? "Need an account? Register" : "Already have an account? Login"}
               </Button>
