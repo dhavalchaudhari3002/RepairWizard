@@ -13,7 +13,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" onClick={() => console.log("Background clicked")}>
       <main className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
@@ -23,13 +23,15 @@ export default function AuthPage() {
             Join our platform and get started today!
           </p>
 
-          {/* Use a plain button element for testing */}
+          {/* Test button with direct onclick handler */}
           <button
+            type="button"
             onClick={() => {
-              console.log("Button clicked");
+              alert("Button clicked!");
               setShowAuthDialog(true);
             }}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 py-2"
+            style={{ cursor: 'pointer' }}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 py-2"
           >
             Get Started
           </button>
@@ -39,7 +41,7 @@ export default function AuthPage() {
           mode="login"
           isOpen={showAuthDialog}
           onOpenChange={(open) => {
-            console.log("Dialog state changing to:", open);
+            alert("Dialog state changing to: " + open);
             setShowAuthDialog(open);
           }}
         />
