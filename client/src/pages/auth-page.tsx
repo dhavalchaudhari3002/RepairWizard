@@ -14,6 +14,10 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
+  const handleGetStarted = () => {
+    setShowAuthDialog(true);
+  };
+
   return (
     <div className="container min-h-screen px-4 py-8 md:py-12">
       <div className="mx-auto max-w-6xl">
@@ -27,10 +31,12 @@ export default function AuthPage() {
             </p>
             <div className="pt-4">
               <Button 
-                variant="default"
-                size="lg" 
-                className="w-full sm:w-auto"
-                onClick={() => setShowAuthDialog(true)}
+                type="button"
+                variant="primary"
+                size="lg"
+                className="w-full cursor-pointer sm:w-auto"
+                onClick={handleGetStarted}
+                aria-label="Get Started"
               >
                 Get Started
               </Button>
