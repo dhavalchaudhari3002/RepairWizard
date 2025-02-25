@@ -156,7 +156,6 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      const verificationToken = randomBytes(32).toString("hex");
       const hashedPassword = await hashPassword(req.body.password);
 
       const userData: InsertUser = {
@@ -171,29 +170,13 @@ export function setupAuth(app: Express) {
         password: "[REDACTED]"
       });
 
+      // Temporarily skip email verification
       const user = await storage.createUser({
         ...userData,
-        verificationToken,
-        emailVerified: false,
+        emailVerified: true, // Set to true by default for now
       });
 
       console.log(`User created successfully: ${user.id}`);
-
-      try {
-        await sendVerificationEmail(user.email, verificationToken, user.username);
-      } catch (emailError) {
-        console.error("Failed to send verification email:", emailError);
-        // Don't fail registration if email fails, but let the user know
-        return res.status(201).json({
-          message: "Registration successful, but we couldn't send the verification email. Please try logging in later or contact support.",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-          },
-        });
-      }
 
       // If user is a repairer, create shop and profile
       if (req.body.role === "repairer") {
@@ -226,15 +209,23 @@ export function setupAuth(app: Express) {
         }
       }
 
-      res.status(201).json({
-        message: "Registration successful! Please check your email to verify your account.",
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
+      // Log in the user immediately after registration
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Auto-login error:", err);
+          return next(err);
+        }
+        res.status(201).json({
+          message: "Registration successful! You are now logged in.",
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+          },
+        });
       });
+
     } catch (err) {
       console.error("Registration error:", err);
       next(err);
