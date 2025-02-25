@@ -92,7 +92,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild onClick={() => setIsOpen(true)}>
+      <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

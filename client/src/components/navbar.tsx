@@ -48,8 +48,6 @@ export function NavBar() {
             {user ? (
               <>
                 <NotificationsPopover />
-
-                {/* Desktop menu */}
                 <div className="hidden md:flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">
                     {user.username}
@@ -71,54 +69,34 @@ export function NavBar() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
-                {/* Mobile menu */}
-                <div className="md:hidden">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right">
-                      <SheetHeader>
-                        <SheetTitle>Menu</SheetTitle>
-                      </SheetHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className="text-sm">{user.username}</span>
-                        </div>
-                        <Button variant="ghost" className="justify-start" asChild>
-                          <Link href="/">Dashboard</Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="justify-start"
-                          onClick={() => logoutMutation.mutate()}
-                          disabled={logoutMutation.isPending}
-                        >
-                          {logoutMutation.isPending ? "Logging out..." : "Log out"}
-                        </Button>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
               </>
             ) : (
               <>
-                {/* Desktop auth buttons */}
                 <div className="hidden md:flex items-center gap-2">
-                  <AuthDialog 
-                    mode="login" 
+                  <Button 
+                    variant="default"
+                    onClick={() => {
+                      const authDialog = document.querySelector('[data-auth-dialog-trigger]');
+                      if (authDialog) {
+                        (authDialog as HTMLButtonElement).click();
+                      }
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <AuthDialog
+                    mode="login"
                     trigger={
-                      <Button variant="default">Login</Button>
-                    } 
+                      <Button 
+                        data-auth-dialog-trigger 
+                        className="hidden"
+                      >
+                        Hidden Trigger
+                      </Button>
+                    }
                   />
                 </div>
 
-                {/* Mobile auth button */}
                 <div className="md:hidden">
                   <Sheet>
                     <SheetTrigger asChild>
@@ -132,14 +110,17 @@ export function NavBar() {
                         <SheetTitle>Menu</SheetTitle>
                       </SheetHeader>
                       <div className="grid gap-4 py-4">
-                        <AuthDialog
-                          mode="login"
-                          trigger={
-                            <Button variant="default" className="justify-start">
-                              Login
-                            </Button>
-                          }
-                        />
+                        <Button
+                          variant="default"
+                          onClick={() => {
+                            const authDialog = document.querySelector('[data-auth-dialog-trigger]');
+                            if (authDialog) {
+                              (authDialog as HTMLButtonElement).click();
+                            }
+                          }}
+                        >
+                          Login
+                        </Button>
                       </div>
                     </SheetContent>
                   </Sheet>
