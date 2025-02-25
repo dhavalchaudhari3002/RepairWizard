@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import { useState } from "react";
 import { AuthDialog } from "@/components/auth-dialog";
+import { Button } from "@/components/ui/button";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background" onClick={() => console.log("Background clicked")}>
+    <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
@@ -23,27 +24,20 @@ export default function AuthPage() {
             Join our platform and get started today!
           </p>
 
-          {/* Test button with direct onclick handler */}
-          <button
-            type="button"
-            onClick={() => {
-              alert("Button clicked!");
-              setShowAuthDialog(true);
-            }}
-            style={{ cursor: 'pointer' }}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 py-2"
+          <Button
+            variant="default"
+            size="lg"
+            onClick={() => setShowAuthDialog(true)}
+            className="inline-flex items-center"
           >
             Get Started
-          </button>
+          </Button>
         </div>
 
         <AuthDialog
           mode="login"
           isOpen={showAuthDialog}
-          onOpenChange={(open) => {
-            alert("Dialog state changing to: " + open);
-            setShowAuthDialog(open);
-          }}
+          onOpenChange={setShowAuthDialog}
         />
       </main>
     </div>
