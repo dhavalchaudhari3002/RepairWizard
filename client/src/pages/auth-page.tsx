@@ -1,8 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Button } from "@/components/ui/button";
-import { AuthDialog } from "@/components/auth-dialog";
 import { useState } from "react";
+import { AuthDialog } from "@/components/auth-dialog";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -12,12 +11,6 @@ export default function AuthPage() {
   if (user) {
     return <Redirect to="/" />;
   }
-
-  // Handler for opening auth dialog
-  const handleGetStarted = () => {
-    console.log("Opening auth dialog"); // Debug log
-    setShowAuthDialog(true);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,21 +23,23 @@ export default function AuthPage() {
             Join our platform and get started today!
           </p>
 
-          <Button 
-            onClick={handleGetStarted}
-            size="lg"
-            className="mb-8 !cursor-pointer hover:scale-105 transition-transform"
+          {/* Use a plain button element for testing */}
+          <button
+            onClick={() => {
+              console.log("Button clicked");
+              setShowAuthDialog(true);
+            }}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 py-2"
           >
             Get Started
-          </Button>
+          </button>
         </div>
 
-        {/* Auth Dialog with explicit open state control */}
         <AuthDialog
           mode="login"
           isOpen={showAuthDialog}
           onOpenChange={(open) => {
-            console.log("Dialog state changing to:", open); // Debug log
+            console.log("Dialog state changing to:", open);
             setShowAuthDialog(open);
           }}
         />
