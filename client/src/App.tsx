@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,12 +10,21 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { NavBar } from "@/components/navbar";
 
 function Router() {
+  const [location] = useLocation();
+  const showNavBar = location !== "/auth";
+
   return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="relative min-h-screen flex flex-col">
+      {showNavBar && <NavBar />}
+      <main className="flex-1 relative z-0">
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <ProtectedRoute path="/" component={Home} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <Toaster />
+    </div>
   );
 }
 
@@ -23,13 +32,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="relative min-h-screen flex flex-col">
-          <NavBar />
-          <main className="flex-1 relative z-0">
-            <Router />
-          </main>
-          <Toaster />
-        </div>
+        <Router />
       </AuthProvider>
     </QueryClientProvider>
   );
