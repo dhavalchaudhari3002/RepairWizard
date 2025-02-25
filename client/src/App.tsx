@@ -12,8 +12,8 @@ import { NavBar } from "@/components/navbar";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Home} />
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );
