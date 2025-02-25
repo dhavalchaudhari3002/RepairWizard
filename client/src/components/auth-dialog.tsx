@@ -38,16 +38,14 @@ type AuthDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }: AuthDialogProps) {
+export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
   const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState(initialMode);
+  const [view, setView] = useState<"login" | "register">(mode);
 
   const form = useForm<FormData>({
     resolver: zodResolver(
-      view === "forgot" 
-        ? insertUserSchema.pick({ email: true })
-        : view === "register"
+      view === "register"
         ? registerSchema
         : insertUserSchema.pick({ username: true, password: true })
     ),
@@ -67,12 +65,6 @@ export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }
         await loginMutation.mutateAsync({
           username: data.username,
           password: data.password,
-        });
-        onOpenChange(false);
-      } else if (view === "forgot") {
-        toast({
-          title: "Password Reset",
-          description: "If an account exists with that email, you will receive password reset instructions.",
         });
         onOpenChange(false);
       } else if (view === "register") {
@@ -95,7 +87,7 @@ export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }
     }
   };
 
-  const switchView = (newView: "login" | "forgot" | "register") => {
+  const switchView = (newView: "login" | "register") => {
     setView(newView);
     form.reset();
   };
@@ -105,119 +97,30 @@ export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {view === "login" 
-              ? "Welcome Back" 
-              : view === "forgot"
-              ? "Reset Password"
-              : "Create Account"}
+            {view === "login" ? "Welcome Back" : "Create Account"}
           </DialogTitle>
           <DialogDescription>
-            {view === "login" 
-              ? "Login to your account" 
-              : view === "forgot"
-              ? "Reset your password"
-              : "Register for a new account"}
+            {view === "login" ? "Login to your account" : "Register for a new account"}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {(view === "login" || view === "register") && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input placeholder="johndoe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="johndoe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                {view === "register" && (
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="john@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="••••••••" 
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {view === "register" && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="••••••••" 
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="acceptTerms"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Accept terms and conditions
-                            </FormLabel>
-                            <FormMessage />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-              </>
-            )}
-
-            {view === "forgot" && (
+            {view === "register" && (
               <FormField
                 control={form.control}
                 name="email"
@@ -233,43 +136,92 @@ export function AuthDialog({ mode: initialMode = "login", isOpen, onOpenChange }
               />
             )}
 
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {view === "register" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="acceptTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Accept terms and conditions
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
             <Button
               type="submit"
               className="w-full"
-              disabled={view === "login" ? loginMutation.isPending : view === "register" ? registerMutation.isPending : false}
+              disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
             >
               {view === "login" 
                 ? loginMutation.isPending ? "Logging in..." : "Login"
-                : view === "forgot"
-                ? "Reset Password"
                 : registerMutation.isPending ? "Registering..." : "Register"}
             </Button>
 
             <div className="space-y-2 text-center text-sm">
-              {view === "login" && (
-                <>
+              {view === "login" ? (
+                <p>
+                  Don't have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => switchView("forgot")}
-                    className="text-muted-foreground hover:text-primary"
+                    onClick={() => switchView("register")}
+                    className="font-medium text-primary hover:underline"
                   >
-                    Forgot password?
+                    Register
                   </button>
-                  <p>
-                    Don't have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => switchView("register")}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      Register
-                    </button>
-                  </p>
-                </>
-              )}
-              {(view === "forgot" || view === "register") && (
+                </p>
+              ) : (
                 <p>
-                  Remember your password?{" "}
+                  Already have an account?{" "}
                   <button
                     type="button"
                     onClick={() => switchView("login")}

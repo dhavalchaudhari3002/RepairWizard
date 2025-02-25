@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Wrench, Store, User } from "lucide-react";
+import { Wrench, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/auth-dialog";
 import { useState } from "react";
@@ -27,17 +27,13 @@ export default function AuthPage() {
             </p>
             <div className="pt-4">
               <Button 
+                variant="default"
                 size="lg" 
                 className="w-full sm:w-auto"
                 onClick={() => setShowAuthDialog(true)}
               >
                 Get Started
               </Button>
-              <AuthDialog
-                mode="login"
-                isOpen={showAuthDialog}
-                onOpenChange={setShowAuthDialog}
-              />
             </div>
           </div>
 
@@ -108,6 +104,12 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      <AuthDialog
+        mode="login"
+        isOpen={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+      />
     </div>
   );
 }
