@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthDialog } from "@/components/auth-dialog";
 import { Button } from "@/components/ui/button";
 
@@ -8,14 +8,46 @@ export default function AuthPage() {
   const { user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
+  useEffect(() => {
+    console.log("Auth page mounted");
+    // Log any potential overlapping elements
+    const elements = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    console.log("Elements at center:", elements);
+  }, []);
+
   // Redirect if already logged in
   if (user) {
     return <Redirect to="/" />;
   }
 
+  const handleGetStarted = (event: React.MouseEvent) => {
+    console.log("Get Started clicked", {
+      target: event.target,
+      currentTarget: event.currentTarget,
+      eventPhase: event.eventPhase,
+    });
+    try {
+      setShowAuthDialog(true);
+    } catch (error) {
+      console.error("Error showing auth dialog:", error);
+    }
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    console.log("Dialog state changing to:", open);
+    try {
+      setShowAuthDialog(open);
+    } catch (error) {
+      console.error("Error updating dialog state:", error);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container relative z-10 mx-auto px-4 py-8 pointer-events-auto">
+    <div 
+      className="min-h-screen bg-background"
+      onClick={(e) => console.log("Background clicked", e.target)}
+    >
+      <main className="container relative mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
             Your One-Stop Repair Solution
@@ -27,8 +59,8 @@ export default function AuthPage() {
           <Button
             variant="default"
             size="lg"
-            onClick={() => setShowAuthDialog(true)}
-            className="inline-flex items-center pointer-events-auto relative z-20"
+            onClick={handleGetStarted}
+            className="inline-flex items-center"
           >
             Get Started
           </Button>
@@ -37,7 +69,7 @@ export default function AuthPage() {
         <AuthDialog
           mode="login"
           isOpen={showAuthDialog}
-          onOpenChange={setShowAuthDialog}
+          onOpenChange={handleDialogChange}
         />
       </main>
     </div>
