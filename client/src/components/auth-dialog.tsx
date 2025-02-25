@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -32,10 +32,15 @@ const registerSchema = insertUserSchema
     path: ["confirmPassword"],
   });
 
-export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger: React.ReactNode }) {
+type AuthDialogProps = {
+  mode: "login";
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function AuthDialog({ mode, isOpen, onOpenChange }: AuthDialogProps) {
   const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"login" | "forgot" | "register">("login");
 
   const form = useForm<FormData>({
@@ -63,13 +68,13 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
           username: data.username,
           password: data.password,
         });
-        setIsOpen(false);
+        onOpenChange(false);
       } else if (view === "forgot") {
         toast({
           title: "Password Reset",
           description: "If an account exists with that email, you will receive password reset instructions.",
         });
-        setIsOpen(false);
+        onOpenChange(false);
       } else if (view === "register") {
         await registerMutation.mutateAsync({
           username: data.username,
@@ -78,7 +83,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
           role: data.role ?? "customer",
         });
         form.reset();
-        setIsOpen(false);
+        onOpenChange(false);
       }
     } catch (error) {
       console.error("Form submission error:", error);
@@ -91,10 +96,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>

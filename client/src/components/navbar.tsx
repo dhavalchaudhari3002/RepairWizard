@@ -18,11 +18,13 @@ import { Bell, Menu, User } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
+import { useState } from "react";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const { notifications = [], isLoading: notificationsLoading } = useNotifications();
   const unreadCount = notifications.filter(n => !n.read).length;
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -75,25 +77,14 @@ export function NavBar() {
                 <div className="hidden md:flex items-center gap-2">
                   <Button 
                     variant="default"
-                    onClick={() => {
-                      const authDialog = document.querySelector('[data-auth-dialog-trigger]');
-                      if (authDialog) {
-                        (authDialog as HTMLButtonElement).click();
-                      }
-                    }}
+                    onClick={() => setShowAuthDialog(true)}
                   >
                     Login
                   </Button>
                   <AuthDialog
                     mode="login"
-                    trigger={
-                      <Button 
-                        data-auth-dialog-trigger 
-                        className="hidden"
-                      >
-                        Hidden Trigger
-                      </Button>
-                    }
+                    isOpen={showAuthDialog}
+                    onOpenChange={setShowAuthDialog}
                   />
                 </div>
 
@@ -112,12 +103,7 @@ export function NavBar() {
                       <div className="grid gap-4 py-4">
                         <Button
                           variant="default"
-                          onClick={() => {
-                            const authDialog = document.querySelector('[data-auth-dialog-trigger]');
-                            if (authDialog) {
-                              (authDialog as HTMLButtonElement).click();
-                            }
-                          }}
+                          onClick={() => setShowAuthDialog(true)}
                         >
                           Login
                         </Button>
