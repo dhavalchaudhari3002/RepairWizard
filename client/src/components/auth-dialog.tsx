@@ -71,29 +71,17 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
         });
         setIsOpen(false);
       } else if (view === "register") {
-        console.log("Registration data:", {
-          username: data.username,
-          password: data.password,
-          email: data.email,
-          role: data.role,
-        });
-
-        const result = await registerMutation.mutateAsync({
+        await registerMutation.mutateAsync({
           username: data.username,
           password: data.password,
           email: data.email!,
           role: data.role ?? "customer",
         });
-
-        console.log("Registration result:", result);
-
-        // Reset form and close dialog only after successful registration
         form.reset();
         setIsOpen(false);
       }
     } catch (error) {
       console.error("Form submission error:", error);
-      // Error handling is done in the mutations
     }
   });
 
@@ -104,7 +92,7 @@ export function AuthDialog({ mode = "login", trigger }: { mode: "login", trigger
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild onClick={() => setIsOpen(true)}>
         {trigger}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
