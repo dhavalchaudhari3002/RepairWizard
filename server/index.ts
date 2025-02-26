@@ -39,6 +39,7 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/ping', (_req, res) => {
+  log("Health check endpoint hit");
   res.send('pong');
 });
 
@@ -61,21 +62,36 @@ app.get('/ping', (_req, res) => {
       });
     });
 
-    // Force development mode since we're using Vite
-    process.env.NODE_ENV = "development";
-
-    // In development, always use Vite middleware
-    log("Setting up Vite development server...");
-    await setupVite(app, server);
-    log("Vite setup complete");
-
     // ALWAYS serve the app on port 5000
     const PORT = 5000;
     const HOST = "0.0.0.0";
 
-    server.listen(PORT, HOST, () => {
+    server.listen(PORT, HOST, async () => {
       log(`Server is now listening on http://${HOST}:${PORT}`);
+
+      // Setup Vite only after server is listening
+      if (process.env.NODE_ENV !== "production") {
+        log("Setting up Vite development server...");
+        try {
+          await setupVite(app, server);
+          log("Vite setup complete");
+        } catch (error) {
+          console.error("Vite setup failed:", error);
+          // Continue running the server even if Vite setup fails
+        }
+      }
+
       log("Server initialization complete - ready to handle requests");
+
+      // Test server health immediately after startup
+      fetch(`http://${HOST}:${PORT}/ping`)
+        .then(response => response.text())
+        .then(text => {
+          log(`Health check response: ${text}`);
+        })
+        .catch(error => {
+          console.error("Health check failed:", error);
+        });
     });
 
     // Handle server errors
