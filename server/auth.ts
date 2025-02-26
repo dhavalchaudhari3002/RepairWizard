@@ -156,8 +156,14 @@ export function setupAuth(app: Express) {
       console.log("Registration request received:", {
         username: req.body.username,
         email: req.body.email,
-        role: req.body.role
+        role: req.body.role,
+        tosAccepted: req.body.tosAccepted
       });
+
+      // Validate ToS acceptance
+      if (!req.body.tosAccepted) {
+        return res.status(400).json({ message: "You must accept the Terms of Service" });
+      }
 
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
@@ -166,26 +172,35 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(req.body.password);
+      const verificationToken = randomBytes(32).toString("hex");
 
       const userData: InsertUser = {
         username: req.body.username,
         password: hashedPassword,
         email: req.body.email,
         role: req.body.role || "customer",
+        phoneNumber: req.body.phoneNumber,
+        tosAccepted: req.body.tosAccepted,
+        emailVerified: false,
+        verificationToken,
       };
 
       console.log("Creating user with data:", {
         ...userData,
-        password: "[REDACTED]"
+        password: "[REDACTED]",
+        verificationToken: "[REDACTED]"
       });
 
-      // Temporarily skip email verification
-      const user = await storage.createUser({
-        ...userData,
-        emailVerified: true, // Set to true by default for now
-      });
-
+      const user = await storage.createUser(userData);
       console.log(`User created successfully: ${user.id}`);
+
+      // Send verification email
+      try {
+        await sendVerificationEmail(user.email, verificationToken, user.username);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with registration even if email fails
+      }
 
       // If user is a repairer, create shop and profile
       if (req.body.role === "repairer") {
@@ -218,21 +233,14 @@ export function setupAuth(app: Express) {
         }
       }
 
-      // Log in the user immediately after registration
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Auto-login error:", err);
-          return next(err);
-        }
-        res.status(201).json({
-          message: "Registration successful! You are now logged in.",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-          },
-        });
+      res.status(201).json({
+        message: "Registration successful! Please check your email for verification.",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
       });
 
     } catch (err) {
@@ -272,8 +280,6 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("Login request received:", { username: req.body.username });
-
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);

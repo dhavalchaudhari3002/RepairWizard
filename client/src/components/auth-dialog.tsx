@@ -8,11 +8,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Eye, EyeOff } from "lucide-react";
 
 type FormData = {
   username: string;
   password: string;
   email?: string;
+  role?: "customer" | "repairer" | "admin";
+  phoneNumber?: string;
+  tosAccepted?: boolean;
 };
 
 type AuthDialogProps = {
@@ -21,10 +28,22 @@ type AuthDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const calculatePasswordStrength = (password: string): number => {
+  let strength = 0;
+  if (password.length >= 8) strength += 20;
+  if (/[A-Z]/.test(password)) strength += 20;
+  if (/[a-z]/.test(password)) strength += 20;
+  if (/[0-9]/.test(password)) strength += 20;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+  return strength;
+};
+
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
   const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [view, setView] = useState<"login" | "register">(mode);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   useEffect(() => {
     console.log("Auth dialog mounted, isOpen:", isOpen);
@@ -33,13 +52,23 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const form = useForm<FormData>({
     resolver: zodResolver(
       view === "register"
-        ? insertUserSchema.pick({ username: true, password: true, email: true })
+        ? insertUserSchema.pick({
+            username: true,
+            password: true,
+            email: true,
+            role: true,
+            phoneNumber: true,
+            tosAccepted: true,
+          })
         : insertUserSchema.pick({ username: true, password: true })
     ),
     defaultValues: {
       username: "",
       password: "",
       email: "",
+      role: "customer",
+      phoneNumber: "",
+      tosAccepted: false,
     },
   });
 
@@ -59,7 +88,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           username: data.username,
           password: data.password,
           email: data.email!,
-          role: "customer",
+          role: data.role!,
+          phoneNumber: data.phoneNumber,
+          tosAccepted: data.tosAccepted!,
         });
         console.log("Registration successful");
       }
@@ -74,17 +105,14 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     }
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
-    console.log("Dialog open state changing to:", open);
-    try {
-      onOpenChange(open);
-    } catch (error) {
-      console.error("Error updating dialog state:", error);
-    }
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const strength = calculatePasswordStrength(e.target.value);
+    setPasswordStrength(strength);
+    form.setValue("password", e.target.value);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
@@ -97,10 +125,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
         <Form {...form}>
           <form 
-            onSubmit={(e) => {
-              console.log("Form submit event:", e);
-              form.handleSubmit(onSubmit)(e);
-            }} 
+            onSubmit={form.handleSubmit(onSubmit)} 
             className="space-y-4"
           >
             <FormField
@@ -110,7 +135,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter username" {...field} />
+                    <Input placeholder="Enter username (4-20 characters)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -118,19 +143,60 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             />
 
             {view === "register" && (
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="Enter email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>I am a...</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="customer">Customer</SelectItem>
+                          <SelectItem value="repairer">Technician</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="XXX-XXX-XXXX" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
 
             <FormField
@@ -139,20 +205,81 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Enter password" {...field} />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Enter password" 
+                        {...field}
+                        onChange={handlePasswordChange}
+                      />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {view === "register" && (
+                    <div className="mt-2">
+                      <Progress value={passwordStrength} className="h-1" />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {passwordStrength === 100
+                          ? "Strong password"
+                          : passwordStrength >= 60
+                          ? "Moderate password"
+                          : "Weak password"}
+                      </p>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {view === "register" && (
+              <FormField
+                control={form.control}
+                name="tosAccepted"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        I agree to the{" "}
+                        <a href="/terms" className="text-primary hover:underline">
+                          Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a href="/privacy" className="text-primary hover:underline">
+                          Privacy Policy
+                        </a>
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex flex-col gap-4">
               <Button
                 type="submit"
                 disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
                 className="w-full"
-                onClick={() => console.log("Submit button clicked")}
               >
                 {view === "login"
                   ? loginMutation.isPending ? "Logging in..." : "Login"
@@ -163,8 +290,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 type="button"
                 variant="ghost"
                 onClick={() => {
-                  console.log("Switching view to:", view === "login" ? "register" : "login");
                   setView(view === "login" ? "register" : "login");
+                  form.reset();
                 }}
                 className="w-full"
               >

@@ -7,12 +7,46 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["customer", "repairer"] }).notNull(),
+  role: text("role", { enum: ["customer", "repairer", "admin"] }).notNull(),
   email: text("email").notNull(),
+  phoneNumber: text("phone_number"),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
+  tosAccepted: boolean("tos_accepted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Update the insert schema with new validations
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    role: true,
+    email: true,
+    phoneNumber: true,
+    tosAccepted: true,
+  })
+  .extend({
+    username: z.string()
+      .min(4, "Username must be at least 4 characters")
+      .max(20, "Username cannot exceed 20 characters")
+      .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    email: z.string().email("Invalid email address"),
+    role: z.enum(["customer", "repairer", "admin"]),
+    phoneNumber: z.string()
+      .regex(/^\d{3}-\d{3}-\d{4}$/, "Phone number must be in format XXX-XXX-XXXX")
+      .optional(),
+    tosAccepted: z.boolean()
+      .refine((val) => val === true, "You must accept the Terms of Service"),
+    verificationToken: z.string().optional(),
+    emailVerified: z.boolean().optional(),
+  });
 
 // Repair Shops table
 export const repairShops = pgTable("repair_shops", {
@@ -63,27 +97,6 @@ export const notifications = pgTable("notifications", {
 });
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    password: true,
-    role: true,
-    email: true,
-  })
-  .extend({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-    email: z.string().email("Invalid email address"),
-    role: z.enum(["customer", "repairer"]),
-    verificationToken: z.string().optional(),
-    emailVerified: z.boolean().optional(),
-  });
-
 export const insertRepairShopSchema = createInsertSchema(repairShops)
   .omit({
     id: true,
