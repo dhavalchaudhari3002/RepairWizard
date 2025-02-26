@@ -12,7 +12,7 @@ interface RepairQuestionsProps {
 interface QuestionAnswer {
   question: string;
   answer: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
 }
 
 export function RepairQuestions({ productType, issueDescription }: RepairQuestionsProps) {
