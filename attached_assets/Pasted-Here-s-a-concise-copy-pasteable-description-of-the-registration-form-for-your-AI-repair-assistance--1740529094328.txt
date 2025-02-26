@@ -1,0 +1,74 @@
+Here’s a concise, copy-pasteable description of the registration form for your AI repair assistance platform that you can share with your coding agent. It includes the key components, layout, and requirements without additional explanations.
+
+---
+
+**Registration Form Description for AI Repair Assistance Platform**
+
+**Purpose**: Create a user registration form for an AI repair assistance platform, allowing users to access AI-driven repair diagnostics and services.
+
+**Layout and Design**:
+- Responsive for mobile, tablet, and desktop.
+- Clean, modern design with navy blue and white colors, including the platform’s logo at the top.
+- Accessible (ARIA labels, high-contrast text, keyboard navigation).
+- Centered container on a white background with a dark navy header.
+
+**Form Fields**:
+1. **Username**
+   - Type: Text
+   - Label: "Username"
+   - Placeholder: "Enter username"
+   - Requirements: 4-20 characters, alphanumeric only (underscores/hyphens allowed). Real-time uniqueness check ("Username available" or "Username taken").
+2. **Email**
+   - Type: Email
+   - Label: "Email"
+   - Placeholder: "Enter email (e.g., user@example.com)"
+   - Requirements: Valid email format. Check for existing accounts.
+3. **Password**
+   - Type: Password
+   - Label: "Password"
+   - Placeholder: "Enter password"
+   - Requirements: Minimum 8 characters, one uppercase, one lowercase, one number, one special character. Include password strength meter and "Show Password" toggle.
+4. **Confirm Password**
+   - Type: Password
+   - Label: "Confirm Password"
+   - Placeholder: "Re-enter password"
+   - Requirements: Must match Password field. Real-time match check.
+5. **User Role**
+   - Type: Dropdown
+   - Label: "I am a..."
+   - Options: "Select your role," "Customer," "Technician," "Admin"
+   - Required field.
+6. **Phone Number (Optional)**
+   - Type: Tel
+   - Label: "Phone Number (Optional)"
+   - Placeholder: "Enter phone number (e.g., 123-456-7890)"
+   - Requirements: Allow U.S. format (XXX-XXX-XXXX), optional.
+7. **Terms of Service and Privacy Policy**
+   - Type: Checkbox
+   - Label: "I agree to the [Terms of Service](link) and [Privacy Policy](link)"
+   - Required field.
+
+**Buttons and Actions**:
+- **Register Button**: Label "Register," blue background, white text, rounded corners. Submits form, shows loading state, redirects on success, or displays errors.
+- **Login Link**: Label "Already have an account? Login," gray text, clickable, links to login page.
+
+**Validation and Feedback**:
+- Real-time validation for all fields (e.g., red/green feedback).
+- Clear error messages (e.g., "Invalid email format," "Passwords do not match").
+- Success message after registration (e.g., "Account created successfully! Check your email for verification.").
+
+**Security Features**:
+- HTTPS, password hashing (e.g., bcrypt), CAPTCHA for bot protection, CSRF protection.
+
+**Post-Registration**:
+- Send email verification link/code.
+- Direct to role-based dashboard (e.g., diagnostic tool for customers, job management for technicians).
+
+**Additional Notes**:
+- Include branding (logo, colors).
+- Consider localization for languages and phone formats.
+- Track submissions for analytics (ensure privacy law compliance).
+
+--- 
+
+You can directly copy and paste this to your coding agent. If you need any adjustments or more details, let me know!
