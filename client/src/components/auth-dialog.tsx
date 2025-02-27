@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 type FormData = {
   username: string;
@@ -20,6 +22,10 @@ type FormData = {
   role?: "customer" | "repairer" | "admin";
   phoneNumber?: string;
   tosAccepted?: boolean;
+  // Additional repairer fields
+  specialties?: string[];
+  experience?: string;
+  currentSpecialty?: string;
 };
 
 type AuthDialogProps = {
@@ -44,6 +50,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const [view, setView] = useState<"login" | "register">(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [currentSpecialty, setCurrentSpecialty] = useState("");
 
   useEffect(() => {
     console.log("Auth dialog mounted, isOpen:", isOpen);
@@ -69,8 +77,23 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       role: "customer",
       phoneNumber: "",
       tosAccepted: false,
+      experience: "",
+      specialties: [],
     },
   });
+
+  const role = form.watch("role");
+
+  const handleAddSpecialty = () => {
+    if (currentSpecialty.trim()) {
+      setSpecialties([...specialties, currentSpecialty.trim()]);
+      setCurrentSpecialty("");
+    }
+  };
+
+  const removeSpecialty = (specialty: string) => {
+    setSpecialties(specialties.filter(s => s !== specialty));
+  };
 
   const onSubmit = async (data: FormData) => {
     console.log("Form submission started");
@@ -91,6 +114,10 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           role: data.role!,
           phoneNumber: data.phoneNumber,
           tosAccepted: data.tosAccepted!,
+          ...(data.role === "repairer" && {
+            specialties,
+            experience: data.experience,
+          }),
         });
         console.log("Registration successful");
       }
@@ -196,6 +223,65 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     </FormItem>
                   )}
                 />
+
+                {role === "repairer" && (
+                  <>
+                    <FormItem>
+                      <FormLabel>Specialties</FormLabel>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            value={currentSpecialty}
+                            onChange={(e) => setCurrentSpecialty(e.target.value)}
+                            placeholder="Add a specialty"
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleAddSpecialty}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {specialties.map((specialty) => (
+                            <Badge
+                              key={specialty}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() => removeSpecialty(specialty)}
+                            >
+                              {specialty} ×
+                            </Badge>
+                          ))}
+                        </div>
+                        {specialties.length === 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            Add at least one specialty (e.g., Electronics, Appliances)
+                          </p>
+                        )}
+                      </div>
+                    </FormItem>
+
+                    <FormField
+                      control={form.control}
+                      name="experience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Experience</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Describe your repair experience..."
+                              className="resize-none"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </>
             )}
 
@@ -292,6 +378,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 onClick={() => {
                   setView(view === "login" ? "register" : "login");
                   form.reset();
+                  setSpecialties([]);
+                  setCurrentSpecialty("");
                 }}
                 className="w-full"
               >

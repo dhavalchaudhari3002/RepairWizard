@@ -27,9 +27,14 @@ type RegisterData = {
   password: string;
   email: string;
   role?: "customer" | "repairer";
+  phoneNumber?: string;
+  tosAccepted?: boolean;
+  specialties?: string[];
+  experience?: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const {
@@ -60,10 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", {
+      const registrationData = {
         ...data,
-        role: data.role || "customer", // Default to customer if role not specified
-      });
+        role: data.role || "customer",
+      };
+
+      const res = await apiRequest("POST", "/api/register", registrationData);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Registration failed");
