@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type FormData = {
   username: string;
@@ -26,6 +27,11 @@ type FormData = {
   specialties?: string[];
   experience?: string;
   currentSpecialty?: string;
+  // New fields for repair shop and service
+  hasRepairShop?: boolean;
+  shopName?: string;
+  shopAddress?: string;
+  serviceType?: "home" | "shop" | "both";
 };
 
 type AuthDialogProps = {
@@ -79,10 +85,15 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       tosAccepted: false,
       experience: "",
       specialties: [],
+      hasRepairShop: false,
+      shopName: "",
+      shopAddress: "",
+      serviceType: "both",
     },
   });
 
   const role = form.watch("role");
+  const hasRepairShop = form.watch("hasRepairShop");
 
   const handleAddSpecialty = () => {
     if (currentSpecialty.trim()) {
@@ -117,6 +128,12 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           ...(data.role === "repairer" && {
             specialties,
             experience: data.experience,
+            hasRepairShop: data.hasRepairShop,
+            ...(data.hasRepairShop && {
+              shopName: data.shopName,
+              shopAddress: data.shopAddress,
+            }),
+            serviceType: data.serviceType,
           }),
         });
         console.log("Registration successful");
@@ -275,6 +292,98 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                               className="resize-none"
                               {...field}
                             />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="hasRepairShop"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Do you have a repair shop?</FormLabel>
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {hasRepairShop && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="shopName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Shop Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter shop name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="shopAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Shop Address</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter shop address" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="serviceType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Service Type</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="home" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Home Service Only
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="shop" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Shop Service Only
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="both" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Both Home and Shop Service
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>

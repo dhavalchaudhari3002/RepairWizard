@@ -31,6 +31,11 @@ type RegisterData = {
   tosAccepted?: boolean;
   specialties?: string[];
   experience?: string;
+  // New fields for repair shop and service
+  hasRepairShop?: boolean;
+  shopName?: string;
+  shopAddress?: string;
+  serviceType?: "home" | "shop" | "both";
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
