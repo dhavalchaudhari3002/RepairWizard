@@ -9,7 +9,6 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role", { enum: ["customer", "repairer", "admin"] }).notNull(),
   email: text("email").notNull(),
-  phoneNumber: text("phone_number"),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   tosAccepted: boolean("tos_accepted").default(false).notNull(),
@@ -23,7 +22,6 @@ export const insertUserSchema = createInsertSchema(users)
     password: true,
     role: true,
     email: true,
-    phoneNumber: true,
     tosAccepted: true,
   })
   .extend({
@@ -38,10 +36,7 @@ export const insertUserSchema = createInsertSchema(users)
       .regex(/[0-9]/, "Password must contain at least one number")
       .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     email: z.string().email("Invalid email address"),
-    role: z.enum(["customer", "repairer", "admin"]),
-    phoneNumber: z.string()
-      .regex(/^\d{3}-\d{3}-\d{4}$/, "Phone number must be in format XXX-XXX-XXXX")
-      .optional(),
+    role: z.enum(["customer", "repairer"]),
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
     verificationToken: z.string().optional(),
