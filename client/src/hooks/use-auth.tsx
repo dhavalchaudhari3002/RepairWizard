@@ -27,7 +27,6 @@ type RegisterData = {
   password: string;
   email: string;
   role?: "customer" | "repairer";
-  phoneNumber?: string;
   tosAccepted?: boolean;
   specialties?: string[];
   experience?: string;

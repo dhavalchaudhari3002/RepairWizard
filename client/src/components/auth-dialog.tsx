@@ -21,7 +21,6 @@ type FormData = {
   password: string;
   email?: string;
   role?: "customer" | "repairer" | "admin";
-  phoneNumber?: string;
   tosAccepted?: boolean;
   // Additional repairer fields
   specialties?: string[];
@@ -71,7 +70,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             password: true,
             email: true,
             role: true,
-            phoneNumber: true,
             tosAccepted: true,
           })
         : insertUserSchema.pick({ username: true, password: true })
@@ -81,7 +79,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       password: "",
       email: "",
       role: "customer",
-      phoneNumber: "",
       tosAccepted: false,
       experience: "",
       specialties: [],
@@ -123,7 +120,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           password: data.password,
           email: data.email!,
           role: data.role!,
-          phoneNumber: data.phoneNumber,
           tosAccepted: data.tosAccepted!,
           ...(data.role === "repairer" && {
             specialties,
@@ -219,23 +215,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           <SelectItem value="repairer">Technician</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number (Optional)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="XXX-XXX-XXXX" 
-                          {...field} 
-                        />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
