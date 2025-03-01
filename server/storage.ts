@@ -1,6 +1,6 @@
-import { repairRequests, users, repairShops, repairers, notifications, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop, type InsertRepairShop, type Repairer, type InsertRepairer, type Notification, type InsertNotification } from "@shared/schema";
+import { users, repairRequests, repairShops, repairers, notifications, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop, type InsertRepairShop, type Repairer, type InsertRepairer, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -14,27 +14,8 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
 
-  // Repair shops
-  getAllRepairShops(): Promise<RepairShop[]>;
-  getRepairShop(id: number): Promise<RepairShop | undefined>;
-  createRepairShop(shop: InsertRepairShop): Promise<RepairShop>;
-
-  // Repairers
-  createRepairer(repairer: InsertRepairer): Promise<Repairer>;
-
-  // Repair requests
-  createRepairRequest(request: Omit<InsertRepairRequest, "status">): Promise<RepairRequest>;
-  getRepairRequest(id: number): Promise<RepairRequest | undefined>;
-  updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest>;
-
   // Session store
   sessionStore: session.Store;
-
-  // Notification methods
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  getUserNotifications(userId: number): Promise<Notification[]>;
-  markNotificationAsRead(notificationId: number): Promise<void>;
-  markAllNotificationsAsRead(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -91,93 +72,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
-  }
-
-  // Repair shop methods
-  async getAllRepairShops(): Promise<RepairShop[]> {
-    return await db.select().from(repairShops);
-  }
-
-  async getRepairShop(id: number): Promise<RepairShop | undefined> {
-    const [shop] = await db
-      .select()
-      .from(repairShops)
-      .where(eq(repairShops.id, id));
-    return shop;
-  }
-
-  async createRepairShop(shopData: InsertRepairShop): Promise<RepairShop> {
-    const [shop] = await db
-      .insert(repairShops)
-      .values([shopData])
-      .returning();
-    return shop;
-  }
-
-  // Repairer methods
-  async createRepairer(repairerData: InsertRepairer): Promise<Repairer> {
-    const [repairer] = await db
-      .insert(repairers)
-      .values([repairerData])
-      .returning();
-    return repairer;
-  }
-
-  // Repair request methods
-  async createRepairRequest(requestData: Omit<InsertRepairRequest, "status">): Promise<RepairRequest> {
-    const [request] = await db
-      .insert(repairRequests)
-      .values({ ...requestData, status: "pending" })
-      .returning();
-    return request;
-  }
-
-  async getRepairRequest(id: number): Promise<RepairRequest | undefined> {
-    const [request] = await db
-      .select()
-      .from(repairRequests)
-      .where(eq(repairRequests.id, id));
-    return request;
-  }
-
-  async updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest> {
-    const [request] = await db
-      .update(repairRequests)
-      .set({ status })
-      .where(eq(repairRequests.id, id))
-      .returning();
-    return request;
-  }
-
-  // Notification methods
-  async createNotification(notificationData: InsertNotification): Promise<Notification> {
-    const [notification] = await db
-      .insert(notifications)
-      .values(notificationData)
-      .returning();
-    return notification;
-  }
-
-  async getUserNotifications(userId: number): Promise<Notification[]> {
-    return await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(notifications.createdAt, "desc");
-  }
-
-  async markNotificationAsRead(notificationId: number): Promise<void> {
-    await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.id, notificationId));
-  }
-
-  async markAllNotificationsAsRead(userId: number): Promise<void> {
-    await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.userId, userId));
   }
 }
 
