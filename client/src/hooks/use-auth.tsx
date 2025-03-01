@@ -18,19 +18,20 @@ type AuthContextType = {
 };
 
 type LoginData = {
-  username: string;
+  email: string;
   password: string;
 };
 
 type RegisterData = {
-  username: string;
-  password: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
   role?: "customer" | "repairer";
   tosAccepted?: boolean;
   specialties?: string[];
   experience?: string;
-  // New fields for repair shop and service
+  // Additional fields for repair shop
   hasRepairShop?: boolean;
   shopName?: string;
   shopAddress?: string;
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Welcome back!",
+        description: `Logged in successfully as ${user.firstName}`,
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -102,6 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
     },
     onError: (error: Error) => {
       toast({

@@ -36,7 +36,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendVerificationEmail(email: string, token: string, username: string) {
+async function sendVerificationEmail(email: string, token: string, firstName: string) {
   try {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.APP_URL) {
       throw new Error("Missing email configuration");
@@ -56,7 +56,7 @@ async function sendVerificationEmail(email: string, token: string, username: str
       subject: "Welcome to Repair Assistant - Please Verify Your Email",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Repair Assistant, ${username}! 🎉</h2>
+          <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
           <p>Thank you for registering with us. We're excited to have you on board!</p>
 
           <p>To get started, please verify your email address by clicking the button below:</p>
@@ -83,10 +83,10 @@ async function sendVerificationEmail(email: string, token: string, username: str
         </div>
       `,
     });
-    console.log(`Verification and welcome email sent to ${email}`);
+    return true;
   } catch (error) {
     console.error("Failed to send verification email:", error);
-    throw new Error(error instanceof Error ? error.message : "Failed to send verification email");
+    return false;
   }
 }
 
@@ -105,14 +105,14 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET ?? "your-secret-key",
+    secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       sameSite: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   };
 
@@ -122,34 +122,37 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        console.log(`Login attempt for username: ${username}`);
-        const user = await storage.getUserByUsername(username);
+    new LocalStrategy(
+      { usernameField: 'email' },
+      async (email, password, done) => {
+        try {
+          console.log(`Login attempt for email: ${email}`);
+          const user = await storage.getUserByEmail(email);
 
-        if (!user) {
-          console.log(`User not found: ${username}`);
-          return done(null, false, { message: "Invalid username or password" });
+          if (!user) {
+            console.log(`User not found: ${email}`);
+            return done(null, false, { message: "Invalid email or password" });
+          }
+
+          const passwordValid = await comparePasswords(password, user.password);
+          if (!passwordValid) {
+            console.log(`Invalid password for user: ${email}`);
+            return done(null, false, { message: "Invalid email or password" });
+          }
+
+          if (!user.emailVerified) {
+            console.log(`Unverified email: ${email}`);
+            return done(null, false, { message: "Please verify your email before logging in" });
+          }
+
+          console.log(`Successful login for user: ${email}`);
+          return done(null, user);
+        } catch (err) {
+          console.error("Login error:", err);
+          return done(err);
         }
-
-        const passwordValid = await comparePasswords(password, user.password);
-        if (!passwordValid) {
-          console.log(`Invalid password for user: ${username}`);
-          return done(null, false, { message: "Invalid username or password" });
-        }
-
-        if (!user.emailVerified) {
-          console.log(`Unverified email for user: ${username}`);
-          return done(null, false, { message: "Please verify your email before logging in" });
-        }
-
-        console.log(`Successful login for user: ${username}`);
-        return done(null, user);
-      } catch (err) {
-        console.error("Login error:", err);
-        return done(err);
       }
-    })
+    )
   );
 
   passport.serializeUser((user, done) => {
@@ -175,8 +178,9 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       console.log("Registration request received:", {
-        username: req.body.username,
         email: req.body.email,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
         role: req.body.role,
         tosAccepted: req.body.tosAccepted
       });
@@ -192,19 +196,20 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
-        console.log(`Username already exists: ${req.body.username}`);
-        return res.status(400).json({ message: "Username already exists" });
+        console.log(`Email already exists: ${req.body.email}`);
+        return res.status(400).json({ message: "Email already registered" });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
       const verificationToken = randomBytes(32).toString("hex");
 
       const userData: InsertUser = {
-        username: req.body.username,
-        password: hashedPassword,
         email: req.body.email,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        password: hashedPassword,
         role: req.body.role || "customer",
         phoneNumber: req.body.phoneNumber,
         tosAccepted: req.body.tosAccepted,
@@ -219,60 +224,59 @@ export function setupAuth(app: Express) {
       });
 
       const user = await storage.createUser(userData);
-      console.log(`User created successfully: ${user.id}`);
 
       // Send verification email
-      try {
-        await sendVerificationEmail(user.email, verificationToken, user.username);
+      const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
 
-        // Continue with repairer profile creation if applicable
-        if (req.body.role === "repairer") {
-          console.log("Creating repairer profile...");
-          try {
-            const shopData: InsertRepairShop = {
-              ownerId: user.id,
-              name: req.body.shopName || `${user.username}'s Shop`,
-              description: "",
-              address: req.body.shopAddress || "",
-              phoneNumber: req.body.phoneNumber || "",
-              specialties: req.body.specialties || [],
-            };
-
-            const shop = await storage.createRepairShop(shopData);
-            console.log(`Shop created: ${shop.id}`);
-
-            const repairerData: InsertRepairer = {
-              userId: user.id,
-              shopId: shop.id,
-              specialties: req.body.specialties || [],
-              experience: req.body.experience || "",
-            };
-
-            await storage.createRepairer(repairerData);
-            console.log("Repairer profile created");
-          } catch (profileError) {
-            console.error("Failed to create repairer profile:", profileError);
-            // Continue with registration even if profile creation fails
-          }
-        }
-
-        res.status(201).json({
-          message: "Registration successful! Please check your email to verify your account.",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-          },
-        });
-      } catch (emailError) {
+      if (!emailSent) {
         // If email sending fails, delete the created user
         await storage.deleteUser(user.id);
-        console.error("Failed to send verification email:", emailError);
         return res.status(400).json({ 
           message: "Failed to send verification email. Please ensure you provided a valid email address." 
         });
       }
+
+      // If role is repairer, create additional profiles
+      if (req.body.role === "repairer") {
+        console.log("Creating repairer profile...");
+        try {
+          const shopData: InsertRepairShop = {
+            ownerId: user.id,
+            name: req.body.shopName || `${user.firstName}'s Shop`,
+            description: "",
+            address: req.body.shopAddress || "",
+            phoneNumber: req.body.phoneNumber || "",
+            specialties: req.body.specialties || [],
+          };
+
+          const shop = await storage.createRepairShop(shopData);
+          console.log(`Shop created: ${shop.id}`);
+
+          const repairerData: InsertRepairer = {
+            userId: user.id,
+            shopId: shop.id,
+            specialties: req.body.specialties || [],
+            experience: req.body.experience || "",
+          };
+
+          await storage.createRepairer(repairerData);
+          console.log("Repairer profile created");
+        } catch (profileError) {
+          console.error("Failed to create repairer profile:", profileError);
+          // Continue with registration even if profile creation fails
+        }
+      }
+
+      res.status(201).json({
+        message: "Registration successful! Please check your email to verify your account.",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+      });
 
     } catch (err) {
       console.error("Registration error:", err);
