@@ -38,12 +38,14 @@ const transporter = nodemailer.createTransport({
 async function sendVerificationEmail(email: string, token: string, firstName: string) {
   try {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.APP_URL) {
-      throw new Error("Missing email configuration");
+      console.error("Missing email configuration");
+      return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new Error("Invalid email address format");
+      console.error("Invalid email format:", email);
+      return false;
     }
 
     const verificationLink = `${process.env.APP_URL}/api/verify?token=${token}`;
@@ -56,9 +58,7 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
           <p>Thank you for registering with us. We're excited to have you on board!</p>
-
           <p>To get started, please verify your email address by clicking the button below:</p>
-
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationLink}" 
                style="background-color: #4CAF50; color: white; padding: 14px 28px; 
@@ -67,17 +67,9 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
               Verify Email
             </a>
           </div>
-
           <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-
           <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
-
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 14px;">
-              If you didn't create an account with Repair Assistant, please ignore this email.
-            </p>
-          </div>
         </div>
       `,
     });
@@ -189,6 +181,7 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
 
+      // Create user object without confirmPassword
       const userData: Omit<InsertUser, "confirmPassword"> = {
         firstName,
         lastName,
@@ -198,19 +191,22 @@ export function setupAuth(app: Express) {
         tosAccepted,
       };
 
+      // Create the user
       const user = await storage.createUser(userData);
 
+      // Update user with verification token
+      await storage.updateUser(user.id, { verificationToken });
+
+      // Send verification email
       const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
 
       if (!emailSent) {
+        // If email sending fails, delete the created user
         await storage.deleteUser(user.id);
         return res.status(400).json({ 
           message: "Failed to send verification email. Please ensure you provided a valid email address." 
         });
       }
-
-      // Update user with verification token
-      await storage.updateUser(user.id, { verificationToken });
 
       res.status(201).json({
         message: "Registration successful! Please check your email to verify your account.",
