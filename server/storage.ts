@@ -8,11 +8,9 @@ const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User management
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: Omit<InsertUser, "confirmPassword">): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByVerificationToken(token: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
 
@@ -53,7 +51,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // User management methods
-  async createUser(userData: InsertUser): Promise<User> {
+  async createUser(userData: Omit<InsertUser, "confirmPassword">): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -74,22 +72,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.email, email));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
-  }
-
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.verificationToken, token));
     return user;
   }
 

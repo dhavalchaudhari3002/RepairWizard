@@ -7,7 +7,7 @@ import { promisify } from "util";
 import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { users } from "@shared/schema";
-import type { User } from "@shared/schema";
+import type { User, InsertUser } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
@@ -35,7 +35,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendVerificationEmail(email: string, token: string, username: string) {
+async function sendVerificationEmail(email: string, token: string, firstName: string) {
   try {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.APP_URL) {
       throw new Error("Missing email configuration");
@@ -54,7 +54,7 @@ async function sendVerificationEmail(email: string, token: string, username: str
       subject: "Welcome to Repair Assistant - Please Verify Your Email",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Repair Assistant, ${username}! 🎉</h2>
+          <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
           <p>Thank you for registering with us. We're excited to have you on board!</p>
 
           <p>To get started, please verify your email address by clicking the button below:</p>
@@ -121,17 +121,17 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(
-      { usernameField: 'username' },
-      async (username, password, done) => {
+      { usernameField: 'email' },
+      async (email, password, done) => {
         try {
-          const user = await storage.getUserByUsername(username);
+          const user = await storage.getUserByEmail(email);
           if (!user) {
-            return done(null, false, { message: "Invalid username or password" });
+            return done(null, false, { message: "Invalid email or password" });
           }
 
           const passwordValid = await comparePasswords(password, user.password);
           if (!passwordValid) {
-            return done(null, false, { message: "Invalid username or password" });
+            return done(null, false, { message: "Invalid email or password" });
           }
 
           if (!user.emailVerified) {
@@ -165,7 +165,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
-      const { username, email, password, role = "customer", tosAccepted } = req.body;
+      const { email, password, firstName, lastName, role = "customer", tosAccepted } = req.body;
 
       if (!tosAccepted) {
         return res.status(400).json({ message: "You must accept the Terms of Service" });
@@ -181,27 +181,21 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      const existingUsername = await storage.getUserByUsername(username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already taken" });
-      }
-
       const hashedPassword = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
 
-      const userData = {
-        username,
+      const userData: Omit<InsertUser, "confirmPassword"> = {
+        firstName,
+        lastName,
         email,
         password: hashedPassword,
         role,
         tosAccepted,
-        emailVerified: false,
-        verificationToken,
       };
 
       const user = await storage.createUser(userData);
 
-      const emailSent = await sendVerificationEmail(user.email, verificationToken, user.username);
+      const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
 
       if (!emailSent) {
         await storage.deleteUser(user.id);
@@ -215,7 +209,8 @@ export function setupAuth(app: Express) {
         user: {
           id: user.id,
           email: user.email,
-          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
         },
       });
