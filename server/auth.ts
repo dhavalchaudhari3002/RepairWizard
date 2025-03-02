@@ -1,10 +1,10 @@
+import { Resend } from 'resend';
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { users } from "@shared/schema";
 import type { User, InsertUser } from "@shared/schema";
@@ -25,23 +25,18 @@ declare module "express-session" {
   }
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Use TLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function sendVerificationEmail(email: string, token: string, firstName: string) {
   try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.error("Missing email configuration");
-      throw new Error("Email configuration is not properly set up");
+    // Validate required environment variables
+    if (!process.env.RESEND_API_KEY) {
+      console.error("Missing Resend API key");
+      throw new Error("Email service not properly configured");
     }
 
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       console.error("Invalid email format:", email);
@@ -52,16 +47,13 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
     const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
     const verificationLink = `${appUrl}/api/verify?token=${token}`;
 
-    const info = await transporter.sendMail({
-      from: {
-        name: "Repair Assistant",
-        address: process.env.EMAIL_USER
-      },
+    const data = await resend.emails.send({
+      from: 'ReuseHub <noreply@reusehub.com>',
       to: email,
-      subject: "Welcome to Repair Assistant - Please Verify Your Email",
+      subject: 'Welcome to ReuseHub - Please Verify Your Email',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
+          <h2>Welcome to ReuseHub, ${firstName}! 🎉</h2>
           <p>Thank you for registering with us. We're excited to have you on board!</p>
           <p>To get started, please verify your email address by clicking the button below:</p>
           <div style="text-align: center; margin: 30px 0;">
@@ -75,15 +67,17 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
           <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #666;">${verificationLink}</p>
           <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">This is an automated message from ReuseHub. Please do not reply to this email.</p>
         </div>
       `,
     });
 
-    console.log(`Verification email sent successfully to ${email}. Message ID: ${info.messageId}`);
+    console.log('Verification email sent successfully. ID:', data.id);
     return true;
   } catch (error) {
     console.error("Failed to send verification email:", error);
-    throw error; // Re-throw to handle in the registration route
+    throw error;
   }
 }
 
@@ -177,16 +171,19 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "You must accept the Terms of Service" });
       }
 
+      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
+      // Check for existing user
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
+      // Create verification token and hash password
       const hashedPassword = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
 
@@ -202,14 +199,13 @@ export function setupAuth(app: Express) {
         createdAt: new Date(),
       };
 
-      console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
-
       try {
         const user = await storage.createUser(userData);
         console.log("User created successfully:", { id: user.id, email: user.email });
 
         try {
           await sendVerificationEmail(user.email, verificationToken, user.firstName);
+          console.log("Verification email sent successfully for user:", { id: user.id });
 
           return res.status(201).json({
             message: "Registration successful! Please check your email to verify your account.",
@@ -222,18 +218,16 @@ export function setupAuth(app: Express) {
             },
           });
         } catch (emailError) {
-          // If email sending fails, delete the user and return an error
-          console.error("Failed to send verification email, deleting user:", { id: user.id });
+          console.error("Failed to send verification email, deleting user:", { id: user.id, error: emailError });
           await storage.deleteUser(user.id);
-          return res.status(400).json({ 
-            message: "Failed to send verification email. Please ensure you provided a valid email address." 
+          return res.status(400).json({
+            message: "Failed to send verification email. Please ensure you provided a valid email address.",
           });
         }
       } catch (error) {
         console.error("Error creating user:", error);
         throw error;
       }
-
     } catch (err) {
       console.error("Registration error:", err);
       return res.status(500).json({ message: "Registration failed. Please try again." });
