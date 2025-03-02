@@ -3,11 +3,10 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { users } from "@shared/schema";
-import type { User, InsertUser } from "@shared/schema";
+import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
@@ -69,27 +68,6 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   }
 }
 
-declare global {
-  namespace Express {
-    interface User {
-      id: number;
-      email: string;
-      firstName: string;
-      lastName: string;
-      role: string;
-      emailVerified: boolean;
-    }
-  }
-}
-
-declare module "express-session" {
-  interface SessionData {
-    passport: {
-      user: number;
-    };
-  }
-}
-
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -100,11 +78,11 @@ async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  return hashedBuf.equals(suppliedBuf);
 }
 
 export function setupAuth(app: Express) {
-  const sessionSettings: session.SessionOptions = {
+  app.use(session({
     secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: false,
@@ -114,10 +92,8 @@ export function setupAuth(app: Express) {
       sameSite: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
-  };
+  }));
 
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -182,19 +158,6 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
-      // Check for existing user
-      try {
-        const existingUser = await storage.getUserByEmail(email);
-        if (existingUser) {
-          return res.status(400).json({ 
-            message: "This email is already registered. Please login or use a different email address."
-          });
-        }
-      } catch (error) {
-        console.error("Error checking existing user:", error);
-        return res.status(500).json({ message: "Error checking user registration status" });
-      }
-
       // Hash password
       const hashedPassword = await hashPassword(password);
 
@@ -241,8 +204,10 @@ export function setupAuth(app: Express) {
             },
           });
         }
-      } catch (error) {
-        console.error("Error creating user:", error);
+      } catch (error: any) {
+        if (error.message.includes("already registered")) {
+          return res.status(400).json({ message: error.message });
+        }
         throw error;
       }
     } catch (err) {

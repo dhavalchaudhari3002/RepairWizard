@@ -1,4 +1,4 @@
-import { users, repairRequests, repairShops, repairers, notifications, type RepairRequest, type InsertRepairRequest, type User, type InsertUser, type RepairShop, type InsertRepairShop, type Repairer, type InsertRepairer, type Notification, type InsertNotification } from "@shared/schema";
+import { users, type User } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -7,7 +7,6 @@ import connectPg from "connect-pg-simple";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  // User management
   createUser(user: any): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -39,7 +38,7 @@ export class DatabaseStorage implements IStorage {
       // Check for existing user
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
-        throw new Error("Email already registered");
+        throw new Error("This email is already registered. Please login or use a different email address.");
       }
 
       // Ensure the data matches the schema
