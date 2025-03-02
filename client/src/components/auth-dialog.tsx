@@ -79,7 +79,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         }
 
         try {
-          await registerMutation.mutateAsync({
+          const response = await registerMutation.mutateAsync({
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email,
@@ -89,10 +89,10 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             tosAccepted: data.tosAccepted,
           });
 
-          // Show success message
+          // Show success message from the server
           toast({
             title: "Registration Successful",
-            description: "Please check your email to verify your account.",
+            description: response.message || "Registration completed successfully.",
           });
 
           // Only close dialog and reset form on successful registration

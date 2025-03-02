@@ -218,7 +218,7 @@ export function setupAuth(app: Express) {
           console.log("Welcome email sent successfully for user:", { id: user.id });
 
           return res.status(201).json({
-            message: "Registration successful! You can now log in.",
+            message: "Registration successful! Welcome email sent to your inbox.",
             user: {
               id: user.id,
               email: user.email,
@@ -229,7 +229,7 @@ export function setupAuth(app: Express) {
           });
         } catch (emailError) {
           console.error("Failed to send welcome email:", emailError);
-          // Continue with registration even if email fails
+          // Still return success but with a different message
           return res.status(201).json({
             message: "Registration successful! You can now log in.",
             user: {
