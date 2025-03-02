@@ -11,8 +11,6 @@ export interface IStorage {
   createUser(user: any): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByVerificationToken(token: string): Promise<User | undefined>;
-  verifyUserEmail(id: number): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
 
@@ -34,21 +32,14 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // User management methods
   async createUser(userData: any): Promise<User> {
     try {
       console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
 
-      // First check if user exists and is unverified
+      // Check for existing user
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
-        if (!existingUser.emailVerified) {
-          // Delete the unverified user first
-          console.log("Deleting existing unverified user:", existingUser.id);
-          await this.deleteUser(existingUser.id);
-        } else {
-          throw new Error("Email already registered and verified");
-        }
+        throw new Error("Email already registered");
       }
 
       // Ensure the data matches the schema
@@ -58,8 +49,7 @@ export class DatabaseStorage implements IStorage {
         email: userData.email,
         password: userData.password,
         role: userData.role,
-        emailVerified: false,
-        verificationToken: userData.verificationToken,
+        emailVerified: true, // Always set to true since we're not verifying
         tosAccepted: userData.tosAccepted,
         createdAt: new Date(),
       };
@@ -99,41 +89,6 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error) {
       console.error("Error in getUserByEmail:", error);
-      throw error;
-    }
-  }
-
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.verificationToken, token));
-      return user;
-    } catch (error) {
-      console.error("Error in getUserByVerificationToken:", error);
-      throw error;
-    }
-  }
-
-  async verifyUserEmail(id: number): Promise<User> {
-    try {
-      const [user] = await db
-        .update(users)
-        .set({
-          emailVerified: true,
-          verificationToken: null,
-        })
-        .where(eq(users.id, id))
-        .returning();
-
-      if (!user) {
-        throw new Error("User not found");
-      }
-
-      return user;
-    } catch (error) {
-      console.error("Error in verifyUserEmail:", error);
       throw error;
     }
   }

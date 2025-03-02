@@ -11,21 +11,10 @@ import type { User, InsertUser } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Initialize Resend with more detailed setup verification
+// Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Verify Resend configuration on startup
-(async function verifyResendSetup() {
-  try {
-    const domains = await resend.domains.list();
-    console.log('Resend API key verified successfully');
-    console.log('Available domains:', domains.data?.map(d => d.name).join(', ') || 'Using default testing domain');
-  } catch (error) {
-    console.error('Failed to verify Resend API key:', error);
-  }
-})();
-
-async function sendVerificationEmail(email: string, token: string, firstName: string) {
+async function sendWelcomeEmail(email: string, firstName: string) {
   try {
     // Validate required environment variables
     if (!process.env.RESEND_API_KEY) {
@@ -40,85 +29,42 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
       throw new Error("Invalid email format");
     }
 
-    // Use the current host as APP_URL if not provided
-    const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-    const verificationLink = `${appUrl}/api/verify?token=${token}`;
-
     // Log the full email request for debugging
-    console.log("Sending verification email request:", {
+    console.log("Sending welcome email request:", {
       to: email,
       from: 'AI Repair Assistant <onboarding@resend.dev>',
-      subject: 'Verify Your Email - AI Repair Assistant',
-      firstName: firstName,
-      verificationLink: verificationLink
+      subject: 'Welcome to AI Repair Assistant',
+      firstName: firstName
     });
 
-    try {
-      const emailResponse = await resend.emails.send({
-        from: 'AI Repair Assistant <onboarding@resend.dev>',
-        to: [email],
-        subject: 'Verify Your Email - AI Repair Assistant',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome, ${firstName}! 🎉</h2>
-            <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
-            <p>To get started, please verify your email address:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationLink}" 
-                 style="background-color: #4CAF50; color: white; padding: 14px 28px; 
-                        text-align: center; text-decoration: none; display: inline-block; 
-                        border-radius: 4px; font-weight: bold;">
-                Verify Email
-              </a>
-            </div>
-            <p>Or copy and paste this link in your browser:</p>
-            <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-            <p><strong>Note:</strong> This link expires in 24 hours.</p>
-            <hr>
-            <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
-          </div>
-        `,
-      });
+    const emailResponse = await resend.emails.send({
+      from: 'AI Repair Assistant <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Welcome to AI Repair Assistant',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome, ${firstName}! 🎉</h2>
+          <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
+          <p>You can now log in to your account and start using our services.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+        </div>
+      `,
+    });
 
-      // Log the full Resend API response
-      console.log('Resend API Response:', emailResponse);
+    console.log('Welcome email sent successfully:', {
+      to: email,
+      firstName: firstName
+    });
 
-      if (!emailResponse || !emailResponse.id) {
-        throw new Error("Failed to get valid response from email service");
-      }
-
-      console.log('Verification email sent successfully:', {
-        messageId: emailResponse.id,
-        to: email,
-        firstName: firstName
-      });
-
-      return true;
-    } catch (resendError: any) {
-      // Log detailed error information
-      console.error('Resend API Error:', {
-        error: resendError,
-        message: resendError.message,
-        code: resendError.statusCode,
-        details: resendError.details || {},
-        response: resendError.response?.data
-      });
-
-      // Handle specific error cases
-      if (resendError.statusCode === 401) {
-        throw new Error("Invalid API key. Please check your Resend API key configuration.");
-      } else if (resendError.statusCode === 403) {
-        throw new Error("Email sending forbidden. Please verify your Resend account.");
-      } else if (resendError.statusCode === 429) {
-        throw new Error("Too many requests. Please try again later.");
-      } else if (resendError.statusCode === 422) {
-        throw new Error("Invalid email address or sender domain not verified. Please contact support.");
-      }
-
-      throw new Error(`Failed to send verification email: ${resendError.message}`);
-    }
+    return true;
   } catch (error: any) {
-    console.error('Email Service Error:', error);
+    console.error('Email Service Error:', {
+      error: error,
+      message: error.message,
+      code: error.statusCode,
+      details: error.details || {}
+    });
     throw error;
   }
 }
@@ -190,10 +136,6 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          if (!user.emailVerified) {
-            return done(null, false, { message: "Please verify your email before logging in" });
-          }
-
           return done(null, user);
         } catch (err) {
           console.error("Login error:", err);
@@ -240,29 +182,21 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
-      // Check for existing user with detailed error handling
+      // Check for existing user
       try {
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser) {
-          // Check if the existing user is verified
-          if (existingUser.emailVerified) {
-            return res.status(400).json({ 
-              message: "This email is already registered. Please login or use a different email address."
-            });
-          } else {
-            // If user exists but not verified, delete the old record
-            await storage.deleteUser(existingUser.id);
-            console.log("Deleted unverified user:", { id: existingUser.id, email: existingUser.email });
-          }
+          return res.status(400).json({ 
+            message: "This email is already registered. Please login or use a different email address."
+          });
         }
       } catch (error) {
         console.error("Error checking existing user:", error);
         return res.status(500).json({ message: "Error checking user registration status" });
       }
 
-      // Create verification token and hash password
+      // Hash password
       const hashedPassword = await hashPassword(password);
-      const verificationToken = randomBytes(32).toString("hex");
 
       const userData = {
         firstName,
@@ -271,8 +205,7 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
         role,
         tosAccepted,
-        emailVerified: false,
-        verificationToken,
+        emailVerified: true, // Set to true since we're not verifying
         createdAt: new Date(),
       };
 
@@ -281,11 +214,11 @@ export function setupAuth(app: Express) {
         console.log("User created successfully:", { id: user.id, email: user.email });
 
         try {
-          await sendVerificationEmail(user.email, verificationToken, user.firstName);
-          console.log("Verification email sent successfully for user:", { id: user.id });
+          await sendWelcomeEmail(user.email, user.firstName);
+          console.log("Welcome email sent successfully for user:", { id: user.id });
 
           return res.status(201).json({
-            message: "Registration successful! Please check your email to verify your account.",
+            message: "Registration successful! You can now log in.",
             user: {
               id: user.id,
               email: user.email,
@@ -295,10 +228,17 @@ export function setupAuth(app: Express) {
             },
           });
         } catch (emailError) {
-          console.error("Failed to send verification email, deleting user:", { id: user.id, error: emailError });
-          await storage.deleteUser(user.id);
-          return res.status(400).json({
-            message: "Failed to send verification email. Please ensure you provided a valid email address.",
+          console.error("Failed to send welcome email:", emailError);
+          // Continue with registration even if email fails
+          return res.status(201).json({
+            message: "Registration successful! You can now log in.",
+            user: {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role,
+            },
           });
         }
       } catch (error) {
@@ -308,27 +248,6 @@ export function setupAuth(app: Express) {
     } catch (err) {
       console.error("Registration error:", err);
       return res.status(500).json({ message: "Registration failed. Please try again." });
-    }
-  });
-
-  app.get("/api/verify", async (req, res) => {
-    try {
-      const { token } = req.query;
-
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ message: "Invalid verification token" });
-      }
-
-      const user = await storage.getUserByVerificationToken(token);
-      if (!user) {
-        return res.status(400).json({ message: "Invalid or expired verification token" });
-      }
-
-      await storage.verifyUserEmail(user.id);
-      return res.redirect('/auth?verified=true');
-    } catch (error) {
-      console.error("Email verification error:", error);
-      return res.status(500).json({ message: "Failed to verify email. Please try again." });
     }
   });
 
