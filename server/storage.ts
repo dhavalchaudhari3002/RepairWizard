@@ -39,6 +39,18 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
 
+      // First check if user exists and is unverified
+      const existingUser = await this.getUserByEmail(userData.email);
+      if (existingUser) {
+        if (!existingUser.emailVerified) {
+          // Delete the unverified user first
+          console.log("Deleting existing unverified user:", existingUser.id);
+          await this.deleteUser(existingUser.id);
+        } else {
+          throw new Error("Email already registered and verified");
+        }
+      }
+
       // Ensure the data matches the schema
       const userToCreate = {
         firstName: userData.firstName,
@@ -66,22 +78,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error in getUser:", error);
+      throw error;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
-    return user;
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+      return user;
+    } catch (error) {
+      console.error("Error in getUserByEmail:", error);
+      throw error;
+    }
   }
 
-  // Add new method to get user by verification token
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
     try {
       const [user] = await db
@@ -95,7 +116,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Add new method to verify user's email
   async verifyUserEmail(id: number): Promise<User> {
     try {
       const [user] = await db
@@ -119,18 +139,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set(data)
-      .where(eq(users.id, id))
-      .returning();
-    return user;
+    try {
+      const [user] = await db
+        .update(users)
+        .set(data)
+        .where(eq(users.id, id))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error("Error in updateUser:", error);
+      throw error;
+    }
   }
 
   async deleteUser(id: number): Promise<void> {
-    await db
-      .delete(users)
-      .where(eq(users.id, id));
+    try {
+      await db
+        .delete(users)
+        .where(eq(users.id, id));
+      console.log("User deleted successfully:", id);
+    } catch (error) {
+      console.error("Error in deleteUser:", error);
+      throw error;
+    }
   }
 }
 

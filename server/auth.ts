@@ -125,8 +125,14 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
 
 declare global {
   namespace Express {
-    // Fix the recursive type reference
-    interface User extends Omit<User, keyof Express.User> {}
+    interface User {
+      id: number;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      emailVerified: boolean;
+    }
   }
 }
 
@@ -137,21 +143,6 @@ declare module "express-session" {
     };
   }
 }
-
-// Initialize Resend
-//const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Verify Resend configuration on startup
-//(async function verifyResendSetup() {
-//  try {
-//    const domains = await resend.domains.list();
-//    console.log('Resend API key verified successfully');
-//    console.log('Available domains:', domains.data?.map(d => d.name).join(', ') || 'Using default testing domain');
-//  } catch (error) {
-//    console.error('Failed to verify Resend API key:', error);
-//  }
-//})();
-
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -212,7 +203,7 @@ export function setupAuth(app: Express) {
     )
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
 
@@ -249,10 +240,24 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
-      // Check for existing user
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
+      // Check for existing user with detailed error handling
+      try {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          // Check if the existing user is verified
+          if (existingUser.emailVerified) {
+            return res.status(400).json({ 
+              message: "This email is already registered. Please login or use a different email address."
+            });
+          } else {
+            // If user exists but not verified, delete the old record
+            await storage.deleteUser(existingUser.id);
+            console.log("Deleted unverified user:", { id: existingUser.id, email: existingUser.email });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking existing user:", error);
+        return res.status(500).json({ message: "Error checking user registration status" });
       }
 
       // Create verification token and hash password
