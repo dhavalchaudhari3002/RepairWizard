@@ -52,6 +52,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
     });
 
     console.log('Welcome email sent successfully:', {
+      messageId: emailResponse.id,
       to: email,
       firstName: firstName
     });
@@ -205,8 +206,10 @@ export function setupAuth(app: Express) {
           });
         }
       } catch (error: any) {
-        if (error.message.includes("already registered")) {
-          return res.status(400).json({ message: error.message });
+        if (error.statusCode === 402) {
+          return res.status(402).json({ 
+            message: "This email is already registered. Please login or use a different email address." 
+          });
         }
         throw error;
       }

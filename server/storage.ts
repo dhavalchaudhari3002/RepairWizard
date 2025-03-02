@@ -38,7 +38,9 @@ export class DatabaseStorage implements IStorage {
       // Check for existing user
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
-        throw new Error("This email is already registered. Please login or use a different email address.");
+        const error = new Error("This email is already registered");
+        (error as any).statusCode = 402;
+        throw error;
       }
 
       // Ensure the data matches the schema
