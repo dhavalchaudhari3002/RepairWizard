@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 type AuthDialogProps = {
   mode: "login" | "register";
@@ -58,40 +58,48 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
-  const onSubmit = async (data: LoginData | Record<string, unknown>) => {
+  const onSubmit = async (data: any) => {
     try {
       if (view === "login") {
         await loginMutation.mutateAsync({
-          email: data.email as string,
-          password: data.password as string,
+          email: data.email,
+          password: data.password,
         });
-        toast({
-          title: "Success",
-          description: "Logged in successfully",
-        });
+        onOpenChange(false);
       } else {
+        // Validate email format before submitting
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
+          toast({
+            variant: "destructive",
+            title: "Invalid Email",
+            description: "Please enter a valid email address",
+          });
+          return;
+        }
+
         await registerMutation.mutateAsync({
-          firstName: data.firstName as string,
-          lastName: data.lastName as string,
-          email: data.email as string,
-          password: data.password as string,
-          confirmPassword: data.confirmPassword as string,
-          role: data.role as "customer" | "repairer",
-          tosAccepted: data.tosAccepted as boolean,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+          role: data.role,
+          tosAccepted: data.tosAccepted,
         });
-        toast({
-          title: "Registration successful!",
-          description: "Please check your email to verify your account.",
-        });
+
+        // Only close dialog and reset form on successful registration
+        onOpenChange(false);
+        form.reset();
       }
-      onOpenChange(false);
-      form.reset();
     } catch (error) {
       console.error("Auth error:", error);
       toast({
         variant: "destructive",
-        title: view === "login" ? "Login failed" : "Registration failed",
-        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
+        title: view === "login" ? "Login Failed" : "Registration Failed",
+        description: error instanceof Error 
+          ? error.message 
+          : "An error occurred. Please try again later.",
       });
     }
   };
@@ -101,6 +109,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     setPasswordStrength(strength);
     form.setValue("password", e.target.value);
   };
+
+  const isSubmitting = view === "login" ? loginMutation.isPending : registerMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -125,7 +135,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormItem>
                       <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter first name" {...field} />
+                        <Input placeholder="Enter first name" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -139,7 +149,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormItem>
                       <FormLabel>Last Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter last name" {...field} />
+                        <Input placeholder="Enter last name" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -155,7 +165,17 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="Enter email" {...field} />
+                    <Input 
+                      type="email" 
+                      placeholder="Enter email" 
+                      {...field} 
+                      disabled={isSubmitting}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Clear any previous email-related error messages
+                        form.clearErrors("email");
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,7 +189,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your role" />
@@ -199,6 +219,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         placeholder="Enter password"
                         {...field}
                         onChange={handlePasswordChange}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <Button
@@ -207,6 +228,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={isSubmitting}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -246,6 +268,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm your password"
                             {...field}
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <Button
@@ -254,6 +277,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           size="icon"
                           className="absolute right-2 top-1/2 -translate-y-1/2"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          disabled={isSubmitting}
                         >
                           {showConfirmPassword ? (
                             <EyeOff className="h-4 w-4" />
@@ -276,6 +300,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
@@ -300,12 +325,17 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             <div className="flex flex-col gap-4">
               <Button
                 type="submit"
-                disabled={view === "login" ? loginMutation.isPending : registerMutation.isPending}
+                disabled={isSubmitting}
                 className="w-full"
               >
-                {view === "login"
-                  ? loginMutation.isPending ? "Logging in..." : "Login"
-                  : registerMutation.isPending ? "Registering..." : "Register"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {view === "login" ? "Logging in..." : "Registering..."}
+                  </>
+                ) : (
+                  view === "login" ? "Login" : "Register"
+                )}
               </Button>
 
               <Button
@@ -316,6 +346,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   form.reset();
                 }}
                 className="w-full"
+                disabled={isSubmitting}
               >
                 {view === "login" ? "Need an account? Register" : "Already have an account? Login"}
               </Button>
