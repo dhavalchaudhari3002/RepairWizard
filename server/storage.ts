@@ -14,24 +14,6 @@ export interface IStorage {
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
 
-  // Repair shop management
-  createRepairShop(shop: InsertRepairShop): Promise<RepairShop>;
-  getAllRepairShops(): Promise<RepairShop[]>;
-
-  // Repairer management
-  createRepairer(repairer: InsertRepairer): Promise<Repairer>;
-
-  // Repair request management
-  createRepairRequest(request: InsertRepairRequest): Promise<RepairRequest>;
-  getRepairRequest(id: number): Promise<RepairRequest | undefined>;
-  updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest>;
-
-  // Notification management
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  getUserNotifications(userId: number): Promise<Notification[]>;
-  markNotificationAsRead(id: number): Promise<void>;
-  markAllNotificationsAsRead(userId: number): Promise<void>;
-
   // Session store
   sessionStore: session.Store;
 }
@@ -54,10 +36,25 @@ export class DatabaseStorage implements IStorage {
   async createUser(userData: any): Promise<User> {
     try {
       console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
+
+      // Ensure the data matches the schema
+      const userToCreate = {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role,
+        emailVerified: false,
+        verificationToken: userData.verificationToken,
+        tosAccepted: userData.tosAccepted,
+        createdAt: new Date(),
+      };
+
       const [user] = await db
         .insert(users)
-        .values(userData)
+        .values(userToCreate)
         .returning();
+
       console.log("User created successfully:", { id: user.id, email: user.email });
       return user;
     } catch (error) {
@@ -95,85 +92,6 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(users)
       .where(eq(users.id, id));
-  }
-
-  // Repair shop management methods
-  async createRepairShop(shopData: InsertRepairShop): Promise<RepairShop> {
-    const [shop] = await db
-      .insert(repairShops)
-      .values(shopData)
-      .returning();
-    return shop;
-  }
-
-  async getAllRepairShops(): Promise<RepairShop[]> {
-    return db.select().from(repairShops);
-  }
-
-  // Repairer management methods
-  async createRepairer(repairerData: InsertRepairer): Promise<Repairer> {
-    const [repairer] = await db
-      .insert(repairers)
-      .values(repairerData)
-      .returning();
-    return repairer;
-  }
-
-  // Repair request management methods
-  async createRepairRequest(requestData: InsertRepairRequest): Promise<RepairRequest> {
-    const [request] = await db
-      .insert(repairRequests)
-      .values(requestData)
-      .returning();
-    return request;
-  }
-
-  async getRepairRequest(id: number): Promise<RepairRequest | undefined> {
-    const [request] = await db
-      .select()
-      .from(repairRequests)
-      .where(eq(repairRequests.id, id));
-    return request;
-  }
-
-  async updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest> {
-    const [request] = await db
-      .update(repairRequests)
-      .set({ status })
-      .where(eq(repairRequests.id, id))
-      .returning();
-    return request;
-  }
-
-  // Notification management methods
-  async createNotification(notificationData: InsertNotification): Promise<Notification> {
-    const [notification] = await db
-      .insert(notifications)
-      .values(notificationData)
-      .returning();
-    return notification;
-  }
-
-  async getUserNotifications(userId: number): Promise<Notification[]> {
-    return db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(notifications.createdAt);
-  }
-
-  async markNotificationAsRead(id: number): Promise<void> {
-    await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.id, id));
-  }
-
-  async markAllNotificationsAsRead(userId: number): Promise<void> {
-    await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.userId, userId));
   }
 }
 

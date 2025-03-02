@@ -183,7 +183,6 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
 
-      // Create user with all required fields
       const userData = {
         firstName,
         lastName,
@@ -193,6 +192,7 @@ export function setupAuth(app: Express) {
         tosAccepted,
         emailVerified: false,
         verificationToken,
+        createdAt: new Date(),
       };
 
       console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
