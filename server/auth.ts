@@ -13,7 +13,8 @@ const scryptAsync = promisify(scrypt);
 
 declare global {
   namespace Express {
-    interface User extends User {} //Updated to reflect the change in edited snippet
+    // Fix the recursive type reference
+    interface User extends Omit<User, keyof Express.User> {}
   }
 }
 
@@ -31,8 +32,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Verify Resend configuration on startup
 (async function verifyResendSetup() {
   try {
-    await resend.domains.list();
+    const domains = await resend.domains.list();
     console.log('Resend API key verified successfully');
+    console.log('Available domains:', domains.data?.map(d => d.name));
   } catch (error) {
     console.error('Failed to verify Resend API key:', error);
   }
