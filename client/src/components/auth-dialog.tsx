@@ -65,23 +65,33 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           email: data.email as string,
           password: data.password as string,
         });
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        });
       } else {
         await registerMutation.mutateAsync({
           firstName: data.firstName as string,
           lastName: data.lastName as string,
           email: data.email as string,
           password: data.password as string,
+          confirmPassword: data.confirmPassword as string,
           role: data.role as "customer" | "repairer",
           tosAccepted: data.tosAccepted as boolean,
+        });
+        toast({
+          title: "Registration successful!",
+          description: "Please check your email to verify your account.",
         });
       }
       onOpenChange(false);
       form.reset();
     } catch (error) {
+      console.error("Auth error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: view === "login" ? "Login failed" : "Registration failed",
+        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
       });
     }
   };

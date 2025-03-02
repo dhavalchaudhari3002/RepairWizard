@@ -36,53 +36,56 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendVerificationEmail(email: string, token: string, firstName: string) {
-    try {
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-        console.error("Missing email configuration");
-        return false;
-      }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        console.error("Invalid email format:", email);
-        return false;
-      }
-
-      // Use the current host as APP_URL if not provided
-      const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-      const verificationLink = `${appUrl}/api/verify?token=${token}`;
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Welcome to Repair Assistant - Please Verify Your Email",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
-            <p>Thank you for registering with us. We're excited to have you on board!</p>
-            <p>To get started, please verify your email address by clicking the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationLink}" 
-                 style="background-color: #4CAF50; color: white; padding: 14px 28px; 
-                        text-align: center; text-decoration: none; display: inline-block; 
-                        border-radius: 4px; font-weight: bold;">
-                Verify Email
-              </a>
-            </div>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-            <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
-          </div>
-        `,
-      });
-
-      console.log(`Verification email sent successfully to ${email}`);
-      return true;
-    } catch (error) {
-      console.error("Failed to send verification email:", error);
-      return false;
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.error("Missing email configuration");
+      throw new Error("Email configuration is not properly set up");
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error("Invalid email format:", email);
+      throw new Error("Invalid email format");
+    }
+
+    // Use the current host as APP_URL if not provided
+    const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    const verificationLink = `${appUrl}/api/verify?token=${token}`;
+
+    const info = await transporter.sendMail({
+      from: {
+        name: "Repair Assistant",
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: "Welcome to Repair Assistant - Please Verify Your Email",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
+          <p>Thank you for registering with us. We're excited to have you on board!</p>
+          <p>To get started, please verify your email address by clicking the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationLink}" 
+               style="background-color: #4CAF50; color: white; padding: 14px 28px; 
+                      text-align: center; text-decoration: none; display: inline-block; 
+                      border-radius: 4px; font-weight: bold;">
+              Verify Email
+            </a>
+          </div>
+          <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${verificationLink}</p>
+          <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
+        </div>
+      `,
+    });
+
+    console.log(`Verification email sent successfully to ${email}. Message ID: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to send verification email:", error);
+    throw error; // Re-throw to handle in the registration route
   }
+}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -205,25 +208,27 @@ export function setupAuth(app: Express) {
         const user = await storage.createUser(userData);
         console.log("User created successfully:", { id: user.id, email: user.email });
 
-        const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
-        if (!emailSent) {
-          console.error("Failed to send verification email for user:", user.id);
+        try {
+          await sendVerificationEmail(user.email, verificationToken, user.firstName);
+
+          return res.status(201).json({
+            message: "Registration successful! Please check your email to verify your account.",
+            user: {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role,
+            },
+          });
+        } catch (emailError) {
+          // If email sending fails, delete the user and return an error
+          console.error("Failed to send verification email, deleting user:", { id: user.id });
           await storage.deleteUser(user.id);
           return res.status(400).json({ 
             message: "Failed to send verification email. Please ensure you provided a valid email address." 
           });
         }
-
-        return res.status(201).json({
-          message: "Registration successful! Please check your email to verify your account.",
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          },
-        });
       } catch (error) {
         console.error("Error creating user:", error);
         throw error;
