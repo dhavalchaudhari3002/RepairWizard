@@ -78,28 +78,50 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           return;
         }
 
-        await registerMutation.mutateAsync({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
-          role: data.role,
-          tosAccepted: data.tosAccepted,
-        });
+        try {
+          await registerMutation.mutateAsync({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            password: data.password,
+            confirmPassword: data.confirmPassword,
+            role: data.role,
+            tosAccepted: data.tosAccepted,
+          });
 
-        // Only close dialog and reset form on successful registration
-        onOpenChange(false);
-        form.reset();
+          // Show success message
+          toast({
+            title: "Registration Successful",
+            description: "Please check your email to verify your account.",
+          });
+
+          // Only close dialog and reset form on successful registration
+          onOpenChange(false);
+          form.reset();
+        } catch (error: any) {
+          // Handle specific error messages from the server
+          const errorMessage = error?.response?.data?.message || 
+            error.message || 
+            "Registration failed. Please try again later.";
+
+          toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: errorMessage,
+          });
+
+          // Log the error for debugging
+          console.error("Registration error:", error);
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth error:", error);
       toast({
         variant: "destructive",
         title: view === "login" ? "Login Failed" : "Registration Failed",
-        description: error instanceof Error 
-          ? error.message 
-          : "An error occurred. Please try again later.",
+        description: error?.response?.data?.message || 
+          error.message || 
+          "An unexpected error occurred. Please try again later.",
       });
     }
   };

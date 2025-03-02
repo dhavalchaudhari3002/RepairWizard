@@ -59,66 +59,71 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
     const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
     const verificationLink = `${appUrl}/api/verify?token=${token}`;
 
-    // Log email sending attempt
-    console.log(`Attempting to send verification email to ${email}`);
+    // Log email sending attempt with more details
+    console.log("Sending verification email:", {
+      to: email,
+      firstName: firstName,
+      appUrl: appUrl,
+      verificationLink: verificationLink
+    });
 
-    try {
-      const data = await resend.emails.send({
-        from: 'AI Repair Assistant <onboarding@resend.dev>', // Using Resend's testing domain
-        to: [email],
-        subject: 'Verify Your Email - AI Repair Assistant',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome, ${firstName}! 🎉</h2>
-            <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
-            <p>To get started, please verify your email address:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationLink}" 
-                 style="background-color: #4CAF50; color: white; padding: 14px 28px; 
-                        text-align: center; text-decoration: none; display: inline-block; 
-                        border-radius: 4px; font-weight: bold;">
-                Verify Email
-              </a>
-            </div>
-            <p>Or copy and paste this link in your browser:</p>
-            <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-            <p><strong>Note:</strong> This link expires in 24 hours.</p>
-            <hr>
-            <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+    const emailResponse = await resend.emails.send({
+      from: 'AI Repair Assistant <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Verify Your Email - AI Repair Assistant',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome, ${firstName}! 🎉</h2>
+          <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
+          <p>To get started, please verify your email address:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationLink}" 
+               style="background-color: #4CAF50; color: white; padding: 14px 28px; 
+                      text-align: center; text-decoration: none; display: inline-block; 
+                      border-radius: 4px; font-weight: bold;">
+              Verify Email
+            </a>
           </div>
-        `,
-      });
+          <p>Or copy and paste this link in your browser:</p>
+          <p style="word-break: break-all; color: #666;">${verificationLink}</p>
+          <p><strong>Note:</strong> This link expires in 24 hours.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+        </div>
+      `,
+    });
 
-      if (!data.id) {
-        throw new Error('Email service failed to generate message ID');
-      }
-
-      console.log('Verification email sent successfully:', {
-        messageId: data.id,
-        to: email,
-        firstName: firstName
-      });
-      return true;
-    } catch (resendError: any) {
-      console.error('Resend API Error:', {
-        error: resendError,
-        message: resendError.message,
-        code: resendError.statusCode,
-      });
-
-      if (resendError.statusCode === 401) {
-        throw new Error("Invalid API key. Please check your Resend API key configuration.");
-      } else if (resendError.statusCode === 403) {
-        throw new Error("Email sending forbidden. Please verify your Resend account.");
-      } else if (resendError.statusCode === 429) {
-        throw new Error("Too many requests. Please try again later.");
-      }
-
-      throw new Error("Failed to send verification email. Please try again or contact support.");
+    if (!emailResponse) {
+      throw new Error("Failed to get response from email service");
     }
-  } catch (error) {
-    console.error("Failed to send verification email:", error);
-    throw error;
+
+    console.log('Verification email sent successfully:', {
+      to: email,
+      firstName: firstName
+    });
+
+    return true;
+  } catch (error: any) {
+    console.error('Email Service Error:', {
+      error: error,
+      message: error.message,
+      code: error.statusCode,
+      details: error.details
+    });
+
+    // Handle specific error cases
+    if (error.statusCode === 401) {
+      throw new Error("Invalid API key. Please check your Resend API key configuration.");
+    } else if (error.statusCode === 403) {
+      throw new Error("Email sending forbidden. Please verify your Resend account.");
+    } else if (error.statusCode === 429) {
+      throw new Error("Too many requests. Please try again later.");
+    } else if (error.statusCode === 422) {
+      throw new Error("Invalid email address. Please check your email format.");
+    }
+
+    // Generic error message for other cases
+    throw new Error("Failed to send verification email. Please try again later.");
   }
 }
 
