@@ -11,22 +11,7 @@ import type { User, InsertUser } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-declare global {
-  namespace Express {
-    // Fix the recursive type reference
-    interface User extends Omit<User, keyof Express.User> {}
-  }
-}
-
-declare module "express-session" {
-  interface SessionData {
-    passport: {
-      user: number;
-    };
-  }
-}
-
-// Initialize Resend
+// Initialize Resend with more detailed setup verification
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Verify Resend configuration on startup
@@ -59,73 +44,114 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
     const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
     const verificationLink = `${appUrl}/api/verify?token=${token}`;
 
-    // Log email sending attempt with more details
-    console.log("Sending verification email:", {
+    // Log the full email request for debugging
+    console.log("Sending verification email request:", {
       to: email,
+      from: 'AI Repair Assistant <onboarding@resend.dev>',
+      subject: 'Verify Your Email - AI Repair Assistant',
       firstName: firstName,
-      appUrl: appUrl,
       verificationLink: verificationLink
     });
 
-    const emailResponse = await resend.emails.send({
-      from: 'AI Repair Assistant <onboarding@resend.dev>',
-      to: [email],
-      subject: 'Verify Your Email - AI Repair Assistant',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome, ${firstName}! 🎉</h2>
-          <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
-          <p>To get started, please verify your email address:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationLink}" 
-               style="background-color: #4CAF50; color: white; padding: 14px 28px; 
-                      text-align: center; text-decoration: none; display: inline-block; 
-                      border-radius: 4px; font-weight: bold;">
-              Verify Email
-            </a>
+    try {
+      const emailResponse = await resend.emails.send({
+        from: 'AI Repair Assistant <onboarding@resend.dev>',
+        to: [email],
+        subject: 'Verify Your Email - AI Repair Assistant',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome, ${firstName}! 🎉</h2>
+            <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
+            <p>To get started, please verify your email address:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationLink}" 
+                 style="background-color: #4CAF50; color: white; padding: 14px 28px; 
+                        text-align: center; text-decoration: none; display: inline-block; 
+                        border-radius: 4px; font-weight: bold;">
+                Verify Email
+              </a>
+            </div>
+            <p>Or copy and paste this link in your browser:</p>
+            <p style="word-break: break-all; color: #666;">${verificationLink}</p>
+            <p><strong>Note:</strong> This link expires in 24 hours.</p>
+            <hr>
+            <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
           </div>
-          <p>Or copy and paste this link in your browser:</p>
-          <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-          <p><strong>Note:</strong> This link expires in 24 hours.</p>
-          <hr>
-          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
-        </div>
-      `,
-    });
+        `,
+      });
 
-    if (!emailResponse) {
-      throw new Error("Failed to get response from email service");
+      // Log the full Resend API response
+      console.log('Resend API Response:', emailResponse);
+
+      if (!emailResponse || !emailResponse.id) {
+        throw new Error("Failed to get valid response from email service");
+      }
+
+      console.log('Verification email sent successfully:', {
+        messageId: emailResponse.id,
+        to: email,
+        firstName: firstName
+      });
+
+      return true;
+    } catch (resendError: any) {
+      // Log detailed error information
+      console.error('Resend API Error:', {
+        error: resendError,
+        message: resendError.message,
+        code: resendError.statusCode,
+        details: resendError.details || {},
+        response: resendError.response?.data
+      });
+
+      // Handle specific error cases
+      if (resendError.statusCode === 401) {
+        throw new Error("Invalid API key. Please check your Resend API key configuration.");
+      } else if (resendError.statusCode === 403) {
+        throw new Error("Email sending forbidden. Please verify your Resend account.");
+      } else if (resendError.statusCode === 429) {
+        throw new Error("Too many requests. Please try again later.");
+      } else if (resendError.statusCode === 422) {
+        throw new Error("Invalid email address or sender domain not verified. Please contact support.");
+      }
+
+      throw new Error(`Failed to send verification email: ${resendError.message}`);
     }
-
-    console.log('Verification email sent successfully:', {
-      to: email,
-      firstName: firstName
-    });
-
-    return true;
   } catch (error: any) {
-    console.error('Email Service Error:', {
-      error: error,
-      message: error.message,
-      code: error.statusCode,
-      details: error.details
-    });
-
-    // Handle specific error cases
-    if (error.statusCode === 401) {
-      throw new Error("Invalid API key. Please check your Resend API key configuration.");
-    } else if (error.statusCode === 403) {
-      throw new Error("Email sending forbidden. Please verify your Resend account.");
-    } else if (error.statusCode === 429) {
-      throw new Error("Too many requests. Please try again later.");
-    } else if (error.statusCode === 422) {
-      throw new Error("Invalid email address. Please check your email format.");
-    }
-
-    // Generic error message for other cases
-    throw new Error("Failed to send verification email. Please try again later.");
+    console.error('Email Service Error:', error);
+    throw error;
   }
 }
+
+declare global {
+  namespace Express {
+    // Fix the recursive type reference
+    interface User extends Omit<User, keyof Express.User> {}
+  }
+}
+
+declare module "express-session" {
+  interface SessionData {
+    passport: {
+      user: number;
+    };
+  }
+}
+
+// Initialize Resend
+//const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Verify Resend configuration on startup
+//(async function verifyResendSetup() {
+//  try {
+//    const domains = await resend.domains.list();
+//    console.log('Resend API key verified successfully');
+//    console.log('Available domains:', domains.data?.map(d => d.name).join(', ') || 'Using default testing domain');
+//  } catch (error) {
+//    console.error('Failed to verify Resend API key:', error);
+//  }
+//})();
+
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
