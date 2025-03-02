@@ -34,6 +34,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const { toast } = useToast();
   const [view, setView] = useState<"login" | "register">(mode);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       lastName: "",
       email: "",
       password: "",
+      confirmPassword: "",
       role: "customer" as const,
       tosAccepted: false,
     },
@@ -221,33 +223,68 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             />
 
             {view === "register" && (
-              <FormField
-                control={form.control}
-                name="tosAccepted"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I agree to the{" "}
-                        <a href="/terms" className="text-primary hover:underline">
-                          Terms of Service
-                        </a>{" "}
-                        and{" "}
-                        <a href="/privacy" className="text-primary hover:underline">
-                          Privacy Policy
-                        </a>
-                      </FormLabel>
+              <>
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm your password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                       <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tosAccepted"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I agree to the{" "}
+                          <a href="/terms" className="text-primary hover:underline">
+                            Terms of Service
+                          </a>{" "}
+                          and{" "}
+                          <a href="/privacy" className="text-primary hover:underline">
+                            Privacy Policy
+                          </a>
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
 
             <div className="flex flex-col gap-4">

@@ -41,10 +41,15 @@ export const insertUserSchema = createInsertSchema(users)
       .regex(/[a-z]/, "Password must contain at least one lowercase letter")
       .regex(/[0-9]/, "Password must contain at least one number")
       .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    confirmPassword: z.string(),
     email: z.string().email("Invalid email address"),
     role: z.enum(["customer", "repairer"]),
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
   });
 
 // Export login schema separately
