@@ -157,6 +157,8 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
+      console.log("Registration request received:", { ...req.body, password: '[REDACTED]' });
+
       const { firstName, lastName, email, password, role = "customer", tosAccepted } = req.body;
 
       // Validate required fields
@@ -181,53 +183,58 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
 
-      // Create user object without confirmPassword
-      const userData: Omit<InsertUser, "confirmPassword"> = {
+      // Create user with all required fields
+      const userData = {
         firstName,
         lastName,
         email,
         password: hashedPassword,
         role,
         tosAccepted,
+        emailVerified: false,
+        verificationToken,
       };
 
-      // Create the user
-      const user = await storage.createUser(userData);
+      console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
 
-      // Update user with verification token
-      await storage.updateUser(user.id, { verificationToken });
+      try {
+        const user = await storage.createUser(userData);
+        console.log("User created successfully:", { id: user.id, email: user.email });
 
-      // Send verification email
-      const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
+        const emailSent = await sendVerificationEmail(user.email, verificationToken, user.firstName);
+        if (!emailSent) {
+          console.error("Failed to send verification email for user:", user.id);
+          await storage.deleteUser(user.id);
+          return res.status(400).json({ 
+            message: "Failed to send verification email. Please ensure you provided a valid email address." 
+          });
+        }
 
-      if (!emailSent) {
-        // If email sending fails, delete the created user
-        await storage.deleteUser(user.id);
-        return res.status(400).json({ 
-          message: "Failed to send verification email. Please ensure you provided a valid email address." 
+        return res.status(201).json({
+          message: "Registration successful! Please check your email to verify your account.",
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
         });
+      } catch (error) {
+        console.error("Error creating user:", error);
+        throw error;
       }
-
-      res.status(201).json({
-        message: "Registration successful! Please check your email to verify your account.",
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-        },
-      });
 
     } catch (err) {
       console.error("Registration error:", err);
-      res.status(500).json({ message: "Registration failed. Please try again." });
+      return res.status(500).json({ message: "Registration failed. Please try again." });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
+        console.error("Login error:", err);
         return next(err);
       }
       if (!user) {

@@ -8,7 +8,7 @@ const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User management
-  createUser(user: Omit<InsertUser, "confirmPassword">): Promise<User>;
+  createUser(user: any): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
@@ -51,12 +51,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // User management methods
-  async createUser(userData: Omit<InsertUser, "confirmPassword">): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return user;
+  async createUser(userData: any): Promise<User> {
+    try {
+      console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
+      const [user] = await db
+        .insert(users)
+        .values(userData)
+        .returning();
+      console.log("User created successfully:", { id: user.id, email: user.email });
+      return user;
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error;
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
