@@ -28,7 +28,7 @@ declare module "express-session" {
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false,
+  secure: false, // Use TLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
@@ -37,18 +37,14 @@ const transporter = nodemailer.createTransport({
 
 async function sendVerificationEmail(email: string, token: string, firstName: string) {
   try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.APP_URL) {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.error("Missing email configuration");
       return false;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error("Invalid email format:", email);
-      return false;
-    }
-
-    const verificationLink = `${process.env.APP_URL}/api/verify?token=${token}`;
+    // Use the current host as APP_URL if not provided
+    const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    const verificationLink = `${appUrl}/api/verify?token=${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -73,6 +69,8 @@ async function sendVerificationEmail(email: string, token: string, firstName: st
         </div>
       `,
     });
+
+    console.log(`Verification email sent successfully to ${email}`);
     return true;
   } catch (error) {
     console.error("Failed to send verification email:", error);
