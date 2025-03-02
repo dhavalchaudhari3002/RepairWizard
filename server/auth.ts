@@ -165,7 +165,12 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
-      const { email, password, firstName, lastName, role = "customer", tosAccepted } = req.body;
+      const { firstName, lastName, email, password, role = "customer", tosAccepted } = req.body;
+
+      // Validate required fields
+      if (!firstName || !lastName || !email || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
 
       if (!tosAccepted) {
         return res.status(400).json({ message: "You must accept the Terms of Service" });
@@ -203,6 +208,9 @@ export function setupAuth(app: Express) {
           message: "Failed to send verification email. Please ensure you provided a valid email address." 
         });
       }
+
+      // Update user with verification token
+      await storage.updateUser(user.id, { verificationToken });
 
       res.status(201).json({
         message: "Registration successful! Please check your email to verify your account.",
