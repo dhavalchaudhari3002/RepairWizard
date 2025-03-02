@@ -36,47 +36,53 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendVerificationEmail(email: string, token: string, firstName: string) {
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.error("Missing email configuration");
+    try {
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+        console.error("Missing email configuration");
+        return false;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        console.error("Invalid email format:", email);
+        return false;
+      }
+
+      // Use the current host as APP_URL if not provided
+      const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      const verificationLink = `${appUrl}/api/verify?token=${token}`;
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Welcome to Repair Assistant - Please Verify Your Email",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
+            <p>Thank you for registering with us. We're excited to have you on board!</p>
+            <p>To get started, please verify your email address by clicking the button below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationLink}" 
+                 style="background-color: #4CAF50; color: white; padding: 14px 28px; 
+                        text-align: center; text-decoration: none; display: inline-block; 
+                        border-radius: 4px; font-weight: bold;">
+                Verify Email
+              </a>
+            </div>
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">${verificationLink}</p>
+            <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
+          </div>
+        `,
+      });
+
+      console.log(`Verification email sent successfully to ${email}`);
+      return true;
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
       return false;
     }
-
-    // Use the current host as APP_URL if not provided
-    const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-    const verificationLink = `${appUrl}/api/verify?token=${token}`;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Welcome to Repair Assistant - Please Verify Your Email",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Repair Assistant, ${firstName}! 🎉</h2>
-          <p>Thank you for registering with us. We're excited to have you on board!</p>
-          <p>To get started, please verify your email address by clicking the button below:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationLink}" 
-               style="background-color: #4CAF50; color: white; padding: 14px 28px; 
-                      text-align: center; text-decoration: none; display: inline-block; 
-                      border-radius: 4px; font-weight: bold;">
-              Verify Email
-            </a>
-          </div>
-          <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-          <p style="word-break: break-all; color: #666;">${verificationLink}</p>
-          <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
-        </div>
-      `,
-    });
-
-    console.log(`Verification email sent successfully to ${email}`);
-    return true;
-  } catch (error) {
-    console.error("Failed to send verification email:", error);
-    return false;
   }
-}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
