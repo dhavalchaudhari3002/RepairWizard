@@ -275,6 +275,27 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.get("/api/verify", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      await storage.verifyUserEmail(user.id);
+      return res.redirect('/auth?verified=true');
+    } catch (error) {
+      console.error("Email verification error:", error);
+      return res.status(500).json({ message: "Failed to verify email. Please try again." });
+    }
+  });
+
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {

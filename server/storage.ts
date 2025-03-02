@@ -11,6 +11,8 @@ export interface IStorage {
   createUser(user: any): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  verifyUserEmail(id: number): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
 
@@ -77,6 +79,43 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.email, email));
     return user;
+  }
+
+  // Add new method to get user by verification token
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.verificationToken, token));
+      return user;
+    } catch (error) {
+      console.error("Error in getUserByVerificationToken:", error);
+      throw error;
+    }
+  }
+
+  // Add new method to verify user's email
+  async verifyUserEmail(id: number): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({
+          emailVerified: true,
+          verificationToken: null,
+        })
+        .where(eq(users.id, id))
+        .returning();
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      return user;
+    } catch (error) {
+      console.error("Error in verifyUserEmail:", error);
+      throw error;
+    }
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User> {
