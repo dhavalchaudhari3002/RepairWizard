@@ -7,8 +7,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["customer", "repairer", "admin"] }).notNull(),
-  email: text("email").notNull(),
+  role: text("role", { enum: ["customer", "repairer"] }).notNull(),
+  email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   tosAccepted: boolean("tos_accepted").default(false).notNull(),
@@ -39,9 +39,13 @@ export const insertUserSchema = createInsertSchema(users)
     role: z.enum(["customer", "repairer"]),
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
-    verificationToken: z.string().optional(),
-    emailVerified: z.boolean().optional(),
   });
+
+// Export login schema separately
+export const loginSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
 
 // Repair Shops table
 export const repairShops = pgTable("repair_shops", {
@@ -143,9 +147,10 @@ export const insertNotificationSchema = createInsertSchema(notifications)
     read: z.boolean().optional().default(false),
   });
 
-//Export types
-export type InsertUser = z.infer<typeof insertUserSchema>;
+// Type exports
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginData = z.infer<typeof loginSchema>;
 
 export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
 export type RepairShop = typeof repairShops.$inferSelect;

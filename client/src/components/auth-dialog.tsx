@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/hooks/use-auth";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, LoginData, loginSchema } from "@shared/schema"; // Added import for loginSchema
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
@@ -15,23 +15,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-type FormData = {
-  username: string;
-  password: string;
-  email?: string;
-  role?: "customer" | "repairer" | "admin";
-  tosAccepted?: boolean;
-  // Additional repairer fields
-  specialties?: string[];
-  experience?: string;
-  currentSpecialty?: string;
-  // New fields for repair shop and service
-  hasRepairShop?: boolean;
-  shopName?: string;
-  shopAddress?: string;
-  serviceType?: "home" | "shop" | "both";
-};
 
 type AuthDialogProps = {
   mode: "login" | "register";
@@ -59,38 +42,25 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const [currentSpecialty, setCurrentSpecialty] = useState("");
 
   useEffect(() => {
-    console.log("Auth dialog mounted, isOpen:", isOpen);
-  }, [isOpen]);
+    if (isOpen) {
+      setView(mode);
+    }
+  }, [isOpen, mode]);
 
-  const form = useForm<FormData>({
+  const form = useForm({
     resolver: zodResolver(
-      view === "register"
-        ? insertUserSchema.pick({
-            username: true,
-            password: true,
-            email: true,
-            role: true,
-            tosAccepted: true,
-          })
-        : insertUserSchema.pick({ username: true, password: true })
+      view === "register" ? insertUserSchema : loginSchema
     ),
     defaultValues: {
       username: "",
       password: "",
       email: "",
-      role: "customer",
+      role: "customer" as const,
       tosAccepted: false,
-      experience: "",
-      specialties: [],
-      hasRepairShop: false,
-      shopName: "",
-      shopAddress: "",
-      serviceType: "both",
     },
   });
 
   const role = form.watch("role");
-  const hasRepairShop = form.watch("hasRepairShop");
 
   const handleAddSpecialty = () => {
     if (currentSpecialty.trim()) {
@@ -103,44 +73,29 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     setSpecialties(specialties.filter(s => s !== specialty));
   };
 
-  const onSubmit = async (data: FormData) => {
-    console.log("Form submission started");
+  const onSubmit = async (data: LoginData | Record<string, unknown>) => {
     try {
       if (view === "login") {
-        console.log("Attempting login...");
         await loginMutation.mutateAsync({
-          username: data.username,
-          password: data.password,
+          username: data.username as string,
+          password: data.password as string,
         });
-        console.log("Login successful");
       } else {
-        console.log("Attempting registration...");
         await registerMutation.mutateAsync({
-          username: data.username,
-          password: data.password,
-          email: data.email!,
-          role: data.role!,
-          tosAccepted: data.tosAccepted!,
-          ...(data.role === "repairer" && {
-            specialties,
-            experience: data.experience,
-            hasRepairShop: data.hasRepairShop,
-            ...(data.hasRepairShop && {
-              shopName: data.shopName,
-              shopAddress: data.shopAddress,
-            }),
-            serviceType: data.serviceType,
-          }),
+          username: data.username as string,
+          password: data.password as string,
+          email: data.email as string,
+          role: data.role as "customer" | "repairer",
+          tosAccepted: data.tosAccepted as boolean,
         });
-        console.log("Registration successful");
       }
       onOpenChange(false);
+      form.reset();
     } catch (error) {
-      console.error("Auth error:", error);
       toast({
         variant: "destructive",
-        title: "Authentication Error",
-        description: error instanceof Error ? error.message : "Authentication failed. Please try again.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
       });
     }
   };
@@ -164,10 +119,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         </DialogHeader>
 
         <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit(onSubmit)} 
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="username"
@@ -175,7 +127,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter username (4-20 characters)" {...field} />
+                    <Input placeholder="Enter username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -203,7 +155,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>I am a...</FormLabel>
+                      <FormLabel>Role</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -212,164 +164,13 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="repairer">Technician</SelectItem>
+                          <SelectItem value="repairer">Repairer</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {role === "repairer" && (
-                  <>
-                    <FormItem>
-                      <FormLabel>Specialties</FormLabel>
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            value={currentSpecialty}
-                            onChange={(e) => setCurrentSpecialty(e.target.value)}
-                            placeholder="Add a specialty"
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={handleAddSpecialty}
-                          >
-                            Add
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {specialties.map((specialty) => (
-                            <Badge
-                              key={specialty}
-                              variant="secondary"
-                              className="cursor-pointer"
-                              onClick={() => removeSpecialty(specialty)}
-                            >
-                              {specialty} ×
-                            </Badge>
-                          ))}
-                        </div>
-                        {specialties.length === 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            Add at least one specialty (e.g., Electronics, Appliances)
-                          </p>
-                        )}
-                      </div>
-                    </FormItem>
-
-                    <FormField
-                      control={form.control}
-                      name="experience"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Experience</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Describe your repair experience..."
-                              className="resize-none"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="hasRepairShop"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Do you have a repair shop?</FormLabel>
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {hasRepairShop && (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="shopName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Shop Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter shop name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="shopAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Shop Address</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter shop address" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="serviceType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Service Type</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-1"
-                            >
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="home" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Home Service Only
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="shop" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Shop Service Only
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="both" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Both Home and Shop Service
-                                </FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
               </>
             )}
 
@@ -381,9 +182,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <FormLabel>Password</FormLabel>
                   <div className="relative">
                     <FormControl>
-                      <Input 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="Enter password" 
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
                         {...field}
                         onChange={handlePasswordChange}
                       />
@@ -466,8 +267,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 onClick={() => {
                   setView(view === "login" ? "register" : "login");
                   form.reset();
-                  setSpecialties([]);
-                  setCurrentSpecialty("");
                 }}
                 className="w-full"
               >
