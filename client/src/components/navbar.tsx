@@ -52,7 +52,7 @@ export function NavBar() {
                 <NotificationsPopover />
                 <div className="hidden md:flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">
-                    {user.username}
+                    {`${user.firstName} ${user.lastName}`}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

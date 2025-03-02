@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/hooks/use-auth";
-import { insertUserSchema, LoginData, loginSchema } from "@shared/schema"; // Added import for loginSchema
+import { insertUserSchema, LoginData, loginSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
@@ -12,9 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Eye, EyeOff } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type AuthDialogProps = {
   mode: "login" | "register";
@@ -38,8 +35,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const [view, setView] = useState<"login" | "register">(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [specialties, setSpecialties] = useState<string[]>([]);
-  const [currentSpecialty, setCurrentSpecialty] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -52,39 +47,28 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       view === "register" ? insertUserSchema : loginSchema
     ),
     defaultValues: {
-      username: "",
-      password: "",
+      firstName: "",
+      lastName: "",
       email: "",
+      password: "",
       role: "customer" as const,
       tosAccepted: false,
     },
   });
 
-  const role = form.watch("role");
-
-  const handleAddSpecialty = () => {
-    if (currentSpecialty.trim()) {
-      setSpecialties([...specialties, currentSpecialty.trim()]);
-      setCurrentSpecialty("");
-    }
-  };
-
-  const removeSpecialty = (specialty: string) => {
-    setSpecialties(specialties.filter(s => s !== specialty));
-  };
-
   const onSubmit = async (data: LoginData | Record<string, unknown>) => {
     try {
       if (view === "login") {
         await loginMutation.mutateAsync({
-          username: data.username as string,
+          email: data.email as string,
           password: data.password as string,
         });
       } else {
         await registerMutation.mutateAsync({
-          username: data.username as string,
-          password: data.password as string,
+          firstName: data.firstName as string,
+          lastName: data.lastName as string,
           email: data.email as string,
+          password: data.password as string,
           role: data.role as "customer" | "repairer",
           tosAccepted: data.tosAccepted as boolean,
         });
@@ -120,30 +104,16 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {view === "register" && (
               <>
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Enter email" {...field} />
+                        <Input placeholder="Enter first name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -152,26 +122,56 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
                 <FormField
                   control={form.control}
-                  name="role"
+                  name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="repairer">Repairer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter last name" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </>
+            )}
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="Enter email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {view === "register" && (
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="customer">Customer</SelectItem>
+                        <SelectItem value="repairer">Repairer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             <FormField
