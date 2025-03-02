@@ -158,6 +158,16 @@ export const insertNotificationSchema = createInsertSchema(notifications)
     read: z.boolean().optional().default(false),
   });
 
+// Errors table for tracking application errors
+export const errors = pgTable("errors", {
+  id: serial("id").primaryKey(),
+  message: text("message").notNull(),
+  stack: text("stack"),
+  type: text("type").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -174,3 +184,6 @@ export type RepairRequest = typeof repairRequests.$inferSelect;
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export type Error = typeof errors.$inferSelect;
+export type InsertError = typeof errors.$inferInsert;

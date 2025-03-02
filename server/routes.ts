@@ -10,6 +10,7 @@ import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
 import { promisify } from "util";
+import { getErrorStats, trackError } from "./services/error-tracking";
 
 // Keep track of connected clients and their user IDs
 const clients = new Map<string, { ws: WebSocket; userId: number }>();
@@ -269,6 +270,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to generate repair guide",
         details: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  app.get("/api/errors/stats", async (req, res) => {
+    try {
+      const stats = await getErrorStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching error statistics:", error);
+      res.status(500).json({ error: "Failed to fetch error statistics" });
     }
   });
 

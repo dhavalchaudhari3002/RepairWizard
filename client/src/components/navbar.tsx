@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Bell, Menu, User } from "lucide-react";
+import { Bell, Menu, User, AlertTriangle } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
@@ -40,9 +40,17 @@ export function NavBar() {
         <nav className="flex flex-1 items-center justify-between space-x-2">
           <div className="hidden md:flex">
             {user && (
-              <Button variant="ghost" asChild>
-                <Link href="/">Dashboard</Link>
-              </Button>
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/">Dashboard</Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                  <Link href="/error-dashboard" className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Error Dashboard
+                  </Link>
+                </Button>
+              </>
             )}
           </div>
 
