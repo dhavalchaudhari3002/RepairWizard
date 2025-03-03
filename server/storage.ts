@@ -159,9 +159,14 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Try to send welcome email first
-      const emailSent = await sendWelcomeEmail(userData.email, userData.firstName);
-      if (!emailSent) {
-        const error = new Error("Unable to send welcome email. Please try again later.");
+      try {
+        const emailSent = await sendWelcomeEmail(userData.email, userData.firstName);
+        if (!emailSent) {
+          throw new Error("Failed to send welcome email");
+        }
+      } catch (emailError) {
+        console.error("Welcome email error:", emailError);
+        const error = new Error("Registration failed: Unable to send welcome email. Please try again later.");
         (error as any).statusCode = 500;
         throw error;
       }
@@ -197,6 +202,10 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error) {
       console.error("Error in createUser:", error);
+      // Ensure we properly propagate the error with status code
+      if (!(error as any).statusCode) {
+        (error as any).statusCode = 500;
+      }
       throw error;
     }
   }
