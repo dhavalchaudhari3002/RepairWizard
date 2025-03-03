@@ -36,7 +36,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       firstName: firstName
     });
 
-    const emailResponse = await resend.emails.send({
+    await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
@@ -51,12 +51,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       `,
     });
 
-    console.log('Welcome email sent successfully:', {
-      messageId: emailResponse.id,
-      to: email,
-      firstName: firstName
-    });
-
+    console.log('Welcome email sent successfully to:', email);
     return true;
   } catch (error: any) {
     console.error('Email Service Error:', {

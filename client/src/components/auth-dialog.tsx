@@ -84,6 +84,20 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           onOpenChange(false);
           form.reset();
         } catch (error: any) {
+          if (error?.response?.status === 409) {
+            toast({
+              variant: "default",
+              title: "Account Already Exists",
+              description: "This email is already registered. Switching to login...",
+            });
+
+            setTimeout(() => {
+              setView("login");
+              form.setValue("email", data.email);
+            }, 1500);
+            return;
+          }
+
           const errorMessage = error?.response?.data?.message || 
             error.message || 
             "Registration failed. Please try again later.";
