@@ -75,9 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       console.error("Registration error:", error);
+      let errorMessage = error.message;
+      if (errorMessage.includes("409")) {
+        errorMessage = "This email is already registered. Please login or use a different email address.";
+      }
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },

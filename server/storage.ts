@@ -158,30 +158,18 @@ export class DatabaseStorage implements IStorage {
         throw error;
       }
 
-      // Try to send welcome email first
-      try {
-        const emailSent = await sendWelcomeEmail(userData.email, userData.firstName);
-        if (!emailSent) {
-          throw new Error("Failed to send welcome email");
-        }
-      } catch (emailError) {
-        console.error("Welcome email error:", emailError);
-        const error = new Error("Registration failed: Unable to send welcome email. Please try again later.");
-        (error as any).statusCode = 500;
-        throw error;
-      }
-
       const userToCreate = {
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
         password: userData.password,
         role: userData.role,
-        emailVerified: true,
+        emailVerified: true, 
         tosAccepted: userData.tosAccepted,
         createdAt: new Date(),
       };
 
+      // Create user first
       const [user] = await db
         .insert(users)
         .values(userToCreate)
@@ -189,15 +177,27 @@ export class DatabaseStorage implements IStorage {
 
       console.log("User created successfully:", { id: user.id, email: user.email });
 
+      // Try to send welcome email, but don't block registration if it fails
+      try {
+        await sendWelcomeEmail(user.email, user.firstName);
+      } catch (emailError) {
+        console.error("Welcome email error (non-blocking):", emailError);
+        // Continue with registration even if email fails
+      }
+
       // Create welcome notification
-      await this.createNotification({
-        userId: user.id,
-        title: "Welcome to AI Repair Assistant!",
-        message: `Welcome ${user.firstName}! Thank you for joining our platform. We're here to help with all your repair needs.`,
-        type: "welcome",
-        read: false,
-        relatedEntityId: user.id
-      });
+      try {
+        await this.createNotification({
+          userId: user.id,
+          title: "Welcome to AI Repair Assistant!",
+          message: `Welcome ${user.firstName}! Thank you for joining our platform. We're here to help with all your repair needs.`,
+          type: "welcome",
+          read: false,
+          relatedEntityId: user.id
+        });
+      } catch (notificationError) {
+        console.error("Welcome notification error (non-blocking):", notificationError);
+      }
 
       return user;
     } catch (error) {
