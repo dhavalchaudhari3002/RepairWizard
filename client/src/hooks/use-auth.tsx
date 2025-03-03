@@ -5,7 +5,7 @@ import {
   UseMutationResult,
 } from "@tanstack/react-query";
 import { LoginData, InsertUser, User } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
@@ -25,10 +25,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
-  } = useQuery<User | undefined, Error>({
+  } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: 1, // Only retry once to prevent infinite loading
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/user");
+        if (!response.ok) {
+          if (response.status === 401) {
+            return null;
+          }
+          throw new Error("Failed to fetch user data");
+        }
+        return response.json();
+      } catch (err) {
+        console.error("Error fetching user:", err);
+        return null;
+      }
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const loginMutation = useMutation({
@@ -87,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      queryClient.clear(); // Clear all queries on logout
+      queryClient.clear();
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
