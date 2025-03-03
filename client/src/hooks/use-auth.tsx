@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message,
@@ -53,14 +54,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: InsertUser) => {
+      console.log("Attempting registration with data:", { ...data, password: '[REDACTED]' });
       const res = await apiRequest("POST", "/api/register", data);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Registration failed");
       }
-      return await res.json();
+      const result = await res.json();
+      console.log("Registration response:", result);
+      return result;
     },
     onSuccess: (response) => {
+      console.log("Registration successful:", response);
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Registration successful!",
@@ -69,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      console.error("Registration error:", error);
       toast({
         title: "Registration failed",
         description: error.message,
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message,
