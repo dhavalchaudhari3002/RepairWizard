@@ -17,20 +17,12 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'AI Repair Assistant <no-reply@resend.dev>',
+      from: 'notifications@resend.dev',
       to: [userEmail],
       subject: 'Welcome to AI Repair Assistant!',
-      html: `
-        <h1>Welcome to AI Repair Assistant, ${firstName}!</h1>
-        <p>Thank you for joining our platform. We're excited to help you with all your repair needs.</p>
-        <p>Here's what you can do with AI Repair Assistant:</p>
-        <ul>
-          <li>Get expert guidance on repairs</li>
-          <li>Receive accurate cost estimates</li>
-          <li>Access step-by-step repair instructions</li>
-        </ul>
-        <p>If you have any questions, feel free to reach out to our support team.</p>
-      `
+      html: `<p>Welcome to AI Repair Assistant, ${firstName}!</p>
+<p>Thank you for joining our platform.</p>
+<p>If you have any questions, our support team is here to help.</p>`
     });
 
     if (error) {
