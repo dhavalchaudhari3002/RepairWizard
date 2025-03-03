@@ -10,7 +10,17 @@ import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
 import { promisify } from "util";
-import { getErrorStats, trackError } from "./services/error-tracking";
+import { getErrorStats } from "./services/error-tracking";
+import type { SessionData } from "express-session";
+
+// Extend SessionData type to include passport
+declare module 'express-session' {
+  interface SessionData {
+    passport?: {
+      user: number;
+    };
+  }
+}
 
 // Keep track of connected clients and their user IDs
 const clients = new Map<string, { ws: WebSocket; userId: number }>();
