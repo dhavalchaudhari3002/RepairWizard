@@ -61,9 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Registration successful!",
-        description: response.message,
+        description: "Welcome to AI Repair Assistant! You can now log in to access your account.",
+        duration: 5000,
       });
     },
     onError: (error: Error) => {
