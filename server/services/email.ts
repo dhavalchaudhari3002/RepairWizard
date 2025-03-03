@@ -21,8 +21,17 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
       throw new Error('Email service configuration error');
     }
 
+    // Test the API key first
+    try {
+      const domains = await resend.domains.list();
+      console.log('Successfully connected to Resend. Domains:', domains);
+    } catch (domainError) {
+      console.error('Failed to verify Resend connection:', domainError);
+      throw new Error('Failed to verify email service connection');
+    }
+
     const { data, error } = await resend.emails.send({
-      from: 'notifications@resend.dev',
+      from: 'onboarding@resend.dev',
       to: [userEmail],
       subject: 'Welcome to AI Repair Assistant!',
       html: `<p>Welcome to AI Repair Assistant, ${firstName}!</p>
