@@ -10,22 +10,19 @@ import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Update Resend response type to match actual API response
-interface ResendEmailResponse {
-  id: string;
-  from: string;
-  to: string[];
-  created_at: string;
-}
-
-// Initialize Resend with proper error handling
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 async function sendWelcomeEmail(email: string, firstName: string) {
+  console.log('Attempting to send welcome email:', {
+    to: email,
+    firstName,
+    hasApiKey: !!process.env.RESEND_API_KEY
+  });
+
   if (!process.env.RESEND_API_KEY) {
     console.error('Resend API key is not configured');
-    return { success: true }; // Continue with registration even if email fails
+    return { success: false, error: 'API key not configured' };
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -38,6 +35,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   `;
 
   try {
+    console.log('Sending email with Resend...');
     const response = await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
@@ -45,9 +43,11 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       html: emailHtml,
     });
 
-    if (!response.id) {
-      console.error('No email ID received from Resend');
-      return { success: true }; // Continue with registration even if email fails
+    console.log('Resend API Response:', response);
+
+    if (!response || !response.id) {
+      console.error('Invalid response from Resend:', response);
+      return { success: false, error: 'Invalid response from email service' };
     }
 
     console.log('Welcome email sent successfully:', {
@@ -56,7 +56,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       firstName: firstName
     });
 
-    return { success: true };
+    return { success: true, messageId: response.id };
   } catch (error: any) {
     console.error('Failed to send welcome email:', {
       error: error.message,
@@ -65,7 +65,11 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       email,
       firstName
     });
-    return { success: true }; // Continue with registration even if email fails
+    return { 
+      success: false, 
+      error: error.message || 'Failed to send email',
+      details: error.data || {}
+    };
   }
 }
 
