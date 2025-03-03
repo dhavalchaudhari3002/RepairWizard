@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // WebSocket connection handler
+  // WebSocket connection handler with immediate welcome notification
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection attempt');
     const user = await getUserFromRequest(req);
@@ -65,16 +65,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const clientId = req.headers['sec-websocket-key'];
     if (clientId) {
       clients.set(clientId, { ws, userId: user.id });
+
+      // Send an immediate connection confirmation
+      ws.send(JSON.stringify({
+        type: 'connection',
+        data: { message: 'Connected successfully' }
+      }));
+
+      // Check for any unread notifications
+      const notifications = await storage.getUserNotifications(user.id);
+      if (notifications.length > 0) {
+        ws.send(JSON.stringify({
+          type: 'notifications',
+          data: notifications
+        }));
+      }
     }
 
     ws.on('close', () => {
       if (clientId) clients.delete(clientId);
     });
-
-    ws.send(JSON.stringify({
-      type: 'connection',
-      data: { message: 'Connected successfully' }
-    }));
   });
 
   // API Routes
