@@ -10,10 +10,14 @@ import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Initialize Resend
+// Initialize Resend with proper error handling
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function sendWelcomeEmail(email: string, firstName: string) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Resend API key is not configured');
+  }
+
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>Welcome, ${firstName}! 🎉</h2>
@@ -25,35 +29,36 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   `;
 
   try {
-    console.log("Attempting to send welcome email:", {
-      to: email,
-      from: 'AI Repair Assistant <onboarding@resend.dev>',
-      subject: 'Welcome to AI Repair Assistant',
-      firstName: firstName
-    });
-
-    const emailResponse = await resend.emails.send({
+    const emailData = {
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
       html: emailHtml,
-    });
+    };
+
+    console.log("Sending welcome email:", { to: email, firstName });
+    const response = await resend.emails.send(emailData);
+
+    if (!response.id) {
+      throw new Error('Failed to send email - no message ID received');
+    }
 
     console.log('Welcome email sent successfully:', {
-      id: emailResponse.id,
+      messageId: response.id,
       to: email,
       firstName: firstName
     });
 
     return true;
   } catch (error: any) {
-    console.error('Resend email error:', {
-      error: error,
-      message: error.message,
+    console.error('Failed to send welcome email:', {
+      error: error.message,
       code: error.statusCode,
-      details: error.details || {}
+      data: error.data,
+      email,
+      firstName
     });
-    throw error;
+    throw new Error(`Failed to send welcome email: ${error.message}`);
   }
 }
 
@@ -195,8 +200,8 @@ export function setupAuth(app: Express) {
         }
       } catch (error: any) {
         if (error.statusCode === 409) {
-          return res.status(409).json({ 
-            message: error.message || "This email is already registered. Please login or use a different email address." 
+          return res.status(409).json({
+            message: error.message || "This email is already registered. Please login or use a different email address."
           });
         }
         throw error;
