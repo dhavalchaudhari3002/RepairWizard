@@ -29,17 +29,21 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   `;
 
   try {
-    const emailData = {
+    console.log("Attempting to send welcome email:", {
+      to: email,
+      firstName: firstName,
+      apiKeyPresent: !!process.env.RESEND_API_KEY
+    });
+
+    const response = await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
       html: emailHtml,
-    };
-
-    console.log("Sending welcome email:", { to: email, firstName });
-    const response = await resend.emails.send(emailData);
+    });
 
     if (!response.id) {
+      console.error('No email ID received from Resend');
       throw new Error('Failed to send email - no message ID received');
     }
 
@@ -49,7 +53,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       firstName: firstName
     });
 
-    return true;
+    return { success: true, messageId: response.id };
   } catch (error: any) {
     console.error('Failed to send welcome email:', {
       error: error.message,
@@ -58,7 +62,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       email,
       firstName
     });
-    throw new Error(`Failed to send welcome email: ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
@@ -162,7 +166,7 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
         role,
         tosAccepted,
-        emailVerified: true, // Set to true since we're not verifying
+        emailVerified: true,
         createdAt: new Date(),
       };
 
@@ -170,10 +174,10 @@ export function setupAuth(app: Express) {
         const user = await storage.createUser(userData);
         console.log("User created successfully:", { id: user.id, email: user.email });
 
-        try {
-          await sendWelcomeEmail(user.email, user.firstName);
-          console.log("Welcome email sent successfully for user:", { id: user.id });
+        // Send welcome email
+        const emailResult = await sendWelcomeEmail(user.email, user.firstName);
 
+        if (emailResult.success) {
           return res.status(201).json({
             message: "Registration successful! Welcome email sent to your inbox.",
             user: {
@@ -184,11 +188,11 @@ export function setupAuth(app: Express) {
               role: user.role,
             },
           });
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-          // Still return success but with a different message
+        } else {
+          // If email fails, we still want to let the user know they can proceed
           return res.status(201).json({
-            message: "Registration successful! You can now log in.",
+            message: "Registration successful! However, there was an issue sending the welcome email. You can still proceed to login.",
+            emailError: emailResult.error,
             user: {
               id: user.id,
               email: user.email,
