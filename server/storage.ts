@@ -1,4 +1,4 @@
-import { users, type User } from "@shared/schema";
+import { users, type User, type RepairShop, type RepairRequest, type Notification } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -7,11 +7,26 @@ import connectPg from "connect-pg-simple";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // User operations
   createUser(user: any): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
+
+  // Repair shop operations
+  getAllRepairShops(): Promise<RepairShop[]>;
+
+  // Repair request operations
+  createRepairRequest(request: any): Promise<RepairRequest>;
+  getRepairRequest(id: number): Promise<RepairRequest | undefined>;
+  updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest>;
+
+  // Notification operations
+  createNotification(notification: any): Promise<Notification>;
+  getUserNotifications(userId: number): Promise<Notification[]>;
+  markNotificationAsRead(id: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
 
   // Session store
   sessionStore: session.Store;
@@ -31,6 +46,106 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Implement all the required methods from IStorage interface
+  async getAllRepairShops(): Promise<RepairShop[]> {
+    try {
+      return await db.select().from(RepairShop); 
+    } catch (error) {
+      console.error("Error in getAllRepairShops:", error);
+      throw error;
+    }
+  }
+
+  async createRepairRequest(requestData: any): Promise<RepairRequest> {
+    try {
+      const [request] = await db
+        .insert(RepairRequest)
+        .values(requestData)
+        .returning(); 
+      return request;
+    } catch (error) {
+      console.error("Error in createRepairRequest:", error);
+      throw error;
+    }
+  }
+
+  async getRepairRequest(id: number): Promise<RepairRequest | undefined> {
+    try {
+      const [request] = await db
+        .select()
+        .from(RepairRequest)
+        .where(eq(RepairRequest.id, id)); 
+      return request;
+    } catch (error) {
+      console.error("Error in getRepairRequest:", error);
+      throw error;
+    }
+  }
+
+  async updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest> {
+    try {
+      const [request] = await db
+        .update(RepairRequest)
+        .set({ status })
+        .where(eq(RepairRequest.id, id))
+        .returning(); 
+      return request;
+    } catch (error) {
+      console.error("Error in updateRepairRequestStatus:", error);
+      throw error;
+    }
+  }
+
+  async createNotification(notificationData: any): Promise<Notification> {
+    try {
+      const [notification] = await db
+        .insert(Notification)
+        .values(notificationData)
+        .returning(); 
+      return notification;
+    } catch (error) {
+      console.error("Error in createNotification:", error);
+      throw error;
+    }
+  }
+
+  async getUserNotifications(userId: number): Promise<Notification[]> {
+    try {
+      return await db
+        .select()
+        .from(Notification)
+        .where(eq(Notification.userId, userId)); 
+    } catch (error) {
+      console.error("Error in getUserNotifications:", error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(id: number): Promise<void> {
+    try {
+      await db
+        .update(Notification)
+        .set({ read: true })
+        .where(eq(Notification.id, id)); 
+    } catch (error) {
+      console.error("Error in markNotificationAsRead:", error);
+      throw error;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    try {
+      await db
+        .update(Notification)
+        .set({ read: true })
+        .where(eq(Notification.userId, userId)); 
+    } catch (error) {
+      console.error("Error in markAllNotificationsAsRead:", error);
+      throw error;
+    }
+  }
+
+  // Existing user-related methods remain unchanged
   async createUser(userData: any): Promise<User> {
     try {
       console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
@@ -39,18 +154,17 @@ export class DatabaseStorage implements IStorage {
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
         const error = new Error("This email is already registered. Please login or use a different email address.");
-        (error as any).statusCode = 409; // Using correct conflict status code
+        (error as any).statusCode = 409;
         throw error;
       }
 
-      // Ensure the data matches the schema
       const userToCreate = {
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
         password: userData.password,
         role: userData.role,
-        emailVerified: true, // Always set to true since we're not verifying
+        emailVerified: true,
         tosAccepted: userData.tosAccepted,
         createdAt: new Date(),
       };

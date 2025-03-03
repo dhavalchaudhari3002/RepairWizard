@@ -10,6 +10,14 @@ import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
+// Define Resend response type
+interface ResendEmailResponse {
+  id: string;
+  from: string;
+  to: string[];
+  subject: string;
+}
+
 // Initialize Resend with proper error handling
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -40,7 +48,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
       html: emailHtml,
-    });
+    }) as ResendEmailResponse;
 
     if (!response.id) {
       console.error('No email ID received from Resend');
