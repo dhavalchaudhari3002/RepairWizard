@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
@@ -6,51 +5,10 @@ import session from "express-session";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
+import { sendWelcomeEmail } from "./services/email";
 import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
-
-async function sendWelcomeEmail(email: string, firstName: string) {
-  console.log('Attempting to send welcome email:', {
-    to: email,
-    firstName,
-    hasApiKey: !!process.env.RESEND_API_KEY
-  });
-
-  if (!process.env.RESEND_API_KEY) {
-    console.error('Resend API key is not configured');
-    return { success: false, error: 'API key not configured' };
-  }
-
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Welcome, ${firstName}! 🎉</h2>
-      <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
-      <p>You can now log in to your account and start using our services.</p>
-      <hr>
-      <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
-    </div>
-  `;
-
-  try {
-    const data = await resend.emails.send({
-      from: 'AI Repair Assistant <onboarding@resend.dev>',
-      to: [email],
-      subject: 'Welcome to AI Repair Assistant',
-      html: emailHtml,
-    });
-
-    console.log('Email API Response:', data);
-    return { success: true };
-  } catch (error: any) {
-    console.error('Failed to send welcome email:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Rest of auth.ts code remains unchanged, up until the registration endpoint
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -160,7 +118,7 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
         role,
         tosAccepted,
-        emailVerified: false, // Default to false, will be updated after email verification
+        emailVerified: false,
         createdAt: new Date(),
       };
 
@@ -168,14 +126,12 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser(userData);
       console.log("User created successfully:", { id: user.id, email: user.email });
 
-      // Attempt to send welcome email but don't block registration
-      try {
-        await sendWelcomeEmail(user.email, user.firstName);
-      } catch (emailError) {
-        console.error("Welcome email error (non-blocking):", emailError);
+      // Send welcome email
+      const emailSent = await sendWelcomeEmail(user.email, user.firstName);
+      if (!emailSent) {
+        console.warn("Failed to send welcome email to:", user.email);
       }
 
-      // Return success regardless of email status
       return res.status(201).json({
         message: "Registration successful! You can now log in to your account.",
         user: {

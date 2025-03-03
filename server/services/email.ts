@@ -1,56 +1,51 @@
-import { Resend } from 'resend';
+import sgMail from '@sendgrid/mail';
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY environment variable must be set");
+if (!process.env.SENDGRID_API_KEY) {
+  throw new Error("SENDGRID_API_KEY environment variable must be set");
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function sendWelcomeEmail(userEmail: string, firstName: string): Promise<boolean> {
   try {
     console.log('Attempting to send welcome email to:', userEmail);
-    console.log('Verifying Resend API key is set:', process.env.RESEND_API_KEY ? 'Yes' : 'No');
 
     if (!userEmail || !firstName) {
       console.error('Invalid parameters:', { userEmail, firstName });
       return false;
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error('Resend API key is not set');
-      throw new Error('Email service configuration error');
-    }
-
-    // Test the API key first
-    try {
-      const domains = await resend.domains.list();
-      console.log('Successfully connected to Resend. Domains:', domains);
-    } catch (domainError) {
-      console.error('Failed to verify Resend connection:', domainError);
-      throw new Error('Failed to verify email service connection');
-    }
-
-    const { data, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: [userEmail],
+    const msg = {
+      to: userEmail,
+      from: 'notifications@airepairassistant.com', // Replace with your verified sender
       subject: 'Welcome to AI Repair Assistant!',
-      html: `<p>Welcome to AI Repair Assistant, ${firstName}!</p>
-<p>Thank you for joining our platform.</p>
-<p>If you have any questions, our support team is here to help.</p>`
+      text: `Welcome to AI Repair Assistant, ${firstName}!\n\nThank you for joining our platform.\n\nIf you have any questions, our support team is here to help.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome, ${firstName}! 🎉</h2>
+          <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
+          <p>You can now log in to your account and start using our services.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+        </div>
+      `
+    };
+
+    const response = await sgMail.send(msg);
+    console.log('Welcome email sent successfully:', {
+      response: response[0].statusCode,
+      to: userEmail,
+      firstName: firstName
     });
 
-    if (error) {
-      console.error('Failed to send welcome email. Error details:', error);
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    console.log('Welcome email sent successfully:', data);
     return true;
   } catch (error) {
-    console.error('Error sending welcome email. Full error:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+    console.error('Error sending welcome email:', error);
+    if (error.response) {
+      console.error('SendGrid API Error:', {
+        status: error.response.status,
+        body: error.response.body
+      });
     }
     return false;
   }
