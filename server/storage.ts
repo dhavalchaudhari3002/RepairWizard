@@ -38,8 +38,8 @@ export class DatabaseStorage implements IStorage {
       // Check for existing user
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
-        const error = new Error("This email is already registered");
-        (error as any).statusCode = 402;
+        const error = new Error("This email is already registered. Please login or use a different email address.");
+        (error as any).statusCode = 409; // Using correct conflict status code
         throw error;
       }
 

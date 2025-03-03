@@ -206,9 +206,9 @@ export function setupAuth(app: Express) {
           });
         }
       } catch (error: any) {
-        if (error.statusCode === 402) {
-          return res.status(402).json({ 
-            message: "This email is already registered. Please login or use a different email address." 
+        if (error.statusCode === 409) {
+          return res.status(409).json({ 
+            message: error.message || "This email is already registered. Please login or use a different email address." 
           });
         }
         throw error;
