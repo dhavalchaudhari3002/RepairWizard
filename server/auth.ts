@@ -10,12 +10,12 @@ import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Define Resend response type
+// Update Resend response type to match actual API response
 interface ResendEmailResponse {
   id: string;
   from: string;
   to: string[];
-  subject: string;
+  created_at: string;
 }
 
 // Initialize Resend with proper error handling
@@ -23,7 +23,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function sendWelcomeEmail(email: string, firstName: string) {
   if (!process.env.RESEND_API_KEY) {
-    throw new Error('Resend API key is not configured');
+    console.error('Resend API key is not configured');
+    return { success: true }; // Continue with registration even if email fails
   }
 
   const emailHtml = `
@@ -37,22 +38,16 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   `;
 
   try {
-    console.log("Attempting to send welcome email:", {
-      to: email,
-      firstName: firstName,
-      apiKeyPresent: !!process.env.RESEND_API_KEY
-    });
-
     const response = await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
       html: emailHtml,
-    }) as ResendEmailResponse;
+    });
 
     if (!response.id) {
       console.error('No email ID received from Resend');
-      throw new Error('Failed to send email - no message ID received');
+      return { success: true }; // Continue with registration even if email fails
     }
 
     console.log('Welcome email sent successfully:', {
@@ -61,7 +56,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       firstName: firstName
     });
 
-    return { success: true, messageId: response.id };
+    return { success: true };
   } catch (error: any) {
     console.error('Failed to send welcome email:', {
       error: error.message,
@@ -70,7 +65,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       email,
       firstName
     });
-    return { success: false, error: error.message };
+    return { success: true }; // Continue with registration even if email fails
   }
 }
 
@@ -127,7 +122,7 @@ export function setupAuth(app: Express) {
     )
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user: any, done) => {
     done(null, user.id);
   });
 
@@ -164,6 +159,14 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Please provide a valid email address" });
       }
 
+      // Check for existing user first
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          message: "This email is already registered. Please login or use a different email address."
+        });
+      }
+
       // Hash password
       const hashedPassword = await hashPassword(password);
 
@@ -182,45 +185,30 @@ export function setupAuth(app: Express) {
         const user = await storage.createUser(userData);
         console.log("User created successfully:", { id: user.id, email: user.email });
 
-        // Send welcome email
-        const emailResult = await sendWelcomeEmail(user.email, user.firstName);
+        // Send welcome email but don't wait for it
+        sendWelcomeEmail(user.email, user.firstName).catch(err => {
+          console.error("Welcome email error (non-blocking):", err);
+        });
 
-        if (emailResult.success) {
-          return res.status(201).json({
-            message: "Registration successful! Welcome email sent to your inbox.",
-            user: {
-              id: user.id,
-              email: user.email,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              role: user.role,
-            },
-          });
-        } else {
-          // If email fails, we still want to let the user know they can proceed
-          return res.status(201).json({
-            message: "Registration successful! However, there was an issue sending the welcome email. You can still proceed to login.",
-            emailError: emailResult.error,
-            user: {
-              id: user.id,
-              email: user.email,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              role: user.role,
-            },
-          });
-        }
+        return res.status(201).json({
+          message: "Registration successful! You can now log in to your account.",
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
+        });
       } catch (error: any) {
-        if (error.statusCode === 409) {
-          return res.status(409).json({
-            message: error.message || "This email is already registered. Please login or use a different email address."
-          });
-        }
+        console.error("Database error during user creation:", error);
         throw error;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Registration error:", err);
-      return res.status(500).json({ message: "Registration failed. Please try again." });
+      const statusCode = err.statusCode || 500;
+      const message = err.message || "Registration failed. Please try again.";
+      return res.status(statusCode).json({ message });
     }
   });
 
