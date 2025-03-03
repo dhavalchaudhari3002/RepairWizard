@@ -174,6 +174,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       console.log("User created successfully:", { id: user.id, email: user.email });
+
+      // Create welcome notification
+      await this.createNotification({
+        userId: user.id,
+        title: "Welcome to AI Repair Assistant!",
+        message: `Welcome ${user.firstName}! Thank you for joining our platform. We're here to help with all your repair needs.`,
+        type: "welcome",
+        read: false,
+        relatedEntityId: user.id
+      });
+
       return user;
     } catch (error) {
       console.error("Error in createUser:", error);
