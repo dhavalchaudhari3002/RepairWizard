@@ -8,7 +8,11 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function sendWelcomeEmail(userEmail: string, firstName: string): Promise<boolean> {
   try {
-    console.log('Attempting to send welcome email to:', userEmail);
+    console.log('Starting welcome email process for:', {
+      to: userEmail,
+      firstName,
+      hasApiKey: !!process.env.SENDGRID_API_KEY
+    });
 
     if (!userEmail || !firstName) {
       console.error('Invalid parameters:', { userEmail, firstName });
@@ -17,7 +21,7 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
 
     const msg = {
       to: userEmail,
-      from: 'notifications@airepairassistant.com', // Replace with your verified sender
+      from: 'noreply@airepairassistant.com', // Update this with your verified sender
       subject: 'Welcome to AI Repair Assistant!',
       text: `Welcome to AI Repair Assistant, ${firstName}!\n\nThank you for joining our platform.\n\nIf you have any questions, our support team is here to help.`,
       html: `
@@ -31,22 +35,33 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
       `
     };
 
-    const response = await sgMail.send(msg);
-    console.log('Welcome email sent successfully:', {
-      response: response[0].statusCode,
-      to: userEmail,
-      firstName: firstName
+    console.log('Attempting to send email via SendGrid...');
+    const [response] = await sgMail.send(msg);
+
+    console.log('SendGrid API Response:', {
+      statusCode: response?.statusCode,
+      headers: response?.headers,
+      to: userEmail
     });
 
-    return true;
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    if (error.response) {
-      console.error('SendGrid API Error:', {
-        status: error.response.status,
-        body: error.response.body
-      });
+    if (response?.statusCode === 202) {
+      console.log('Welcome email sent successfully!');
+      return true;
+    } else {
+      console.error('Unexpected status code from SendGrid:', response?.statusCode);
+      return false;
     }
+  } catch (error: any) {
+    console.error('Error sending welcome email:', {
+      error: error.message,
+      response: error.response?.body,
+      code: error.code,
+    });
+
+    if (error.response?.body?.errors) {
+      console.error('SendGrid API Errors:', error.response.body.errors);
+    }
+
     return false;
   }
 }

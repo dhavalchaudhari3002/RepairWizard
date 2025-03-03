@@ -164,7 +164,7 @@ export class DatabaseStorage implements IStorage {
         email: userData.email,
         password: userData.password,
         role: userData.role,
-        emailVerified: true, 
+        emailVerified: false, // Set to false initially
         tosAccepted: userData.tosAccepted,
         createdAt: new Date(),
       };
@@ -179,10 +179,16 @@ export class DatabaseStorage implements IStorage {
 
       // Try to send welcome email, but don't block registration if it fails
       try {
-        await sendWelcomeEmail(user.email, user.firstName);
+        const emailSent = await sendWelcomeEmail(user.email, user.firstName);
+        if (emailSent) {
+          console.log('Welcome email sent successfully to:', user.email);
+          // Update email verified status
+          await this.updateUser(user.id, { emailVerified: true });
+        } else {
+          console.warn('Failed to send welcome email to:', user.email);
+        }
       } catch (emailError) {
         console.error("Welcome email error (non-blocking):", emailError);
-        // Continue with registration even if email fails
       }
 
       // Create welcome notification
@@ -191,7 +197,7 @@ export class DatabaseStorage implements IStorage {
           userId: user.id,
           title: "Welcome to AI Repair Assistant!",
           message: `Welcome ${user.firstName}! Thank you for joining our platform. We're here to help with all your repair needs.`,
-          type: "welcome",
+          type: "system",
           read: false,
           relatedEntityId: user.id
         });
@@ -202,7 +208,6 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error) {
       console.error("Error in createUser:", error);
-      // Ensure we properly propagate the error with status code
       if (!(error as any).statusCode) {
         (error as any).statusCode = 500;
       }
