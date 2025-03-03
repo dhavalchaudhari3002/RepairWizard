@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/hooks/use-auth";
-import { insertUserSchema, LoginData, loginSchema } from "@shared/schema";
+import { insertUserSchema, loginSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
@@ -44,9 +44,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   }, [isOpen, mode]);
 
   const form = useForm({
-    resolver: zodResolver(
-      view === "register" ? insertUserSchema : loginSchema
-    ),
+    resolver: zodResolver(view === "login" ? loginSchema : insertUserSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -67,17 +65,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         });
         onOpenChange(false);
       } else {
-        // Validate email format before submitting
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.email)) {
-          toast({
-            variant: "destructive",
-            title: "Invalid Email",
-            description: "Please enter a valid email address",
-          });
-          return;
-        }
-
         try {
           const response = await registerMutation.mutateAsync({
             firstName: data.firstName,
@@ -89,17 +76,14 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             tosAccepted: data.tosAccepted,
           });
 
-          // Show success message from the server
           toast({
             title: "Registration Successful",
             description: response.message || "Registration completed successfully.",
           });
 
-          // Only close dialog and reset form on successful registration
           onOpenChange(false);
           form.reset();
         } catch (error: any) {
-          // Handle specific error messages from the server
           const errorMessage = error?.response?.data?.message || 
             error.message || 
             "Registration failed. Please try again later.";
@@ -109,13 +93,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             title: "Registration Failed",
             description: errorMessage,
           });
-
-          // Log the error for debugging
-          console.error("Registration error:", error);
         }
       }
     } catch (error: any) {
-      console.error("Auth error:", error);
       toast({
         variant: "destructive",
         title: view === "login" ? "Login Failed" : "Registration Failed",
@@ -194,7 +174,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                       disabled={isSubmitting}
                       onChange={(e) => {
                         field.onChange(e);
-                        // Clear any previous email-related error messages
                         form.clearErrors("email");
                       }}
                     />

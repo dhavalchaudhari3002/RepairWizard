@@ -16,6 +16,17 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Create a base schema for common fields
+const baseUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+});
+
 // Update the insert schema with new validations
 export const insertUserSchema = createInsertSchema(users)
   .pick({
@@ -35,14 +46,9 @@ export const insertUserSchema = createInsertSchema(users)
       .min(2, "Last name must be at least 2 characters")
       .max(50, "Last name cannot exceed 50 characters")
       .regex(/^[a-zA-Z\s-']+$/, "Last name can only contain letters, spaces, hyphens and apostrophes"),
-    password: z.string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string(),
-    email: z.string().email("Invalid email address"),
+    email: baseUserSchema.shape.email,
+    password: baseUserSchema.shape.password,
     role: z.enum(["customer", "repairer"]),
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
@@ -52,11 +58,8 @@ export const insertUserSchema = createInsertSchema(users)
     path: ["confirmPassword"],
   });
 
-// Export login schema separately
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string(),
-});
+// Export login schema separately using the base schema
+export const loginSchema = baseUserSchema;
 
 // Repair Shops table
 export const repairShops = pgTable("repair_shops", {
