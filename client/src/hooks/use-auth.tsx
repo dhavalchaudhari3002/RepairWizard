@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: 1, // Only retry once to prevent infinite loading
   });
 
   const loginMutation = useMutation({
@@ -60,13 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const error = await res.json();
         throw new Error(error.message || "Registration failed");
       }
-      const result = await res.json();
-      console.log("Registration response:", result);
-      return result;
+      return await res.json();
     },
     onSuccess: (response) => {
       console.log("Registration successful:", response);
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Registration successful!",
         description: "Welcome to AI Repair Assistant! You can now log in to access your account.",
@@ -75,13 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       console.error("Registration error:", error);
-      let errorMessage = error.message;
-      if (errorMessage.includes("409")) {
-        errorMessage = "This email is already registered. Please login or use a different email address.";
-      }
       toast({
         title: "Registration failed",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -93,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      queryClient.clear(); // Clear all queries on logout
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",

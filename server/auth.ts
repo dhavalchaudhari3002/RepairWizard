@@ -35,43 +35,22 @@ async function sendWelcomeEmail(email: string, firstName: string) {
   `;
 
   try {
-    console.log('Sending email with Resend...');
-    const response = await resend.emails.send({
+    const data = await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
       html: emailHtml,
     });
 
-    console.log('Resend API Response:', response);
-
-    if (!response || !response.id) {
-      console.error('Invalid response from Resend:', response);
-      return { success: false, error: 'Invalid response from email service' };
-    }
-
-    console.log('Welcome email sent successfully:', {
-      messageId: response.id,
-      to: email,
-      firstName: firstName
-    });
-
-    return { success: true, messageId: response.id };
+    console.log('Email API Response:', data);
+    return { success: true };
   } catch (error: any) {
-    console.error('Failed to send welcome email:', {
-      error: error.message,
-      code: error.statusCode,
-      data: error.data,
-      email,
-      firstName
-    });
-    return { 
-      success: false, 
-      error: error.message || 'Failed to send email',
-      details: error.data || {}
-    };
+    console.error('Failed to send welcome email:', error);
+    return { success: false, error: error.message };
   }
 }
+
+// Rest of auth.ts code remains unchanged, up until the registration endpoint
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -181,33 +160,32 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
         role,
         tosAccepted,
-        emailVerified: true,
+        emailVerified: false, // Default to false, will be updated after email verification
         createdAt: new Date(),
       };
 
+      // Create user
+      const user = await storage.createUser(userData);
+      console.log("User created successfully:", { id: user.id, email: user.email });
+
+      // Attempt to send welcome email but don't block registration
       try {
-        const user = await storage.createUser(userData);
-        console.log("User created successfully:", { id: user.id, email: user.email });
-
-        // Send welcome email but don't wait for it
-        sendWelcomeEmail(user.email, user.firstName).catch(err => {
-          console.error("Welcome email error (non-blocking):", err);
-        });
-
-        return res.status(201).json({
-          message: "Registration successful! You can now log in to your account.",
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          },
-        });
-      } catch (error: any) {
-        console.error("Database error during user creation:", error);
-        throw error;
+        await sendWelcomeEmail(user.email, user.firstName);
+      } catch (emailError) {
+        console.error("Welcome email error (non-blocking):", emailError);
       }
+
+      // Return success regardless of email status
+      return res.status(201).json({
+        message: "Registration successful! You can now log in to your account.",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+      });
     } catch (err: any) {
       console.error("Registration error:", err);
       const statusCode = err.statusCode || 500;
