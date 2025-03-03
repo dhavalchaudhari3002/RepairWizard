@@ -3,6 +3,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import { sendWelcomeEmail } from "./services/email";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -154,6 +155,14 @@ export class DatabaseStorage implements IStorage {
       if (existingUser) {
         const error = new Error("This email is already registered. Please login or use a different email address.");
         (error as any).statusCode = 409;
+        throw error;
+      }
+
+      // Try to send welcome email first
+      const emailSent = await sendWelcomeEmail(userData.email, userData.firstName);
+      if (!emailSent) {
+        const error = new Error("Unable to send welcome email. Please try again later.");
+        (error as any).statusCode = 500;
         throw error;
       }
 
