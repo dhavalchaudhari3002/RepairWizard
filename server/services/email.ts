@@ -16,6 +16,11 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
       return false;
     }
 
+    if (!process.env.RESEND_API_KEY) {
+      console.error('Resend API key is not set');
+      throw new Error('Email service configuration error');
+    }
+
     const { data, error } = await resend.emails.send({
       from: 'notifications@resend.dev',
       to: [userEmail],
