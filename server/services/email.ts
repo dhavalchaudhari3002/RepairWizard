@@ -21,7 +21,7 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
 
     const msg = {
       to: userEmail,
-      from: 'noreply@airepairassistant.com', // Update this with your verified sender
+      from: 'chaudharydhaval303@gmail.com', // Using verified sender email
       subject: 'Welcome to AI Repair Assistant!',
       text: `Welcome to AI Repair Assistant, ${firstName}!\n\nThank you for joining our platform.\n\nIf you have any questions, our support team is here to help.`,
       html: `
