@@ -1,4 +1,4 @@
-import { users, type User, type RepairShop, type RepairRequest, type Notification } from "@shared/schema";
+import { users, repairShops, repairRequests, notifications, type User, type RepairShop, type RepairRequest, type Notification } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -49,7 +49,7 @@ export class DatabaseStorage implements IStorage {
   // Implement all the required methods from IStorage interface
   async getAllRepairShops(): Promise<RepairShop[]> {
     try {
-      return await db.select().from(RepairShop); 
+      return await db.select().from(repairShops); 
     } catch (error) {
       console.error("Error in getAllRepairShops:", error);
       throw error;
@@ -59,7 +59,7 @@ export class DatabaseStorage implements IStorage {
   async createRepairRequest(requestData: any): Promise<RepairRequest> {
     try {
       const [request] = await db
-        .insert(RepairRequest)
+        .insert(repairRequests)
         .values(requestData)
         .returning(); 
       return request;
@@ -73,8 +73,8 @@ export class DatabaseStorage implements IStorage {
     try {
       const [request] = await db
         .select()
-        .from(RepairRequest)
-        .where(eq(RepairRequest.id, id)); 
+        .from(repairRequests)
+        .where(eq(repairRequests.id, id)); 
       return request;
     } catch (error) {
       console.error("Error in getRepairRequest:", error);
@@ -85,9 +85,9 @@ export class DatabaseStorage implements IStorage {
   async updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest> {
     try {
       const [request] = await db
-        .update(RepairRequest)
+        .update(repairRequests)
         .set({ status })
-        .where(eq(RepairRequest.id, id))
+        .where(eq(repairRequests.id, id))
         .returning(); 
       return request;
     } catch (error) {
@@ -99,7 +99,7 @@ export class DatabaseStorage implements IStorage {
   async createNotification(notificationData: any): Promise<Notification> {
     try {
       const [notification] = await db
-        .insert(Notification)
+        .insert(notifications)
         .values(notificationData)
         .returning(); 
       return notification;
@@ -113,8 +113,8 @@ export class DatabaseStorage implements IStorage {
     try {
       return await db
         .select()
-        .from(Notification)
-        .where(eq(Notification.userId, userId)); 
+        .from(notifications)
+        .where(eq(notifications.userId, userId)); 
     } catch (error) {
       console.error("Error in getUserNotifications:", error);
       throw error;
@@ -124,9 +124,9 @@ export class DatabaseStorage implements IStorage {
   async markNotificationAsRead(id: number): Promise<void> {
     try {
       await db
-        .update(Notification)
+        .update(notifications)
         .set({ read: true })
-        .where(eq(Notification.id, id)); 
+        .where(eq(notifications.id, id)); 
     } catch (error) {
       console.error("Error in markNotificationAsRead:", error);
       throw error;
@@ -136,16 +136,15 @@ export class DatabaseStorage implements IStorage {
   async markAllNotificationsAsRead(userId: number): Promise<void> {
     try {
       await db
-        .update(Notification)
+        .update(notifications)
         .set({ read: true })
-        .where(eq(Notification.userId, userId)); 
+        .where(eq(notifications.userId, userId)); 
     } catch (error) {
       console.error("Error in markAllNotificationsAsRead:", error);
       throw error;
     }
   }
 
-  // Existing user-related methods remain unchanged
   async createUser(userData: any): Promise<User> {
     try {
       console.log("Creating user in database:", { ...userData, password: '[REDACTED]' });
