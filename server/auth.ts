@@ -10,51 +10,44 @@ import type { User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Initialize Resend with API key
+// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function sendWelcomeEmail(email: string, firstName: string) {
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Welcome, ${firstName}! 🎉</h2>
+      <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
+      <p>You can now log in to your account and start using our services.</p>
+      <hr>
+      <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+    </div>
+  `;
+
   try {
-    // Validate required environment variables
-    if (!process.env.RESEND_API_KEY) {
-      console.error("Missing Resend API key");
-      throw new Error("Email service not properly configured");
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error("Invalid email format:", email);
-      throw new Error("Invalid email format");
-    }
-
-    // Log the full email request for debugging
-    console.log("Sending welcome email request:", {
+    console.log("Attempting to send welcome email:", {
       to: email,
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       subject: 'Welcome to AI Repair Assistant',
       firstName: firstName
     });
 
-    await resend.emails.send({
+    const emailResponse = await resend.emails.send({
       from: 'AI Repair Assistant <onboarding@resend.dev>',
       to: [email],
       subject: 'Welcome to AI Repair Assistant',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome, ${firstName}! 🎉</h2>
-          <p>Thank you for joining AI Repair Assistant. We're excited to help you with your repair needs!</p>
-          <p>You can now log in to your account and start using our services.</p>
-          <hr>
-          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
-        </div>
-      `,
+      html: emailHtml,
     });
 
-    console.log('Welcome email sent successfully to:', email);
+    console.log('Welcome email sent successfully:', {
+      id: emailResponse.id,
+      to: email,
+      firstName: firstName
+    });
+
     return true;
   } catch (error: any) {
-    console.error('Email Service Error:', {
+    console.error('Resend email error:', {
       error: error,
       message: error.message,
       code: error.statusCode,
