@@ -20,8 +20,12 @@ function Router() {
       <main className="flex-1 relative z-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
-          <ProtectedRoute path="/" component={Home} />
-          <ProtectedRoute path="/error-dashboard" component={ErrorDashboard} />
+          <Route path="/">
+            <ProtectedRoute component={Home} />
+          </Route>
+          <Route path="/error-dashboard">
+            <ProtectedRoute component={ErrorDashboard} />
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </main>
