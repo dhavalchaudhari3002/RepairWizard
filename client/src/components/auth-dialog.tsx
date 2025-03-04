@@ -164,17 +164,17 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     }
   };
 
-  const isSubmitting = 
+  const isSubmitting =
     view === "login" ? loginMutation.isPending :
-    view === "register" ? registerMutation.isPending :
-    view === "forgot-password" ? forgotPasswordMutation.isPending :
-    resetPasswordMutation.isPending;
+      view === "register" ? registerMutation.isPending :
+        view === "forgot-password" ? forgotPasswordMutation.isPending :
+          resetPasswordMutation.isPending;
 
-  const currentForm = 
+  const currentForm =
     view === "login" ? loginForm :
-    view === "register" ? registerForm :
-    view === "forgot-password" ? forgotPasswordForm :
-    resetForm;
+      view === "register" ? registerForm :
+        view === "forgot-password" ? forgotPasswordForm :
+          resetForm;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -182,20 +182,90 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         <DialogHeader>
           <DialogTitle>
             {view === "login" ? "Welcome Back" :
-             view === "register" ? "Create Account" :
-             view === "forgot-password" ? "Reset Password" :
-             "Set New Password"}
+              view === "register" ? "Create Account" :
+                view === "forgot-password" ? "Reset Password" :
+                  "Set New Password"}
           </DialogTitle>
           <DialogDescription>
             {view === "login" ? "Login to your account" :
-             view === "register" ? "Register for a new account" :
-             view === "forgot-password" ? "Enter your email to receive a reset link" :
-             "Enter your new password"}
+              view === "register" ? "Register for a new account" :
+                view === "forgot-password" ? "Enter your email to receive a reset link" :
+                  "Enter your new password"}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...currentForm}>
           <form onSubmit={currentForm.handleSubmit(handleSubmit)} className="space-y-4">
+            {(view === "login" || view === "register" || view === "forgot-password") && (
+              <FormField
+                control={currentForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Enter email"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {(view === "login" || view === "register") && (
+              <>
+                <FormField
+                  control={currentForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            {...field}
+                            onChange={handlePasswordChange}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {view === "login" && (
+                  <div className="text-sm text-right">
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => setView("forgot-password")}
+                      className="p-0 h-auto font-normal"
+                      disabled={isSubmitting}
+                    >
+                      Forgot your password?
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
             {view === "register" && (
               <>
                 <FormField
@@ -228,27 +298,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               </>
             )}
 
-            {(view === "login" || view === "register" || view === "forgot-password") && (
-              <FormField
-                control={currentForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="Enter email" 
-                        {...field} 
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             {view === "register" && (
               <FormField
                 control={registerForm.control}
@@ -267,56 +316,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         <SelectItem value="repairer">Repairer</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {(view === "login" || view === "register") && (
-              <FormField
-                control={currentForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter password"
-                          {...field}
-                          onChange={handlePasswordChange}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isSubmitting}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {view === "register" && (
-                      <div className="mt-2">
-                        <Progress value={passwordStrength} className="h-1" />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {passwordStrength === 100
-                            ? "Strong password"
-                            : passwordStrength >= 60
-                            ? "Moderate password"
-                            : "Weak password"}
-                        </p>
-                      </div>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -408,7 +407,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             )}
 
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 pt-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -418,33 +417,32 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {view === "login" ? "Logging in..." :
-                     view === "register" ? "Registering..." :
-                     view === "forgot-password" ? "Sending reset link..." :
-                     "Resetting password..."}
+                      view === "register" ? "Registering..." :
+                        view === "forgot-password" ? "Sending reset link..." :
+                          "Resetting password..."}
                   </>
                 ) : (
                   view === "login" ? "Login" :
-                  view === "register" ? "Register" :
-                  view === "forgot-password" ? "Send Reset Link" :
-                  "Reset Password"
+                    view === "register" ? "Register" :
+                      view === "forgot-password" ? "Send Reset Link" :
+                        "Reset Password"
                 )}
               </Button>
 
-              {view === "login" && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setView("forgot-password")}
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  Forgot password?
-                </Button>
-              )}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or
+                  </span>
+                </div>
+              </div>
 
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => {
                   setView(view === "login" ? "register" : "login");
                   currentForm.reset();
@@ -452,9 +450,10 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {view === "login" ? "Need an account? Register" :
-                 view === "register" ? "Already have an account? Login" :
-                 "Back to login"}
+                {view === "login" ? "Create an account" :
+                  view === "register" ? "Back to login" :
+                    view === "forgot-password" ? "Back to login" :
+                      "Back to login"}
               </Button>
             </div>
           </form>
