@@ -21,7 +21,7 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
 
     const msg = {
       to: userEmail,
-      from: 'chaudharydhaval303@gmail.com', // Using verified sender email
+      from: 'noreply@reusehub.org', // Using verified domain sender
       subject: 'Welcome to AI Repair Assistant!',
       text: `Welcome to AI Repair Assistant, ${firstName}!\n\nThank you for joining our platform.\n\nIf you have any questions, our support team is here to help.`,
       html: `
@@ -41,7 +41,8 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
     console.log('SendGrid API Response:', {
       statusCode: response?.statusCode,
       headers: response?.headers,
-      to: userEmail
+      to: userEmail,
+      authenticatedDomain: 'reusehub.org'
     });
 
     if (response?.statusCode === 202) {
@@ -56,6 +57,7 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
       error: error.message,
       response: error.response?.body,
       code: error.code,
+      dnsStatus: error.response?.body?.errors?.[0]?.message?.includes('DNS') ? 'DNS issue detected' : 'No DNS issues reported'
     });
 
     if (error.response?.body?.errors) {
