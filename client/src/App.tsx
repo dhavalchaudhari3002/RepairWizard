@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
+import ResetPassword from "@/pages/reset-password";
 import ErrorDashboard from "@/pages/error-dashboard";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -12,7 +13,7 @@ import { NavBar } from "@/components/navbar";
 
 function Router() {
   const [location] = useLocation();
-  const showNavBar = location !== "/auth";
+  const showNavBar = !["auth", "reset-password"].includes(location.split("/")[1]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -20,6 +21,7 @@ function Router() {
       <main className="flex-1 relative z-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
+          <Route path="/reset-password" component={ResetPassword} />
           <Route path="/">
             <ProtectedRoute component={Home} />
           </Route>

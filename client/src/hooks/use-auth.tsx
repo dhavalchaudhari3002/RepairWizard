@@ -15,6 +15,8 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<{ message: string; user: Partial<User> }, Error, InsertUser>;
+  forgotPasswordMutation: UseMutationResult<{ message: string }, Error, { email: string }>;
+  resetPasswordMutation: UseMutationResult<{ message: string }, Error, { token: string; newPassword: string }>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -120,6 +122,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/forgot-password", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Password Reset Email Sent",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { token: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/reset-password", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Password Reset Successful",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -129,6 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        forgotPasswordMutation,
+        resetPasswordMutation,
       }}
     >
       {children}
