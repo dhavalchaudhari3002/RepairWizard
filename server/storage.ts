@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { sendWelcomeEmail } from "./services/email";
+import { sql } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -31,6 +32,11 @@ export interface IStorage {
 
   // Session store
   sessionStore: session.Store;
+
+  createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void>;
+  getPasswordResetToken(token: string): Promise<{ userId: number, expiresAt: Date } | undefined>;
+  deletePasswordResetToken(token: string): Promise<void>;
+  updateUserPassword(userId: number, newPassword: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -263,6 +269,52 @@ export class DatabaseStorage implements IStorage {
       console.log("User deleted successfully:", id);
     } catch (error) {
       console.error("Error in deleteUser:", error);
+      throw error;
+    }
+  }
+
+  async createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+    try {
+      await db.execute(
+        sql`INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (${userId}, ${token}, ${expiresAt})`
+      );
+    } catch (error) {
+      console.error("Error in createPasswordResetToken:", error);
+      throw error;
+    }
+  }
+
+  async getPasswordResetToken(token: string): Promise<{ userId: number, expiresAt: Date } | undefined> {
+    try {
+      const result = await db.execute<{ user_id: number, expires_at: Date }[]>(
+        sql`SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ${token} AND expires_at > NOW()`
+      );
+      if (result.length === 0) return undefined;
+      return { userId: result[0].user_id, expiresAt: result[0].expires_at };
+    } catch (error) {
+      console.error("Error in getPasswordResetToken:", error);
+      throw error;
+    }
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    try {
+      await db.execute(
+        sql`DELETE FROM password_reset_tokens WHERE token = ${token}`
+      );
+    } catch (error) {
+      console.error("Error in deletePasswordResetToken:", error);
+      throw error;
+    }
+  }
+
+  async updateUserPassword(userId: number, newPassword: string): Promise<void> {
+    try {
+      await db.update(users)
+        .set({ password: newPassword })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error("Error in updateUserPassword:", error);
       throw error;
     }
   }

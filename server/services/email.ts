@@ -67,3 +67,66 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
     return false;
   }
 }
+
+export async function sendPasswordResetEmail(userEmail: string, resetToken: string): Promise<boolean> {
+  try {
+    console.log('Starting password reset email process for:', {
+      to: userEmail,
+      hasToken: !!resetToken,
+      hasApiKey: !!process.env.SENDGRID_API_KEY
+    });
+
+    if (!userEmail || !resetToken) {
+      console.error('Invalid parameters:', { userEmail, hasToken: !!resetToken });
+      return false;
+    }
+
+    const resetLink = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+
+    const msg = {
+      to: userEmail,
+      from: 'chaudharydhaval303@gmail.com', // Using verified sender
+      subject: 'Reset Your Password - AI Repair Assistant',
+      text: `Reset your password by clicking this link: ${resetLink}\n\nThis link will expire in 1 hour for security reasons.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Password Reset Request</h2>
+          <p>We received a request to reset your password. Click the button below to proceed:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" 
+               style="background-color: #4F46E5; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p>This link will expire in 1 hour for security reasons.</p>
+          <p>If you didn't request this reset, please ignore this email.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>
+        </div>
+      `
+    };
+
+    const [response] = await sgMail.send(msg);
+
+    console.log('SendGrid API Response:', {
+      statusCode: response?.statusCode,
+      headers: response?.headers,
+      to: userEmail
+    });
+
+    return response?.statusCode === 202;
+  } catch (error: any) {
+    console.error('Error sending password reset email:', {
+      error: error.message,
+      response: error.response?.body,
+      code: error.code
+    });
+
+    if (error.response?.body?.errors) {
+      console.error('SendGrid API Errors:', error.response.body.errors);
+    }
+
+    return false;
+  }
+}
