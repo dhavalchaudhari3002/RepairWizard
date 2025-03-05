@@ -231,6 +231,7 @@ export function setupAuth(app: Express) {
   // Reset password using token
   app.post("/api/reset-password", async (req, res) => {
     try {
+      console.log("Reset password request received:", { token: '[REDACTED]' });
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
@@ -240,6 +241,7 @@ export function setupAuth(app: Express) {
       }
 
       const resetToken = await storage.getPasswordResetToken(token);
+      console.log("Reset token found:", resetToken ? "Yes" : "No");
 
       if (!resetToken) {
         return res.status(400).json({
@@ -263,6 +265,38 @@ export function setupAuth(app: Express) {
       console.error("Password reset error:", error);
       res.status(500).json({
         message: "An error occurred while resetting your password. Please try again."
+      });
+    }
+  });
+
+  // Add a GET endpoint to validate tokens
+  app.get("/api/reset-password/validate", async (req, res) => {
+    try {
+      const token = req.query.token;
+      console.log("Token validation request received");
+
+      if (!token) {
+        return res.status(400).json({
+          message: "Token is required"
+        });
+      }
+
+      const resetToken = await storage.getPasswordResetToken(token as string);
+
+      if (!resetToken) {
+        return res.status(400).json({
+          message: "Invalid or expired reset token"
+        });
+      }
+
+      res.status(200).json({
+        message: "Token is valid",
+        valid: true
+      });
+    } catch (error) {
+      console.error("Token validation error:", error);
+      res.status(500).json({
+        message: "An error occurred while validating the token"
       });
     }
   });

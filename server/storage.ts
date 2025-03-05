@@ -275,6 +275,17 @@ export class DatabaseStorage implements IStorage {
 
   async createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
     try {
+      // Create the password_reset_tokens table if it doesn't exist
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       await db.execute(
         sql`INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (${userId}, ${token}, ${expiresAt})`
       );
@@ -286,7 +297,7 @@ export class DatabaseStorage implements IStorage {
 
   async getPasswordResetToken(token: string): Promise<{ userId: number; expiresAt: Date } | undefined> {
     try {
-      const result = await db.execute<{ user_id: number; expires_at: Date }[]>(
+      const result = await db.execute<{ user_id: number; expires_at: Date }>(
         sql`
         SELECT user_id, expires_at 
         FROM password_reset_tokens 
@@ -296,12 +307,13 @@ export class DatabaseStorage implements IStorage {
         `
       );
 
-      const rows = result.rows;
-      if (!rows || rows.length === 0) return undefined;
+      if (!result.rows || result.rows.length === 0) {
+        return undefined;
+      }
 
       return {
-        userId: rows[0].user_id,
-        expiresAt: rows[0].expires_at
+        userId: result.rows[0].user_id,
+        expiresAt: result.rows[0].expires_at
       };
     } catch (error) {
       console.error("Error in getPasswordResetToken:", error);
