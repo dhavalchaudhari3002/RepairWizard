@@ -201,34 +201,28 @@ export function setupAuth(app: Express) {
 
       const user = await storage.getUserByEmail(email);
 
-      if (!user) {
-        // Don't reveal if user exists for security
-        return res.status(200).json({
-          success: true,
-          message: "If an account exists with this email, you will receive a reset code."
-        });
-      }
-
       // Generate OTP
       const otp = await generateOTP();
       const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
 
-      // Store OTP
-      await storage.createPasswordResetToken(user.id, otp, expiresAt);
+      if (user) {
+        // Store OTP
+        await storage.createPasswordResetToken(user.id, otp, expiresAt);
 
-      // Send OTP via email
-      const emailSent = await sendPasswordResetEmail(email, otp);
+        // Send OTP via email
+        const emailSent = await sendPasswordResetEmail(email, otp);
 
-      if (!emailSent) {
-        console.error("Failed to send password reset email to:", email);
-        return res.status(500).json({
-          message: "Error sending password reset email. Please try again later."
-        });
+        if (!emailSent) {
+          console.error("Failed to send password reset email to:", email);
+          return res.status(500).json({
+            message: "Error sending password reset email. Please try again later."
+          });
+        }
       }
 
+      // Return success regardless of whether user exists for security
       res.status(200).json({
-        success: true,
-        message: "Reset code sent successfully."
+        success: true
       });
     } catch (error) {
       console.error("Password reset request error:", error);

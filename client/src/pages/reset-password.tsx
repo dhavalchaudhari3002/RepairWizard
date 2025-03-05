@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Form schemas
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
@@ -43,7 +42,7 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
-  const [resetData, setResetData] = useState({ email: "", otp: "" });
+  const [userEmail, setUserEmail] = useState("");
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -71,28 +70,26 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Failed to send reset code");
       }
 
-      // Store email and move to OTP step
-      setResetData({ ...resetData, email: values.email });
+      // Store email for future use
+      setUserEmail(values.email);
+
+      // Move to OTP step
       setStep("otp");
 
-      toast({
-        description: "A verification code has been sent to your email.",
-      });
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send reset code",
+        description: error.message || "Failed to send reset code"
       });
     }
   };
 
   const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
-    // Store OTP and move to password step
-    setResetData({ ...resetData, otp: values.otp });
+    // Move to password step
     setStep("password");
   };
 
@@ -102,8 +99,8 @@ export default function ResetPassword() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: resetData.email,
-          otp: resetData.otp,
+          email: userEmail,
+          otp: otpForm.getValues("otp"),
           newPassword: values.password
         })
       });
@@ -111,11 +108,11 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Failed to reset password");
       }
 
       toast({
-        description: "Password reset successful! You can now login with your new password.",
+        description: "Password reset successful! You can now login with your new password."
       });
 
       setLocation('/auth');
@@ -123,7 +120,7 @@ export default function ResetPassword() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to reset password",
+        description: error.message || "Failed to reset password"
       });
     }
   };
@@ -144,7 +141,7 @@ export default function ResetPassword() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent>
           {step === "email" && (
             <Form {...emailForm}>
               <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
@@ -210,10 +207,7 @@ export default function ResetPassword() {
                   <Button
                     variant="link"
                     type="button"
-                    onClick={() => {
-                      setStep("email");
-                      emailForm.setValue("email", resetData.email);
-                    }}
+                    onClick={() => handleEmailSubmit({ email: userEmail })}
                   >
                     Didn't receive the code? Send again
                   </Button>
