@@ -65,13 +65,14 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   }, [isOpen, mode]);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (token) {
-      setView('reset-password');
-      resetForm.setValue('token', token);
+    if (mode === 'reset-password') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      if (token) {
+        resetForm.setValue('token', token);
+      }
     }
-  }, []);
+  }, [mode]);
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),

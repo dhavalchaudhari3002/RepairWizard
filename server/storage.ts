@@ -34,7 +34,7 @@ export interface IStorage {
   sessionStore: session.Store;
 
   createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void>;
-  getPasswordResetToken(token: string): Promise<{ userId: number, expiresAt: Date } | undefined>;
+  getPasswordResetToken(token: string): Promise<{ userId: number; expiresAt: Date } | undefined>;
   deletePasswordResetToken(token: string): Promise<void>;
   updateUserPassword(userId: number, newPassword: string): Promise<void>;
 }
@@ -284,13 +284,25 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getPasswordResetToken(token: string): Promise<{ userId: number, expiresAt: Date } | undefined> {
+  async getPasswordResetToken(token: string): Promise<{ userId: number; expiresAt: Date } | undefined> {
     try {
-      const result = await db.execute<{ user_id: number, expires_at: Date }[]>(
-        sql`SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ${token} AND expires_at > NOW()`
+      const result = await db.execute<{ user_id: number; expires_at: Date }[]>(
+        sql`
+        SELECT user_id, expires_at 
+        FROM password_reset_tokens 
+        WHERE token = ${token} 
+          AND expires_at > NOW()
+        LIMIT 1
+        `
       );
-      if (result.length === 0) return undefined;
-      return { userId: result[0].user_id, expiresAt: result[0].expires_at };
+
+      const rows = result.rows;
+      if (!rows || rows.length === 0) return undefined;
+
+      return {
+        userId: rows[0].user_id,
+        expiresAt: rows[0].expires_at
+      };
     } catch (error) {
       console.error("Error in getPasswordResetToken:", error);
       throw error;
