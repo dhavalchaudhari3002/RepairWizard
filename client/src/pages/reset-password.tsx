@@ -38,11 +38,14 @@ const resetSchema = z.object({
 
 type FormValues = z.infer<typeof resetSchema>;
 
+type Step = "email" | "otp" | "password";
+
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [showOTPInput, setShowOTPInput] = useState(false);
+  const [step, setStep] = useState<Step>("email");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [verifiedOTP, setVerifiedOTP] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(resetSchema),
@@ -55,13 +58,11 @@ export default function ResetPassword() {
   });
 
   useEffect(() => {
-    // Get email from URL if present
     const searchParams = new URLSearchParams(window.location.search);
     const emailParam = searchParams.get('email');
     if (emailParam) {
-      setEmail(emailParam);
       form.setValue('email', emailParam);
-      setShowOTPInput(true);
+      handleRequestOTP();
     }
   }, []);
 
@@ -89,9 +90,8 @@ export default function ResetPassword() {
         throw new Error(data.message || 'Failed to send reset code');
       }
 
-      setEmail(email);
-      setShowOTPInput(true);
-      form.setValue('email', email);
+      setVerifiedEmail(email);
+      setStep("otp");
 
       toast({
         title: "Code sent!",
@@ -106,14 +106,39 @@ export default function ResetPassword() {
     }
   };
 
+  const handleVerifyOTP = async () => {
+    const otp = form.getValues("otp");
+    if (!otp || otp.length !== 6) {
+      form.setError("otp", {
+        type: "manual",
+        message: "Please enter the 6-digit code"
+      });
+      return;
+    }
+
+    // Store OTP and move to password step
+    setVerifiedOTP(otp);
+    setStep("password");
+  };
+
   const onSubmit = async (values: FormValues) => {
+    if (step === "email") {
+      await handleRequestOTP();
+      return;
+    }
+
+    if (step === "otp") {
+      await handleVerifyOTP();
+      return;
+    }
+
     try {
       const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: values.email,
-          otp: values.otp,
+          email: verifiedEmail,
+          otp: verifiedOTP,
           newPassword: values.newPassword
         })
       });
@@ -140,21 +165,39 @@ export default function ResetPassword() {
     }
   };
 
+  const getStepTitle = () => {
+    switch (step) {
+      case "email":
+        return "Reset Password";
+      case "otp":
+        return "Enter Verification Code";
+      case "password":
+        return "Create New Password";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case "email":
+        return "Enter your email to receive a reset code";
+      case "otp":
+        return "Enter the 6-digit code sent to your email";
+      case "password":
+        return "Create a new password for your account";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
-          <CardDescription>
-            {!showOTPInput 
-              ? "Enter your email to receive a reset code" 
-              : "Enter the verification code and your new password"}
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold">{getStepTitle()}</CardTitle>
+          <CardDescription>{getStepDescription()}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {!showOTPInput ? (
+              {step === "email" && (
                 <FormField
                   control={form.control}
                   name="email"
@@ -173,39 +216,43 @@ export default function ResetPassword() {
                     </FormItem>
                   )}
                 />
-              ) : (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel>Verification Code</FormLabel>
-                        <FormControl>
-                          <InputOTP 
-                            maxLength={6} 
-                            value={field.value} 
-                            onChange={field.onChange}
-                            autoFocus
-                          >
-                            <InputOTPGroup>
-                              <InputOTPSlot index={0} />
-                              <InputOTPSlot index={1} />
-                              <InputOTPSlot index={2} />
-                              <InputOTPSlot index={3} />
-                              <InputOTPSlot index={4} />
-                              <InputOTPSlot index={5} />
-                            </InputOTPGroup>
-                          </InputOTP>
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Didn't receive a code? <Button variant="link" className="p-0 h-auto" type="button" onClick={handleRequestOTP}>Resend code</Button>
-                        </p>
-                      </FormItem>
-                    )}
-                  />
+              )}
 
+              {step === "otp" && (
+                <FormField
+                  control={form.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Verification Code</FormLabel>
+                      <FormControl>
+                        <InputOTP 
+                          maxLength={6} 
+                          value={field.value} 
+                          onChange={field.onChange}
+                          autoFocus
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Didn't receive a code? <Button variant="link" className="p-0 h-auto" type="button" onClick={handleRequestOTP}>Resend code</Button>
+                      </p>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {step === "password" && (
+                <>
                   <FormField
                     control={form.control}
                     name="newPassword"
@@ -217,6 +264,7 @@ export default function ResetPassword() {
                             {...field} 
                             type="password" 
                             placeholder="Enter new password"
+                            autoFocus
                           />
                         </FormControl>
                         <FormMessage />
@@ -245,11 +293,12 @@ export default function ResetPassword() {
               )}
 
               <Button 
-                type={!showOTPInput ? "button" : "submit"}
-                onClick={!showOTPInput ? handleRequestOTP : undefined}
+                type="submit" 
                 className="w-full"
               >
-                {!showOTPInput ? "Send Reset Code" : "Reset Password"}
+                {step === "email" && "Send Reset Code"}
+                {step === "otp" && "Verify Code"}
+                {step === "password" && "Reset Password"}
               </Button>
             </form>
           </Form>
