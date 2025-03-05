@@ -523,42 +523,24 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
             {/* Forgot Password Form */}
             {view === "forgot-password" && (
-              <Form {...forgotPasswordForm}>
-                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPasswordSubmit)} className="space-y-4">
-                  <FormField
-                    control={forgotPasswordForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Enter your email"
-                            {...field}
-                            disabled={forgotPasswordMutation.isPending}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={forgotPasswordMutation.isPending}
-                  >
-                    {forgotPasswordMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending reset code...
-                      </>
-                    ) : (
-                      "Send Reset Code"
-                    )}
-                  </Button>
-                </form>
-              </Form>
+              <FormField
+                control={forgotPasswordForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        {...field}
+                        disabled={forgotPasswordMutation.isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             {/* OTP Verification Form */}
