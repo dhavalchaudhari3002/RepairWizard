@@ -81,14 +81,14 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
       return false;
     }
 
-    // Get the base URL from environment or default to localhost
+    // Use REPL_SLUG and REPL_OWNER for constructing the base URL in Replit environment
     const baseUrl = process.env.NODE_ENV === 'production'
-      ? (process.env.APP_URL || 'https://your-app.repl.co')
-      : 'http://localhost:5000';
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : `${process.env.APP_URL || 'http://0.0.0.0:5000'}`;
 
-    // Create the reset link without hash routing
+    console.log('Using base URL:', baseUrl);
+
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
-
     console.log('Generated reset link:', resetLink);
 
     const msg = {
@@ -115,6 +115,7 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
       `
     };
 
+    console.log('Sending password reset email...');
     const [response] = await sgMail.send(msg);
 
     console.log('SendGrid API Response:', {
