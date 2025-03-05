@@ -42,7 +42,7 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState<"email" | "otp" | "newPassword">("email");
+  const [showOTPInput, setShowOTPInput] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(resetSchema),
@@ -61,7 +61,7 @@ export default function ResetPassword() {
     if (emailParam) {
       setEmail(emailParam);
       form.setValue('email', emailParam);
-      setStep("otp");
+      setShowOTPInput(true);
     }
   }, []);
 
@@ -90,10 +90,12 @@ export default function ResetPassword() {
       }
 
       setEmail(email);
-      setStep("otp");
+      setShowOTPInput(true);
+      form.setValue('email', email);
+
       toast({
         title: "Code sent!",
-        description: "A password reset code has been sent to your email.",
+        description: "Please check your email for the reset code.",
       });
     } catch (error: any) {
       toast({
@@ -104,29 +106,7 @@ export default function ResetPassword() {
     }
   };
 
-  const handleVerifyOTP = async () => {
-    const otp = form.getValues("otp");
-    if (otp.length !== 6) {
-      form.setError("otp", {
-        type: "manual",
-        message: "Please enter the 6-digit code"
-      });
-      return;
-    }
-    setStep("newPassword");
-  };
-
   const onSubmit = async (values: FormValues) => {
-    if (step === "email") {
-      await handleRequestOTP();
-      return;
-    }
-
-    if (step === "otp") {
-      await handleVerifyOTP();
-      return;
-    }
-
     try {
       const response = await fetch('/api/reset-password', {
         method: 'POST',
@@ -166,15 +146,15 @@ export default function ResetPassword() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <CardDescription>
-            {step === "email" && "Enter your email to receive a reset code"}
-            {step === "otp" && "Enter the 6-digit code sent to your email"}
-            {step === "newPassword" && "Create a new password for your account"}
+            {!showOTPInput 
+              ? "Enter your email to receive a reset code" 
+              : "Enter the verification code and your new password"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {step === "email" && (
+              {!showOTPInput ? (
                 <FormField
                   control={form.control}
                   name="email"
@@ -193,43 +173,39 @@ export default function ResetPassword() {
                     </FormItem>
                   )}
                 />
-              )}
-
-              {step === "otp" && (
-                <FormField
-                  control={form.control}
-                  name="otp"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Reset Code</FormLabel>
-                      <FormControl>
-                        <InputOTP 
-                          maxLength={6} 
-                          value={field.value} 
-                          onChange={field.onChange}
-                          autoFocus
-                        >
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Didn't receive a code? <Button variant="link" className="p-0 h-auto" type="button" onClick={handleRequestOTP}>Resend code</Button>
-                      </p>
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {step === "newPassword" && (
+              ) : (
                 <>
+                  <FormField
+                    control={form.control}
+                    name="otp"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel>Verification Code</FormLabel>
+                        <FormControl>
+                          <InputOTP 
+                            maxLength={6} 
+                            value={field.value} 
+                            onChange={field.onChange}
+                            autoFocus
+                          >
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Didn't receive a code? <Button variant="link" className="p-0 h-auto" type="button" onClick={handleRequestOTP}>Resend code</Button>
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="newPassword"
@@ -241,7 +217,6 @@ export default function ResetPassword() {
                             {...field} 
                             type="password" 
                             placeholder="Enter new password"
-                            autoFocus
                           />
                         </FormControl>
                         <FormMessage />
@@ -270,12 +245,11 @@ export default function ResetPassword() {
               )}
 
               <Button 
-                type="submit" 
+                type={!showOTPInput ? "button" : "submit"}
+                onClick={!showOTPInput ? handleRequestOTP : undefined}
                 className="w-full"
               >
-                {step === "email" && "Send Reset Code"}
-                {step === "otp" && "Verify Code"}
-                {step === "newPassword" && "Reset Password"}
+                {!showOTPInput ? "Send Reset Code" : "Reset Password"}
               </Button>
             </form>
           </Form>
