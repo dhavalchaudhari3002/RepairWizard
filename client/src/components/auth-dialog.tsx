@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,41 +46,18 @@ const resetPasswordSchema = z.object({
 
 type View = "login" | "register" | "forgot-password" | "verify-otp" | "reset-password";
 
-const calculatePasswordStrength = (password: string): number => {
-  let strength = 0;
-  if (password.length >= 8) strength += 20;
-  if (/[A-Z]/.test(password)) strength += 20;
-  if (/[a-z]/.test(password)) strength += 20;
-  if (/[0-9]/.test(password)) strength += 20;
-  if (/[^A-Za-z0-9]/.test(password)) strength += 20;
-  return strength;
-};
-
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
   const { loginMutation, registerMutation, forgotPasswordMutation, resetPasswordMutation } = useAuth();
   const { toast } = useToast();
   const [view, setView] = useState<View>(mode);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
   const [userEmail, setUserEmail] = useState("");
-  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setView(mode);
     }
   }, [isOpen, mode]);
-
-  useEffect(() => {
-    if (mode === 'reset-password') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      if (token) {
-        resetForm.setValue('token', token);
-      }
-    }
-  }, [mode]);
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -89,68 +67,12 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
-  const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      role: "customer" as const,
-      tosAccepted: false,
-    },
-  });
-
   const forgotPasswordForm = useForm({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
     },
   });
-
-  const resetForm = useForm({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      token: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
-
-  const otpForm = useForm<z.infer<typeof otpSchema>>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
-
-  const getCurrentForm = () => {
-    switch (view) {
-      case "login":
-        return loginForm;
-      case "register":
-        return registerForm;
-      case "forgot-password":
-        return forgotPasswordForm;
-      case "reset-password":
-        return resetForm;
-      case "verify-otp":
-        return otpForm;
-      default:
-        return loginForm;
-    }
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const strength = calculatePasswordStrength(e.target.value);
-    setPasswordStrength(strength);
-    if (view === 'register') {
-      registerForm.setValue("password", e.target.value);
-    } else if (view === 'reset-password') {
-      resetForm.setValue("newPassword", e.target.value);
-    }
-  };
 
   const handleForgotPasswordSubmit = async (data: z.infer<typeof forgotPasswordSchema>) => {
     try {
@@ -169,552 +91,139 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     }
   };
 
-  const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
-    if (values.otp.length === 6) {
-      setView("reset-password");
-    }
-  };
-
-  const handleResendOTP = async () => {
-    if (isResending) return;
-
-    setIsResending(true);
-    try {
-      await forgotPasswordMutation.mutateAsync({ email: userEmail });
-      toast({
-        description: "New reset code sent to your email"
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to resend code"
-      });
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-
   const handleSubmit = async (data: any) => {
     try {
-      switch (view) {
-        case "login":
-          await loginMutation.mutateAsync({
-            email: data.email,
-            password: data.password,
-          });
-          onOpenChange(false);
-          break;
-
-        case "register":
-          await registerMutation.mutateAsync(data);
-          onOpenChange(false);
-          break;
-
-        case "forgot-password":
-          await forgotPasswordMutation.mutateAsync({ email: data.email });
-          toast({
-            title: "Check your email",
-            description: "If an account exists with this email, you will receive a password reset link.",
-          });
-          setView("login");
-          break;
-
-        case "reset-password":
-          await resetPasswordMutation.mutateAsync({
-            token: data.token,
-            newPassword: data.newPassword,
-          });
-          toast({
-            title: "Password Reset Successful",
-            description: "Your password has been reset successfully. You can now log in with your new password.",
-          });
-          setView("login");
-          break;
-        case "verify-otp":
-          // Handle OTP verification here.  This is a placeholder.  You'll need to implement your actual OTP verification logic.
-          console.log("OTP verification not implemented yet");
-          setView("reset-password");
-          break;
+      if (view === "login") {
+        await loginMutation.mutateAsync({
+          email: data.email,
+          password: data.password,
+        });
+        onOpenChange(false);
+      } else if (view === "forgot-password") {
+        await handleForgotPasswordSubmit(data);
       }
     } catch (error: any) {
       console.error(`${view} error:`, error);
       toast({
         variant: "destructive",
         title: `${view.charAt(0).toUpperCase() + view.slice(1)} Failed`,
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred",
       });
     }
   };
 
-  const isSubmitting =
-    view === "login" ? loginMutation.isPending :
-      view === "register" ? registerMutation.isPending :
-        view === "forgot-password" ? forgotPasswordMutation.isPending :
-          view === "verify-otp" ? forgotPasswordMutation.isPending : // Added for OTP view
-            resetPasswordMutation.isPending;
-
-  const currentForm = getCurrentForm();
+  const isSubmitting = view === "login" ? loginMutation.isPending : forgotPasswordMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {view === "login" ? "Welcome Back" :
-              view === "register" ? "Create Account" :
-                view === "forgot-password" ? "Reset Password" :
-                  view === "verify-otp" ? "Enter Reset Code" :
-                    "Set New Password"}
+            {view === "login" ? "Login to your account" : 
+             view === "forgot-password" ? "Reset Password" : ""}
           </DialogTitle>
           <DialogDescription>
-            {view === "login" ? "Login to your account" :
-              view === "register" ? "Register for a new account" :
-                view === "forgot-password" ? "Enter your email to receive a reset code" :
-                  view === "verify-otp" ? "Enter the 6-digit code sent to your email" :
-                    "Enter your new password"}
+            {view === "login" ? "Welcome back" : 
+             view === "forgot-password" ? "Enter your email to receive a reset code" : ""}
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...currentForm}>
-          <form onSubmit={currentForm.handleSubmit(handleSubmit)} className="space-y-3">
-            {view === "register" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={registerForm.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="First name" {...field} disabled={isSubmitting} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        <Form {...(view === "login" ? loginForm : forgotPasswordForm)}>
+          <form onSubmit={view === "login" ? 
+            loginForm.handleSubmit(handleSubmit) : 
+            forgotPasswordForm.handleSubmit(handleSubmit)} 
+            className="space-y-4"
+          >
+            <FormField
+              control={view === "login" ? loginForm.control : forgotPasswordForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      {...field}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  <FormField
-                    control={registerForm.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Last name" {...field} disabled={isSubmitting} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={registerForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter email"
-                          {...field}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={registerForm.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="repairer">Repairer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={registerForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            {...field}
-                            onChange={handlePasswordChange}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <div className="mt-1">
-                        <Progress value={passwordStrength} className="h-1" />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {passwordStrength === 100 ? "Strong password" :
-                            passwordStrength >= 60 ? "Moderate password" :
-                              "Weak password"}
-                        </p>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={registerForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm password"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={registerForm.control}
-                  name="tosAccepted"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <div className="leading-none">
-                        <FormLabel className="text-sm">
-                          I agree to the{" "}
-                          <a href="/terms" className="text-primary hover:underline">
-                            Terms of Service
-                          </a>{" "}
-                          and{" "}
-                          <a href="/privacy" className="text-primary hover:underline">
-                            Privacy Policy
-                          </a>
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Login Form Fields */}
             {view === "login" && (
-              <div className="space-y-3">
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter email"
-                          {...field}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="text-sm text-right">
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={() => setView("forgot-password")}
-                    className="p-0 h-auto font-normal"
-                    disabled={isSubmitting}
-                  >
-                    Forgot your password?
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Forgot Password Form */}
-            {view === "forgot-password" && (
               <FormField
-                control={forgotPasswordForm.control}
-                name="email"
+                control={loginForm.control}
+                name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        {...field}
-                        disabled={forgotPasswordMutation.isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* OTP Verification Form */}
-            {view === "verify-otp" && (
-              <FormField
-                control={otpForm.control}
-                name="otp"
-                render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <FormLabel>Reset Code</FormLabel>
-                    <FormControl>
-                      <div className="flex justify-center">
-                        <InputOTP
-                          maxLength={6}
-                          value={field.value}
-                          onChange={(value: string) => {
-                            field.onChange(value);
-                            if (value.length === 6) {
-                              handleOTPSubmit({ otp: value });
-                            }
-                          }}
-                          autoFocus
-                        >
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Reset Password Form */}
-            {view === 'reset-password' && (
-              <div className="space-y-3">
-                <FormField
-                  control={resetForm.control}
-                  name="token"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Token</FormLabel>
+                    <FormLabel>Password</FormLabel>
+                    <div className="relative">
                       <FormControl>
-                        <Input {...field} disabled />
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter password"
+                          {...field}
+                          disabled={isSubmitting}
+                        />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={resetForm.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter new password"
-                            {...field}
-                            onChange={handlePasswordChange}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={resetForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm new password"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isSubmitting}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
-            <div className="flex flex-col gap-3 pt-3">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {view === "login" ? "Logging in..." : "Sending reset code..."}
+                </>
+              ) : (
+                view === "login" ? "Login" : "Send Reset Code"
+              )}
+            </Button>
+
+            {view === "login" && (
               <Button
-                type="submit"
-                disabled={isSubmitting}
+                type="button"
+                variant="link"
                 className="w-full"
+                onClick={() => setView("forgot-password")}
+                disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {view === "login" ? "Logging in..." :
-                      view === "register" ? "Registering..." :
-                        view === "forgot-password" ? "Sending reset link..." :
-                          view === "verify-otp" ? "Verifying OTP..." : // Added for OTP view
-                            "Resetting password..."}
-                  </>
-                ) : (
-                  view === "login" ? "Login" :
-                    view === "register" ? "Register" :
-                      view === "forgot-password" ? "Send Reset Code" :
-                        view === "verify-otp" ? "Verify OTP" : // Added for OTP view
-                          "Reset Password"
-                )}
+                Forgot your password?
               </Button>
+            )}
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or
-                  </span>
-                </div>
-              </div>
-
+            {view === "forgot-password" && (
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setView("login");
-                  setUserEmail("");
-                  loginForm.reset();
-                  forgotPasswordForm.reset();
-                  otpForm.reset();
-                  resetForm.reset();
-                }}
                 className="w-full"
+                onClick={() => setView("login")}
                 disabled={isSubmitting}
               >
                 Back to Login
               </Button>
-            </div>
+            )}
           </form>
         </Form>
       </DialogContent>
