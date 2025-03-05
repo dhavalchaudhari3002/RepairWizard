@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/hooks/use-auth";
-import { insertUserSchema, loginSchema } from "@shared/schema";
+import { loginSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
@@ -19,7 +19,7 @@ type AuthDialogProps = {
 };
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Invalid email format")
 });
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
@@ -58,9 +58,11 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         });
         onOpenChange(false);
       } else if (view === "forgot-password") {
-        await forgotPasswordMutation.mutateAsync({ email: data.email });
+        await forgotPasswordMutation.mutateAsync({
+          email: data.email,
+        });
         toast({
-          description: "If an account exists with this email, you will receive a password reset link."
+          description: "If an account exists with this email, you will receive a reset link."
         });
         setView("login");
       }
@@ -87,104 +89,139 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...(view === "login" ? loginForm : forgotPasswordForm)}>
-          <form 
-            onSubmit={view === "login" ? 
-              loginForm.handleSubmit(handleSubmit) : 
-              forgotPasswordForm.handleSubmit(handleSubmit)
-            } 
-            className="space-y-4"
-          >
-            <FormField
-              control={view === "login" ? loginForm.control : forgotPasswordForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {view === "login" && (
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <div className="relative">
+        <div className="space-y-4 py-2 pb-4">
+          {view === "login" ? (
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(handleSubmit)} className="space-y-4">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter password"
+                          type="email" 
+                          placeholder="Enter your email"
                           {...field}
                           disabled={isSubmitting}
                         />
                       </FormControl>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isSubmitting}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {view === "login" ? "Logging in..." : "Sending reset link..."}
-                </>
-              ) : (
-                view === "login" ? "Login" : "Send Reset Link"
-              )}
-            </Button>
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {view === "login" ? (
-              <Button
-                type="button"
-                variant="link"
-                className="w-full"
-                onClick={() => setView("forgot-password")}
-                disabled={isSubmitting}
-              >
-                Forgot your password?
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setView("login")}
-                disabled={isSubmitting}
-              >
-                Back to Login
-              </Button>
-            )}
-          </form>
-        </Form>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => setView("forgot-password")}
+                  disabled={isSubmitting}
+                >
+                  Forgot your password?
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(handleSubmit)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          {...field}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending reset link...
+                    </>
+                  ) : (
+                    "Send Reset Link"
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setView("login");
+                    forgotPasswordForm.reset();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Back to Login
+                </Button>
+              </form>
+            </Form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
