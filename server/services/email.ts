@@ -92,13 +92,12 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
         baseUrl = process.env.APP_URL || 'https://ai-repair-assistant.repl.co';
       }
     } else {
-      // For development
-      baseUrl = process.env.APP_URL || 'https://0.0.0.0:5000';
+      // For development - remove protocol for local development
+      baseUrl = '0.0.0.0:5000';
     }
 
     console.log('Using base URL for reset link:', baseUrl);
-
-    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.NODE_ENV === 'production' ? baseUrl : `http://${baseUrl}`}/reset-password?token=${resetToken}`;
     console.log('Generated reset link:', resetLink);
 
     const msg = {
