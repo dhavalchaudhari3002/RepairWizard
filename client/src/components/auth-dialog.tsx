@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type AuthDialogProps = {
   mode: "login" | "register" | "reset-password" | "forgot-password";
@@ -22,6 +23,10 @@ type AuthDialogProps = {
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
+});
+
+const otpSchema = z.object({
+  otp: z.string().length(6, "Please enter the 6-digit code"),
 });
 
 const resetPasswordSchema = z.object({
@@ -38,7 +43,7 @@ const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type View = "login" | "register" | "forgot-password" | "reset-password";
+type View = "login" | "register" | "forgot-password" | "verify-otp" | "reset-password";
 
 const calculatePasswordStrength = (password: string): number => {
   let strength = 0;
@@ -57,6 +62,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [userEmail, setUserEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -111,6 +118,13 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
   const getCurrentForm = () => {
     switch (view) {
       case "login":
@@ -121,6 +135,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         return forgotPasswordForm;
       case "reset-password":
         return resetForm;
+      case "verify-otp":
+        return otpForm;
       default:
         return loginForm;
     }
@@ -135,6 +151,50 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       resetForm.setValue("newPassword", e.target.value);
     }
   };
+
+  const handleForgotPasswordSubmit = async (data: z.infer<typeof forgotPasswordSchema>) => {
+    try {
+      await forgotPasswordMutation.mutateAsync({ email: data.email });
+      setUserEmail(data.email);
+      setView("verify-otp");
+      toast({
+        description: "Reset code sent to your email"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send reset code"
+      });
+    }
+  };
+
+  const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
+    if (values.otp.length === 6) {
+      setView("reset-password");
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (isResending) return;
+
+    setIsResending(true);
+    try {
+      await forgotPasswordMutation.mutateAsync({ email: userEmail });
+      toast({
+        description: "New reset code sent to your email"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to resend code"
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
 
   const handleSubmit = async (data: any) => {
     try {
@@ -172,6 +232,11 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           });
           setView("login");
           break;
+        case "verify-otp":
+          // Handle OTP verification here.  This is a placeholder.  You'll need to implement your actual OTP verification logic.
+          console.log("OTP verification not implemented yet");
+          setView("reset-password");
+          break;
       }
     } catch (error: any) {
       console.error(`${view} error:`, error);
@@ -187,25 +252,28 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     view === "login" ? loginMutation.isPending :
       view === "register" ? registerMutation.isPending :
         view === "forgot-password" ? forgotPasswordMutation.isPending :
-          resetPasswordMutation.isPending;
+          view === "verify-otp" ? forgotPasswordMutation.isPending : // Added for OTP view
+            resetPasswordMutation.isPending;
 
   const currentForm = getCurrentForm();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="mb-4">
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
           <DialogTitle>
             {view === "login" ? "Welcome Back" :
               view === "register" ? "Create Account" :
                 view === "forgot-password" ? "Reset Password" :
-                  "Set New Password"}
+                  view === "verify-otp" ? "Enter Reset Code" :
+                    "Set New Password"}
           </DialogTitle>
           <DialogDescription>
             {view === "login" ? "Login to your account" :
               view === "register" ? "Register for a new account" :
-                view === "forgot-password" ? "Enter your email to receive a reset link" :
-                  "Enter your new password"}
+                view === "forgot-password" ? "Enter your email to receive a reset code" :
+                  view === "verify-otp" ? "Enter the 6-digit code sent to your email" :
+                    "Enter your new password"}
           </DialogDescription>
         </DialogHeader>
 
@@ -455,24 +523,93 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
             {/* Forgot Password Form */}
             {view === "forgot-password" && (
-              <FormField
-                control={forgotPasswordForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={forgotPasswordForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Enter your email"
+                            {...field}
+                            disabled={forgotPasswordMutation.isPending}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={forgotPasswordMutation.isPending}
+                  >
+                    {forgotPasswordMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending reset code...
+                      </>
+                    ) : (
+                      "Send Reset Code"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            )}
+
+            {/* OTP Verification Form */}
+            {view === "verify-otp" && (
+              <Form {...otpForm}>
+                <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
+                  <FormField
+                    control={otpForm.control}
+                    name="otp"
+                    render={({ field }) => (
+                      <FormItem className="space-y-4">
+                        <FormLabel>Reset Code</FormLabel>
+                        <FormControl>
+                          <div className="flex justify-center">
+                            <InputOTP
+                              maxLength={6}
+                              value={field.value}
+                              onChange={(value: string) => {
+                                field.onChange(value);
+                                if (value.length === 6) {
+                                  handleOTPSubmit({ otp: value });
+                                }
+                              }}
+                              autoFocus
+                            >
+                              <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                              </InputOTPGroup>
+                            </InputOTP>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleResendOTP}
+                    disabled={isResending}
+                  >
+                    {isResending ? "Sending..." : "Resend Code"}
+                  </Button>
+                </form>
+              </Form>
             )}
 
             {/* Reset Password Form */}
@@ -569,13 +706,15 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     {view === "login" ? "Logging in..." :
                       view === "register" ? "Registering..." :
                         view === "forgot-password" ? "Sending reset link..." :
-                          "Resetting password..."}
+                          view === "verify-otp" ? "Verifying OTP..." : // Added for OTP view
+                            "Resetting password..."}
                   </>
                 ) : (
                   view === "login" ? "Login" :
                     view === "register" ? "Register" :
-                      view === "forgot-password" ? "Send Reset Link" :
-                        "Reset Password"
+                      view === "forgot-password" ? "Send Reset Code" :
+                        view === "verify-otp" ? "Verify OTP" : // Added for OTP view
+                          "Reset Password"
                 )}
               </Button>
 
@@ -594,16 +733,17 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setView(view === "login" ? "register" : "login");
-                  currentForm.reset();
+                  setView("login");
+                  setUserEmail("");
+                  loginForm.reset();
+                  forgotPasswordForm.reset();
+                  otpForm.reset();
+                  resetForm.reset();
                 }}
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {view === "login" ? "Create an account" :
-                  view === "register" ? "Back to login" :
-                    view === "forgot-password" ? "Back to login" :
-                      "Back to login"}
+                Back to Login
               </Button>
             </div>
           </form>
