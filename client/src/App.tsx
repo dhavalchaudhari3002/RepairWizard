@@ -13,6 +13,7 @@ import { NavBar } from "@/components/navbar";
 
 function Router() {
   const [location] = useLocation();
+  // Hide navbar on auth and reset-password routes
   const showNavBar = !["auth", "reset-password"].includes(location.split("/")[1]);
 
   return (
@@ -21,7 +22,9 @@ function Router() {
       <main className="flex-1 relative z-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/reset-password">
+            <ResetPassword />
+          </Route>
           <Route path="/">
             <ProtectedRoute component={Home} />
           </Route>
