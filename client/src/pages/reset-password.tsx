@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -68,7 +67,7 @@ export default function ResetPassword() {
 
   const handleRequestOTP = async () => {
     const email = form.getValues("email");
-    
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       form.setError("email", { 
         type: "manual", 
@@ -85,7 +84,7 @@ export default function ResetPassword() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to send reset code');
       }
@@ -105,15 +104,21 @@ export default function ResetPassword() {
   };
 
   const onSubmit = async (values: FormValues) => {
+    if (step === "email") {
+      handleRequestOTP();
+      return;
+    }
+
+    if (step === "otp") {
+      setStep("newPassword");
+      return;
+    }
+
     try {
       const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: values.email,
-          otp: values.otp,
-          newPassword: values.newPassword
-        })
+        body: JSON.stringify(values)
       });
 
       const data = await response.json();
@@ -123,16 +128,17 @@ export default function ResetPassword() {
       }
 
       toast({
-        title: "Success!",
-        description: "Your password has been reset successfully. You can now login with your new password.",
+        title: "Success",
+        description: data.message || "Your password has been reset successfully. You can now login with your new password.",
       });
 
+      // Redirect to login page
       setLocation('/auth');
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to reset password. Please try again."
+        description: error.message || "Something went wrong. Please try again.",
       });
     }
   };
@@ -289,7 +295,7 @@ export default function ResetPassword() {
                     Send Reset Code
                   </Button>
                 )}
-                
+
                 {step === "otp" && (
                   <Button 
                     type="button" 
@@ -299,7 +305,7 @@ export default function ResetPassword() {
                     Next
                   </Button>
                 )}
-                
+
                 {step === "newPassword" && (
                   <Button type="submit" className="w-full">
                     Reset Password
