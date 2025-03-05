@@ -68,55 +68,35 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
   }
 }
 
-export async function sendPasswordResetEmail(userEmail: string, resetToken: string): Promise<boolean> {
+export async function sendPasswordResetEmail(userEmail: string, otp: string): Promise<boolean> {
   try {
     console.log('Starting password reset email process for:', {
       to: userEmail,
-      hasToken: !!resetToken,
+      hasOtp: !!otp,
       hasApiKey: !!process.env.SENDGRID_API_KEY
     });
 
-    if (!userEmail || !resetToken) {
-      console.error('Invalid parameters:', { userEmail, hasToken: !!resetToken });
+    if (!userEmail || !otp) {
+      console.error('Invalid parameters:', { userEmail, hasOtp: !!otp });
       return false;
     }
-
-    // Generate reset link based on environment
-    const baseUrl = process.env.NODE_ENV === 'production'
-      ? (process.env.APP_URL || 'https://ai-repair-assistant.repl.co')
-      : (process.env.REPL_SLUG && process.env.REPL_OWNER 
-         ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.dev` 
-         : 'http://0.0.0.0:5000');
-
-    console.log('Environment details:', {
-      NODE_ENV: process.env.NODE_ENV,
-      REPL_SLUG: process.env.REPL_SLUG,
-      REPL_OWNER: process.env.REPL_OWNER,
-      APP_URL: process.env.APP_URL
-    });
-
-    const encodedToken = encodeURIComponent(resetToken);
-    const resetLink = `${baseUrl}/reset-password?token=${encodedToken}`;
-
-    console.log('Generated reset link:', resetLink);
 
     const msg = {
       to: userEmail,
       from: 'chaudharydhaval303@gmail.com',
       subject: 'Reset Your Password - AI Repair Assistant',
-      text: `Reset your password by visiting this link: ${resetLink}\n\nThis link will expire in 1 hour for security reasons.`,
+      text: `Your password reset code is: ${otp}\n\nThis code will expire in 1 hour for security reasons.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Password Reset Request</h2>
-          <p>We received a request to reset your password. Click the button below to proceed:</p>
+          <h2>Password Reset Code</h2>
+          <p>You have requested to reset your password. Here is your reset code:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetLink}" 
-               style="background-color: #4F46E5; color: white; padding: 12px 24px; 
-                      text-decoration: none; border-radius: 6px; display: inline-block;">
-              Reset Password
-            </a>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; font-size: 24px; letter-spacing: 4px;">
+              ${otp}
+            </div>
           </div>
-          <p>This link will expire in 1 hour for security reasons.</p>
+          <p>Enter this code on the password reset page to create a new password.</p>
+          <p>This code will expire in 1 hour for security reasons.</p>
           <p>If you didn't request this reset, please ignore this email.</p>
           <hr>
           <p style="color: #666; font-size: 12px;">AI Repair Assistant - Your intelligent repair companion</p>

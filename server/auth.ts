@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes } from "crypto";
+import { scrypt, randomBytes, randomInt } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "./services/email";
@@ -21,6 +21,12 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return hashedBuf.equals(suppliedBuf);
+}
+
+// Add new function to generate OTP
+async function generateOTP(): Promise<string> {
+  // Generate a 6-digit OTP
+  return String(randomInt(100000, 999999));
 }
 
 export function setupAuth(app: Express) {
@@ -184,7 +190,7 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  // Request password reset
+  // Modify the forgot password endpoint
   app.post("/api/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
@@ -198,17 +204,19 @@ export function setupAuth(app: Express) {
       if (!user) {
         // Don't reveal if user exists for security
         return res.status(200).json({
-          message: "If an account exists with this email, you will receive a password reset link."
+          message: "If an account exists with this email, you will receive a password reset code."
         });
       }
 
-      // Generate a secure random token
-      const resetToken = randomBytes(32).toString('hex');
+      // Generate OTP
+      const otp = await generateOTP();
       const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
 
-      await storage.createPasswordResetToken(user.id, resetToken, expiresAt);
+      // Store OTP
+      await storage.createPasswordResetToken(user.id, otp, expiresAt);
 
-      const emailSent = await sendPasswordResetEmail(email, resetToken);
+      // Send OTP via email
+      const emailSent = await sendPasswordResetEmail(email, otp);
 
       if (!emailSent) {
         console.error("Failed to send password reset email to:", email);
@@ -218,7 +226,7 @@ export function setupAuth(app: Express) {
       }
 
       res.status(200).json({
-        message: "If an account exists with this email, you will receive a password reset link."
+        message: "If an account exists with this email, you will receive a password reset code."
       });
     } catch (error) {
       console.error("Password reset request error:", error);
@@ -228,24 +236,30 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Reset password using token
+  // Add endpoint to verify OTP and reset password
   app.post("/api/reset-password", async (req, res) => {
     try {
-      console.log("Reset password request received:", { token: '[REDACTED]' });
-      const { token, newPassword } = req.body;
+      const { otp, email, newPassword } = req.body;
 
-      if (!token || !newPassword) {
+      if (!otp || !newPassword || !email) {
         return res.status(400).json({
-          message: "Token and new password are required"
+          message: "OTP, new password and email are required"
         });
       }
 
-      const resetToken = await storage.getPasswordResetToken(token);
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({
+          message: "Invalid or expired reset code"
+        });
+      }
+
+      const resetToken = await storage.getPasswordResetToken(otp);
       console.log("Reset token found:", resetToken ? "Yes" : "No");
 
-      if (!resetToken) {
+      if (!resetToken || resetToken.userId !== user.id) {
         return res.status(400).json({
-          message: "Invalid or expired reset token"
+          message: "Invalid or expired reset code"
         });
       }
 
@@ -256,7 +270,7 @@ export function setupAuth(app: Express) {
       await storage.updateUserPassword(resetToken.userId, hashedPassword);
 
       // Delete the used token
-      await storage.deletePasswordResetToken(token);
+      await storage.deletePasswordResetToken(otp);
 
       res.status(200).json({
         message: "Password has been reset successfully. You can now log in with your new password."
@@ -265,38 +279,6 @@ export function setupAuth(app: Express) {
       console.error("Password reset error:", error);
       res.status(500).json({
         message: "An error occurred while resetting your password. Please try again."
-      });
-    }
-  });
-
-  // Add a GET endpoint to validate tokens
-  app.get("/api/reset-password/validate", async (req, res) => {
-    try {
-      const token = req.query.token;
-      console.log("Token validation request received");
-
-      if (!token) {
-        return res.status(400).json({
-          message: "Token is required"
-        });
-      }
-
-      const resetToken = await storage.getPasswordResetToken(token as string);
-
-      if (!resetToken) {
-        return res.status(400).json({
-          message: "Invalid or expired reset token"
-        });
-      }
-
-      res.status(200).json({
-        message: "Token is valid",
-        valid: true
-      });
-    } catch (error) {
-      console.error("Token validation error:", error);
-      res.status(500).json({
-        message: "An error occurred while validating the token"
       });
     }
   });
