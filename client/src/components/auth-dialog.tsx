@@ -15,7 +15,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
 
 type AuthDialogProps = {
-  mode: "login" | "register";
+  mode: "login" | "register" | "reset-password" | "forgot-password";
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 };
