@@ -545,53 +545,40 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
             {/* OTP Verification Form */}
             {view === "verify-otp" && (
-              <Form {...otpForm}>
-                <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
-                  <FormField
-                    control={otpForm.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem className="space-y-4">
-                        <FormLabel>Reset Code</FormLabel>
-                        <FormControl>
-                          <div className="flex justify-center">
-                            <InputOTP
-                              maxLength={6}
-                              value={field.value}
-                              onChange={(value: string) => {
-                                field.onChange(value);
-                                if (value.length === 6) {
-                                  handleOTPSubmit({ otp: value });
-                                }
-                              }}
-                              autoFocus
-                            >
-                              <InputOTPGroup>
-                                <InputOTPSlot index={0} />
-                                <InputOTPSlot index={1} />
-                                <InputOTPSlot index={2} />
-                                <InputOTPSlot index={3} />
-                                <InputOTPSlot index={4} />
-                                <InputOTPSlot index={5} />
-                              </InputOTPGroup>
-                            </InputOTP>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleResendOTP}
-                    disabled={isResending}
-                  >
-                    {isResending ? "Sending..." : "Resend Code"}
-                  </Button>
-                </form>
-              </Form>
+              <FormField
+                control={otpForm.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem className="space-y-4">
+                    <FormLabel>Reset Code</FormLabel>
+                    <FormControl>
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={field.value}
+                          onChange={(value: string) => {
+                            field.onChange(value);
+                            if (value.length === 6) {
+                              handleOTPSubmit({ otp: value });
+                            }
+                          }}
+                          autoFocus
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             {/* Reset Password Form */}
