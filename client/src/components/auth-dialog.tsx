@@ -111,6 +111,21 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
+  const getCurrentForm = () => {
+    switch (view) {
+      case "login":
+        return loginForm;
+      case "register":
+        return registerForm;
+      case "forgot-password":
+        return forgotPasswordForm;
+      case "reset-password":
+        return resetForm;
+      default:
+        return loginForm;
+    }
+  };
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const strength = calculatePasswordStrength(e.target.value);
     setPasswordStrength(strength);
@@ -174,11 +189,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         view === "forgot-password" ? forgotPasswordMutation.isPending :
           resetPasswordMutation.isPending;
 
-  const currentForm =
-    view === "login" ? loginForm :
-      view === "register" ? registerForm :
-        view === "forgot-password" ? forgotPasswordForm :
-          resetForm;
+  const currentForm = getCurrentForm();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
