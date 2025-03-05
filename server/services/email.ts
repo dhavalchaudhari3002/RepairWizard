@@ -82,9 +82,12 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
     }
 
     // Generate reset link based on environment
-    const resetLink = process.env.NODE_ENV === 'production'
-      ? `${process.env.APP_URL || 'https://ai-repair-assistant.repl.co'}/reset-password?token=${resetToken}`
-      : `/reset-password?token=${resetToken}`;
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? (process.env.APP_URL || 'https://ai-repair-assistant.repl.co')
+      : `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+
+    const encodedToken = encodeURIComponent(resetToken);
+    const resetLink = `${baseUrl}/reset-password?token=${encodedToken}`;
 
     console.log('Generated reset link:', resetLink);
 
@@ -92,7 +95,7 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
       to: userEmail,
       from: 'chaudharydhaval303@gmail.com',
       subject: 'Reset Your Password - AI Repair Assistant',
-      text: `Reset your password by clicking this link: ${resetLink}\n\nThis link will expire in 1 hour for security reasons.`,
+      text: `Reset your password by visiting this link: ${resetLink}\n\nThis link will expire in 1 hour for security reasons.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Password Reset Request</h2>
