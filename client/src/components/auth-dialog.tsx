@@ -181,8 +181,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="mb-4">
           <DialogTitle>
             {view === "login" ? "Welcome Back" :
               view === "register" ? "Create Account" :
@@ -198,41 +198,39 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         </DialogHeader>
 
         <Form {...currentForm}>
-          <form onSubmit={currentForm.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Registration Form Fields in requested order */}
+          <form onSubmit={currentForm.handleSubmit(handleSubmit)} className="space-y-3">
             {view === "register" && (
-              <>
-                {/* First Name */}
-                <FormField
-                  control={registerForm.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter first name" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={registerForm.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="First name" {...field} disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Last Name */}
-                <FormField
-                  control={registerForm.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter last name" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={registerForm.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Last name" {...field} disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                {/* Email Field */}
                 <FormField
                   control={registerForm.control}
                   name="email"
@@ -251,7 +249,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     </FormItem>
                   )}
                 />
-                {/* Role Selection */}
+
                 <FormField
                   control={registerForm.control}
                   name="role"
@@ -274,7 +272,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   )}
                 />
 
-                {/* Password Field */}
                 <FormField
                   control={registerForm.control}
                   name="password"
@@ -302,14 +299,12 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
-                      <div className="mt-2">
+                      <div className="mt-1">
                         <Progress value={passwordStrength} className="h-1" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {passwordStrength === 100
-                            ? "Strong password"
-                            : passwordStrength >= 60
-                              ? "Moderate password"
-                              : "Weak password"}
+                          {passwordStrength === 100 ? "Strong password" :
+                            passwordStrength >= 60 ? "Moderate password" :
+                              "Weak password"}
                         </p>
                       </div>
                       <FormMessage />
@@ -317,7 +312,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   )}
                 />
 
-                {/* Confirm Password Field */}
                 <FormField
                   control={registerForm.control}
                   name="confirmPassword"
@@ -328,7 +322,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         <FormControl>
                           <Input
                             type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm your password"
+                            placeholder="Confirm password"
                             {...field}
                             disabled={isSubmitting}
                           />
@@ -349,12 +343,11 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   )}
                 />
 
-                {/* Terms of Service */}
                 <FormField
                   control={registerForm.control}
                   name="tosAccepted"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormItem className="flex flex-row items-start space-x-2">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -362,8 +355,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           disabled={isSubmitting}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
+                      <div className="leading-none">
+                        <FormLabel className="text-sm">
                           I agree to the{" "}
                           <a href="/terms" className="text-primary hover:underline">
                             Terms of Service
@@ -378,12 +371,80 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     </FormItem>
                   )}
                 />
-              </>
+              </div>
             )}
 
-            {(view === "login" || view === "register" || view === "forgot-password") && (
+            {/* Login Form Fields */}
+            {view === "login" && (
+              <div className="space-y-3">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="Enter email"
+                          {...field}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="text-sm text-right">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => setView("forgot-password")}
+                    className="p-0 h-auto font-normal"
+                    disabled={isSubmitting}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Forgot Password Form */}
+            {view === "forgot-password" && (
               <FormField
-                control={currentForm.control}
+                control={forgotPasswordForm.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -391,7 +452,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="Enter email"
+                        placeholder="Enter your email"
                         {...field}
                         disabled={isSubmitting}
                       />
@@ -402,119 +463,89 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               />
             )}
 
-
-            {(view === "login" || view === "register") && (
-              <FormField
-                control={currentForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <div className="relative">
+            {/* Reset Password Form */}
+            {view === 'reset-password' && (
+              <div className="space-y-3">
+                <FormField
+                  control={resetForm.control}
+                  name="token"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Token</FormLabel>
                       <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter password"
-                          {...field}
-                          onChange={handlePasswordChange}
-                          disabled={isSubmitting}
-                        />
+                        <Input {...field} disabled />
                       </FormControl>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isSubmitting}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    {view === "register" && (
-                      <div className="mt-2">
-                        <Progress value={passwordStrength} className="h-1" />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {passwordStrength === 100
-                            ? "Strong password"
-                            : passwordStrength >= 60
-                              ? "Moderate password"
-                              : "Weak password"}
-                        </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={resetForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter new password"
+                            {...field}
+                            onChange={handlePasswordChange}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
                       </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            {view === "login" && (
-              <div className="text-sm text-right">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={() => setView("forgot-password")}
-                  className="p-0 h-auto font-normal"
-                  disabled={isSubmitting}
-                >
-                  Forgot your password?
-                </Button>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={resetForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm new password"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             )}
 
-            {(view === "register" || view === "reset-password") && (
-              <FormField
-                control={currentForm.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm your password"
-                          {...field}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        disabled={isSubmitting}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            {view === 'reset-password' && (
-              <FormField
-                control={resetForm.control}
-                name="token"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Token</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <div className="flex flex-col gap-4 pt-4">
+            <div className="flex flex-col gap-3 pt-3">
               <Button
                 type="submit"
                 disabled={isSubmitting}
