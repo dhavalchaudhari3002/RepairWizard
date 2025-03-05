@@ -44,6 +44,7 @@ export default function ResetPassword() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<"email" | "otp" | "password">("email");
   const [userEmail, setUserEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   // Email form
   const emailForm = useForm<z.infer<typeof emailSchema>>({
@@ -53,6 +54,9 @@ export default function ResetPassword() {
   // OTP form
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
   });
 
   // Password form
@@ -90,7 +94,40 @@ export default function ResetPassword() {
   };
 
   const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
-    setCurrentStep("password");
+    if (values.otp.length === 6) {
+      setCurrentStep("password");
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (isResending) return;
+
+    setIsResending(true);
+    try {
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to resend code");
+      }
+
+      toast({
+        description: "New reset code sent to your email"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to resend code"
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handlePasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
@@ -177,42 +214,45 @@ export default function ResetPassword() {
                   control={otpForm.control}
                   name="otp"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="space-y-4">
                       <FormLabel>Reset Code</FormLabel>
                       <FormControl>
-                        <InputOTP
-                          maxLength={6}
-                          value={field.value}
-                          onChange={field.onChange}
-                          autoFocus
-                        >
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
+                        <div className="flex justify-center">
+                          <InputOTP
+                            maxLength={6}
+                            value={field.value}
+                            onChange={(value) => {
+                              field.onChange(value);
+                              if (value.length === 6) {
+                                handleOTPSubmit({ otp: value });
+                              }
+                            }}
+                            autoFocus
+                          >
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <div className="space-y-2">
-                  <Button type="submit" className="w-full">
-                    Verify Code
-                  </Button>
-                  <Button
-                    variant="link"
-                    type="button"
-                    className="w-full"
-                    onClick={() => handleEmailSubmit({ email: userEmail })}
-                  >
-                    Didn't receive the code? Send again
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendOTP}
+                  disabled={isResending}
+                >
+                  {isResending ? "Sending..." : "Resend Code"}
+                </Button>
               </form>
             </Form>
           )}
