@@ -142,13 +142,17 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
             title: "Check your email",
             description: "If an account exists with this email, you will receive a password reset link.",
           });
-          onOpenChange(false);
+          setView("login");
           break;
 
         case "reset-password":
           await resetPasswordMutation.mutateAsync({
             token: data.token,
             newPassword: data.newPassword,
+          });
+          toast({
+            title: "Password Reset Successful",
+            description: "Your password has been reset successfully. You can now log in with your new password.",
           });
           setView("login");
           break;
@@ -158,7 +162,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       toast({
         variant: "destructive",
         title: `${view.charAt(0).toUpperCase() + view.slice(1)} Failed`,
-        description: error.message,
+        description: error.message || "An unexpected error occurred. Please try again.",
       });
     }
   };

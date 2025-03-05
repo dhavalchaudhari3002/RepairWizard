@@ -22,23 +22,21 @@ declare module 'express-session' {
   }
 }
 
-// Keep track of connected clients and their user IDs
-const clients = new Map<string, { ws: WebSocket; userId: number }>();
-
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize HTTP server
   const httpServer = createServer(app);
   console.log("Created HTTP server instance");
 
-  // Initialize WebSocket server
+  // Setup authentication before any other routes
+  setupAuth(app);
+  console.log("Authentication setup complete");
+
+  // Initialize WebSocket server after auth setup
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'
   });
   console.log("WebSocket server initialized");
-
-  // Setup authentication before any routes
-  setupAuth(app);
-  console.log("Authentication setup complete");
 
   // Helper function to get session and user from request
   const getUserFromRequest = async (req: IncomingMessage) => {
@@ -306,3 +304,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("All routes registered successfully");
   return httpServer;
 }
+
+const clients = new Map<string, { ws: WebSocket; userId: number }>();
