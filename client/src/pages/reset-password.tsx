@@ -24,6 +24,7 @@ export default function ResetPassword() {
           return;
         }
 
+        // Make the API call relative to the current domain
         const response = await fetch(`/api/reset-password/validate?token=${token}`);
         const data = await response.json();
 

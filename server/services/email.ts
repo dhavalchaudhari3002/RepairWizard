@@ -81,23 +81,11 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
       return false;
     }
 
-    // Construct the base URL based on environment
-    let baseUrl = '';
-    if (process.env.NODE_ENV === 'production') {
-      // For production in Replit
-      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-        baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-      } else {
-        // Fallback to APP_URL if REPL variables are not available
-        baseUrl = process.env.APP_URL || 'https://ai-repair-assistant.repl.co';
-      }
-    } else {
-      // For development - remove protocol for local development
-      baseUrl = '0.0.0.0:5000';
-    }
+    // Generate reset link based on environment
+    const resetLink = process.env.NODE_ENV === 'production'
+      ? `${process.env.APP_URL || 'https://ai-repair-assistant.repl.co'}/reset-password?token=${resetToken}`
+      : `/reset-password?token=${resetToken}`;
 
-    console.log('Using base URL for reset link:', baseUrl);
-    const resetLink = `${process.env.NODE_ENV === 'production' ? baseUrl : `http://${baseUrl}`}/reset-password?token=${resetToken}`;
     console.log('Generated reset link:', resetLink);
 
     const msg = {
