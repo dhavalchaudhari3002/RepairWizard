@@ -84,7 +84,9 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
     // Generate reset link based on environment
     const baseUrl = process.env.NODE_ENV === 'production'
       ? (process.env.APP_URL || 'https://ai-repair-assistant.repl.co')
-      : `https://${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.repl.dev`;
+      : (process.env.REPL_SLUG && process.env.REPL_OWNER 
+         ? `https://${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.repl.dev` 
+         : 'http://0.0.0.0:5000');
 
     console.log('Environment details:', {
       NODE_ENV: process.env.NODE_ENV,
