@@ -4,7 +4,7 @@ import { AuthDialog } from "@/components/auth-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ResetPassword() {
-  const [showDialog, setShowDialog] = useState(false);
+  const [showDialog, setShowDialog] = useState(true);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -20,25 +20,20 @@ export default function ResetPassword() {
       setLocation('/auth');
       return;
     }
-
-    // Show the dialog if token is present
-    setShowDialog(true);
   }, [setLocation, toast]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      {showDialog && (
-        <AuthDialog
-          mode="reset-password"
-          isOpen={showDialog}
-          onOpenChange={(open) => {
-            setShowDialog(open);
-            if (!open) {
-              setLocation('/auth');
-            }
-          }}
-        />
-      )}
+      <AuthDialog
+        mode="reset-password"
+        isOpen={showDialog}
+        onOpenChange={(open) => {
+          setShowDialog(open);
+          if (!open) {
+            setLocation('/auth');
+          }
+        }}
+      />
     </div>
   );
 }

@@ -22,9 +22,7 @@ function Router() {
       <main className="flex-1 relative z-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password">
-            <ResetPassword />
-          </Route>
+          <Route path="/reset-password" component={ResetPassword} />
           <Route path="/">
             <ProtectedRoute component={Home} />
           </Route>
