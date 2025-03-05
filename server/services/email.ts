@@ -21,7 +21,7 @@ export async function sendWelcomeEmail(userEmail: string, firstName: string): Pr
 
     const msg = {
       to: userEmail,
-      from: 'chaudharydhaval303@gmail.com', // Temporarily using verified sender while domain verification is pending
+      from: 'chaudharydhaval303@gmail.com',
       subject: 'Welcome to AI Repair Assistant!',
       text: `Welcome to AI Repair Assistant, ${firstName}!\n\nThank you for joining our platform.\n\nIf you have any questions, our support team is here to help.`,
       html: `
@@ -81,11 +81,19 @@ export async function sendPasswordResetEmail(userEmail: string, resetToken: stri
       return false;
     }
 
-    const resetLink = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+    // Get the base URL from environment or default to localhost
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? (process.env.APP_URL || 'https://your-app.repl.co')
+      : 'http://localhost:5000';
+
+    // Create the reset link without hash routing
+    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
+    console.log('Generated reset link:', resetLink);
 
     const msg = {
       to: userEmail,
-      from: 'chaudharydhaval303@gmail.com', // Using verified sender
+      from: 'chaudharydhaval303@gmail.com',
       subject: 'Reset Your Password - AI Repair Assistant',
       text: `Reset your password by clicking this link: ${resetLink}\n\nThis link will expire in 1 hour for security reasons.`,
       html: `
