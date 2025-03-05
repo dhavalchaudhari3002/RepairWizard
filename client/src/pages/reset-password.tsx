@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Validation schemas
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
@@ -41,22 +42,22 @@ const passwordSchema = z.object({
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [step, setStep] = useState<"email" | "otp" | "password">("email");
+  const [currentStep, setCurrentStep] = useState<"email" | "otp" | "password">("email");
   const [userEmail, setUserEmail] = useState("");
 
+  // Email form
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" }
   });
 
+  // OTP form
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
-    defaultValues: { otp: "" }
   });
 
+  // Password form
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { password: "", confirmPassword: "" }
   });
 
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
@@ -73,12 +74,12 @@ export default function ResetPassword() {
         throw new Error(data.message || "Failed to send reset code");
       }
 
-      // Store email for future use
       setUserEmail(values.email);
+      setCurrentStep("otp");
 
-      // Move to OTP step
-      setStep("otp");
-
+      toast({
+        description: "Reset code sent to your email"
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -89,8 +90,7 @@ export default function ResetPassword() {
   };
 
   const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
-    // Move to password step
-    setStep("password");
+    setCurrentStep("password");
   };
 
   const handlePasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
@@ -100,7 +100,7 @@ export default function ResetPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: userEmail,
-          otp: otpForm.getValues("otp"),
+          otp: otpForm.getValues().otp,
           newPassword: values.password
         })
       });
@@ -112,7 +112,7 @@ export default function ResetPassword() {
       }
 
       toast({
-        description: "Password reset successful! You can now login with your new password."
+        description: "Password reset successful! You can now login."
       });
 
       setLocation('/auth');
@@ -129,20 +129,20 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            {step === "email" && "Reset Password"}
-            {step === "otp" && "Enter Verification Code"}
-            {step === "password" && "Create New Password"}
+          <CardTitle>
+            {currentStep === "email" && "Reset Password"}
+            {currentStep === "otp" && "Enter Reset Code"}
+            {currentStep === "password" && "Create New Password"}
           </CardTitle>
           <CardDescription>
-            {step === "email" && "Enter your email to receive a verification code"}
-            {step === "otp" && "Enter the 6-digit code sent to your email"}
-            {step === "password" && "Choose a new password for your account"}
+            {currentStep === "email" && "Enter your email to receive a reset code"}
+            {currentStep === "otp" && "Enter the 6-digit code sent to your email"}
+            {currentStep === "password" && "Choose a new password for your account"}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          {step === "email" && (
+          {currentStep === "email" && (
             <Form {...emailForm}>
               <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
                 <FormField
@@ -152,9 +152,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
-                          type="email" 
+                        <Input
+                          {...field}
+                          type="email"
                           placeholder="Enter your email"
                           autoFocus
                         />
@@ -170,7 +170,7 @@ export default function ResetPassword() {
             </Form>
           )}
 
-          {step === "otp" && (
+          {currentStep === "otp" && (
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
                 <FormField
@@ -178,7 +178,7 @@ export default function ResetPassword() {
                   name="otp"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Verification Code</FormLabel>
+                      <FormLabel>Reset Code</FormLabel>
                       <FormControl>
                         <InputOTP
                           maxLength={6}
@@ -200,13 +200,14 @@ export default function ResetPassword() {
                     </FormItem>
                   )}
                 />
-                <div className="flex flex-col gap-4">
+                <div className="space-y-2">
                   <Button type="submit" className="w-full">
                     Verify Code
                   </Button>
                   <Button
                     variant="link"
                     type="button"
+                    className="w-full"
                     onClick={() => handleEmailSubmit({ email: userEmail })}
                   >
                     Didn't receive the code? Send again
@@ -216,7 +217,7 @@ export default function ResetPassword() {
             </Form>
           )}
 
-          {step === "password" && (
+          {currentStep === "password" && (
             <Form {...passwordForm}>
               <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
                 <FormField
@@ -226,9 +227,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
-                          type="password" 
+                        <Input
+                          {...field}
+                          type="password"
                           placeholder="Enter new password"
                           autoFocus
                         />
@@ -245,9 +246,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
-                          type="password" 
+                        <Input
+                          {...field}
+                          type="password"
                           placeholder="Confirm new password"
                         />
                       </FormControl>
