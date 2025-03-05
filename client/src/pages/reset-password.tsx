@@ -17,17 +17,15 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Email form schema
+// Form schemas
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-// OTP form schema
 const otpSchema = z.object({
   otp: z.string().length(6, "Please enter the 6-digit code"),
 });
 
-// Password form schema
 const passwordSchema = z.object({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
@@ -47,25 +45,21 @@ export default function ResetPassword() {
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
   const [resetData, setResetData] = useState({ email: "", otp: "" });
 
-  // Email form handling
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
     defaultValues: { email: "" }
   });
 
-  // OTP form handling
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
     defaultValues: { otp: "" }
   });
 
-  // Password form handling
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { password: "", confirmPassword: "" }
   });
 
-  // Handle email submission
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
     try {
       const response = await fetch('/api/forgot-password', {
@@ -77,7 +71,7 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to send reset code");
+        throw new Error(data.message);
       }
 
       // Store email and move to OTP step
@@ -91,19 +85,17 @@ export default function ResetPassword() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to send reset code",
       });
     }
   };
 
-  // Handle OTP submission
   const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
     // Store OTP and move to password step
     setResetData({ ...resetData, otp: values.otp });
     setStep("password");
   };
 
-  // Handle password submission
   const handlePasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
     try {
       const response = await fetch('/api/reset-password', {
@@ -123,7 +115,7 @@ export default function ResetPassword() {
       }
 
       toast({
-        description: "Password reset successful. You can now login with your new password.",
+        description: "Password reset successful! You can now login with your new password.",
       });
 
       setLocation('/auth');
@@ -131,7 +123,7 @@ export default function ResetPassword() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to reset password",
       });
     }
   };
@@ -152,10 +144,10 @@ export default function ResetPassword() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
           {step === "email" && (
             <Form {...emailForm}>
-              <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-6">
+              <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
                 <FormField
                   control={emailForm.control}
                   name="email"
@@ -163,9 +155,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="email"
+                        <Input 
+                          {...field} 
+                          type="email" 
                           placeholder="Enter your email"
                           autoFocus
                         />
@@ -183,12 +175,12 @@ export default function ResetPassword() {
 
           {step === "otp" && (
             <Form {...otpForm}>
-              <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-6">
+              <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
                 <FormField
                   control={otpForm.control}
                   name="otp"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
+                    <FormItem>
                       <FormLabel>Verification Code</FormLabel>
                       <FormControl>
                         <InputOTP
@@ -208,33 +200,31 @@ export default function ResetPassword() {
                         </InputOTP>
                       </FormControl>
                       <FormMessage />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Didn't receive the code?{" "}
-                        <Button
-                          variant="link"
-                          className="p-0 h-auto"
-                          type="button"
-                          onClick={() => {
-                            setStep("email");
-                            emailForm.setValue("email", resetData.email);
-                          }}
-                        >
-                          Try again
-                        </Button>
-                      </p>
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Verify Code
-                </Button>
+                <div className="flex flex-col gap-4">
+                  <Button type="submit" className="w-full">
+                    Verify Code
+                  </Button>
+                  <Button
+                    variant="link"
+                    type="button"
+                    onClick={() => {
+                      setStep("email");
+                      emailForm.setValue("email", resetData.email);
+                    }}
+                  >
+                    Didn't receive the code? Send again
+                  </Button>
+                </div>
               </form>
             </Form>
           )}
 
           {step === "password" && (
             <Form {...passwordForm}>
-              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-6">
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
                 <FormField
                   control={passwordForm.control}
                   name="password"
@@ -242,9 +232,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="password"
+                        <Input 
+                          {...field} 
+                          type="password" 
                           placeholder="Enter new password"
                           autoFocus
                         />
@@ -261,9 +251,9 @@ export default function ResetPassword() {
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="password"
+                        <Input 
+                          {...field} 
+                          type="password" 
                           placeholder="Confirm new password"
                         />
                       </FormControl>
@@ -278,12 +268,15 @@ export default function ResetPassword() {
               </form>
             </Form>
           )}
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <Button variant="link" onClick={() => setLocation('/auth')}>
+
+          <Button
+            variant="link"
+            className="w-full mt-4"
+            onClick={() => setLocation('/auth')}
+          >
             Back to Login
           </Button>
-        </CardFooter>
+        </CardContent>
       </Card>
     </div>
   );

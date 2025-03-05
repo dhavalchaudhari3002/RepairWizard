@@ -204,7 +204,8 @@ export function setupAuth(app: Express) {
       if (!user) {
         // Don't reveal if user exists for security
         return res.status(200).json({
-          message: "If an account exists with this email, you will receive a password reset code."
+          success: true,
+          message: "If an account exists with this email, you will receive a reset code."
         });
       }
 
@@ -226,7 +227,8 @@ export function setupAuth(app: Express) {
       }
 
       res.status(200).json({
-        message: "If an account exists with this email, you will receive a password reset code."
+        success: true,
+        message: "Reset code sent successfully."
       });
     } catch (error) {
       console.error("Password reset request error:", error);
