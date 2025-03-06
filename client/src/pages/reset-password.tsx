@@ -16,10 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 // Validation schemas
 const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
 });
 
 const otpSchema = z.object({
@@ -46,9 +47,13 @@ export default function ResetPassword() {
   const [userEmail, setUserEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
 
-  // Email form
+  // Email form setup
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
+    defaultValues: {
+      email: "",
+    },
+    mode: "onBlur",
   });
 
   // OTP form
@@ -193,6 +198,7 @@ export default function ResetPassword() {
                           {...field}
                           type="email"
                           placeholder="Enter your email"
+                          autoComplete="email"
                           autoFocus
                         />
                       </FormControl>
@@ -200,8 +206,28 @@ export default function ResetPassword() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Send Reset Code
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={emailForm.formState.isSubmitting}
+                >
+                  {emailForm.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Code"
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => setLocation('/auth')}
+                >
+                  Back to Login
                 </Button>
               </form>
             </Form>
