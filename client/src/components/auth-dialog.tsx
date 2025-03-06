@@ -1,239 +1,3 @@
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useAuth } from "@/hooks/use-auth";
-import { loginSchema } from "@shared/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { z } from "zod";
-
-type AuthDialogProps = {
-  mode: "login" | "forgot-password";
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
-const forgotPasswordSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
-});
-
-export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
-  const { loginMutation, forgotPasswordMutation } = useAuth();
-  const { toast } = useToast();
-  const [view, setView] = useState<"login" | "forgot-password">(mode);
-  const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setView(mode);
-    }
-  }, [isOpen, mode]);
-
-  const loginForm = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    mode: "onChange"
-  });
-
-  const forgotPasswordForm = useForm({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: "",
-    },
-    mode: "onSubmit"
-  });
-
-  const handleSubmit = async (data: any) => {
-    try {
-      if (view === "login") {
-        await loginMutation.mutateAsync({
-          email: data.email,
-          password: data.password,
-        });
-        onOpenChange(false);
-      } else if (view === "forgot-password") {
-        await forgotPasswordMutation.mutateAsync({
-          email: data.email,
-        });
-        toast({
-          description: "If an account exists with this email, you will receive a reset link."
-        });
-        setView("login");
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "An unexpected error occurred"
-      });
-    }
-  };
-
-  const isSubmitting = view === "login" ? loginMutation.isPending : forgotPasswordMutation.isPending;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {view === "login" ? "Login to your account" : "Reset Password"}
-          </DialogTitle>
-          <DialogDescription>
-            {view === "login" ? "Welcome back" : "Enter your email to receive a reset link"}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-6">
-          {view === "login" ? (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter your email"
-                          {...field}
-                          disabled={isSubmitting}
-                          autoComplete="email"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Logging in...
-                      </>
-                    ) : (
-                      "Login"
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="w-full"
-                    onClick={() => setView("forgot-password")}
-                    disabled={isSubmitting}
-                  >
-                    Forgot your password?
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          ) : (
-            <Form {...forgotPasswordForm}>
-              <form onSubmit={forgotPasswordForm.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                  control={forgotPasswordForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter your email"
-                          {...field}
-                          disabled={isSubmitting}
-                          autoComplete="email"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending reset link...
-                      </>
-                    ) : (
-                      "Send Reset Link"
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => {
-                      setView("login");
-                      forgotPasswordForm.reset();
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    Back to Login
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -248,11 +12,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
 import { useState } from "react";
-
-const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
-});
+import { loginSchema } from "@shared/schema";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
@@ -273,16 +34,17 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 interface AuthDialogProps {
-  open: boolean;
+  mode: "login" | "forgot-password";
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultTab?: "login" | "register";
 }
 
-export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDialogProps) {
-  const [tab, setTab] = useState<"login" | "register" | "forgot">(defaultTab);
+export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
+  const [tab, setTab] = useState<"login" | "register" | "forgot">(mode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationProgress, setRegistrationProgress] = useState(0);
-  const { login, register } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const { loginMutation, register } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -315,7 +77,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
   const onLoginSubmit = async (values: LoginFormValues) => {
     setIsSubmitting(true);
     try {
-      await login(values.email, values.password);
+      await loginMutation.mutateAsync(values);
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
@@ -401,7 +163,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
@@ -444,14 +206,25 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Your password" 
-                        type="password" 
-                        {...field}
-                        autoComplete="current-password"
-                      />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Input 
+                          placeholder="Your password" 
+                          type={showPassword ? "text" : "password"}
+                          {...field}
+                          autoComplete="current-password"
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -469,7 +242,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
 
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Logging in..." : "Log in"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Log in"
+                  )}
                 </Button>
                 <div className="mt-2 text-center text-sm">
                   Don't have an account?{" "}
@@ -538,14 +318,25 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Create a password" 
-                        type="password" 
-                        {...field}
-                        autoComplete="new-password"
-                      />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Input 
+                          placeholder="Create a password" 
+                          type={showPassword ? "text" : "password"}
+                          {...field}
+                          autoComplete="new-password"
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -579,7 +370,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
 
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating account..." : "Create account"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create account"
+                  )}
                 </Button>
                 <div className="mt-2 text-center text-sm">
                   Already have an account?{" "}
@@ -614,7 +412,14 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
 
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Sending..." : "Send Reset Link"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Link"
+                  )}
                 </Button>
                 <div className="mt-2 text-center text-sm">
                   <Button variant="link" size="sm" type="button" onClick={() => setTab("login")}>
