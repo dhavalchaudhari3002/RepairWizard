@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react";
 
 // Validation schemas
 const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address")
 });
 
 const otpSchema = z.object({
@@ -53,7 +53,7 @@ export default function ResetPassword() {
     defaultValues: {
       email: "",
     },
-    mode: "onTouched"
+    mode: "all"
   });
 
   // OTP form setup
@@ -75,6 +75,8 @@ export default function ResetPassword() {
 
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
     try {
+      console.log("Submitting email:", values.email);
+
       const response = await fetch('/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,6 +96,7 @@ export default function ResetPassword() {
         description: "Reset code sent to your email"
       });
     } catch (error: any) {
+      console.error("Email submission error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -205,13 +208,6 @@ export default function ResetPassword() {
                           autoComplete="email"
                           autoFocus
                           disabled={emailForm.formState.isSubmitting}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            // Clear validation errors when user types
-                            if (emailForm.formState.errors.email) {
-                              emailForm.clearErrors('email');
-                            }
-                          }}
                         />
                       </FormControl>
                       <FormMessage />
