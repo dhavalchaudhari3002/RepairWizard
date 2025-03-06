@@ -53,10 +53,10 @@ export default function ResetPassword() {
     defaultValues: {
       email: "",
     },
-    mode: "onBlur",
+    mode: "onChange"
   });
 
-  // OTP form
+  // OTP form setup
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
     defaultValues: {
@@ -64,9 +64,13 @@ export default function ResetPassword() {
     },
   });
 
-  // Password form
+  // Password form setup
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    }
   });
 
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
@@ -200,35 +204,40 @@ export default function ResetPassword() {
                           placeholder="Enter your email"
                           autoComplete="email"
                           autoFocus
+                          disabled={emailForm.formState.isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={emailForm.formState.isSubmitting}
-                >
-                  {emailForm.formState.isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Reset Code"
-                  )}
-                </Button>
 
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full"
-                  onClick={() => setLocation('/auth')}
-                >
-                  Back to Login
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={emailForm.formState.isSubmitting || !emailForm.formState.isDirty}
+                  >
+                    {emailForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Code"
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setLocation('/auth')}
+                    disabled={emailForm.formState.isSubmitting}
+                  >
+                    Back to Login
+                  </Button>
+                </div>
               </form>
             </Form>
           )}
@@ -329,7 +338,6 @@ export default function ResetPassword() {
               </form>
             </Form>
           )}
-
           <Button
             variant="link"
             className="w-full mt-4"
