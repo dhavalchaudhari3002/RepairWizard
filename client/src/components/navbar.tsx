@@ -130,3 +130,52 @@ export function NavBar() {
     </header>
   );
 }
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { ThemeToggle } from "../styles/theme-toggle";
+import { useAuth } from "@/hooks/use-auth";
+
+export function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  return (
+    <header className="border-b">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <Link to="/" className="flex items-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary mr-2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <span className="font-bold text-xl">RepairAI</span>
+        </Link>
+        
+        <div className="flex items-center space-x-4">
+          <ThemeToggle />
+          
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+                Dashboard
+              </Button>
+              <Avatar>
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>
+                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <Button variant="outline" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => navigate("/login")}>
+              Login
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

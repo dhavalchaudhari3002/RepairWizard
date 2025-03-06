@@ -1,0 +1,37 @@
+
+:root {
+  /* Primary palette */
+  --color-primary: hsl(220, 80%, 50%);
+  --color-primary-light: hsl(220, 80%, 65%);
+  --color-primary-dark: hsl(220, 80%, 35%);
+  
+  /* Secondary colors */
+  --color-secondary: hsl(200, 70%, 45%);
+  --color-accent: hsl(160, 60%, 45%);
+  
+  /* Neutral colors */
+  --color-background: hsl(0, 0%, 100%);
+  --color-surface: hsl(220, 20%, 98%);
+  --color-card: hsl(220, 10%, 97%);
+  
+  /* Text colors */
+  --color-text: hsl(220, 15%, 20%);
+  --color-text-muted: hsl(220, 10%, 50%);
+  
+  /* Status colors */
+  --color-success: hsl(145, 70%, 45%);
+  --color-warning: hsl(45, 90%, 50%);
+  --color-error: hsl(0, 80%, 55%);
+  --color-info: hsl(200, 80%, 55%);
+  
+  /* UI component colors */
+  --color-border: hsl(220, 10%, 90%);
+  --color-input: hsl(220, 10%, 96%);
+  --color-button: var(--color-primary);
+  --color-button-text: white;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
