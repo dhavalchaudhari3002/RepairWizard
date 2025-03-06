@@ -25,9 +25,14 @@ const registerSchema = z.object({
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string(),
+  role: z.enum(["customer", "repairer"]).default("customer"),
   tosAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the Terms of Service and Privacy Policy to continue",
   }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 const forgotPasswordSchema = z.object({
@@ -70,6 +75,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       lastName: "",
       email: "",
       password: "",
+      confirmPassword: "",
+      role: "customer",
       tosAccepted: false,
     },
   });
@@ -96,7 +103,6 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const onRegisterSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
-      // Simulate progress for better user experience
       const progressInterval = setInterval(() => {
         setRegistrationProgress(prev => Math.min(prev + 20, 90));
       }, 500);
@@ -133,9 +139,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         description: "If an account exists with this email, you'll receive a reset code shortly.",
       });
 
-      // Redirect to the reset password page
-      onOpenChange(false);
       navigate("/reset-password");
+      onOpenChange(false);
     } catch (error) {
       console.error("Forgot password error:", error);
       toast({
@@ -153,14 +158,14 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {tab === "login" ? "Log in to your account" : 
-             tab === "register" ? "Create an account" : 
-             "Reset your password"}
+            {tab === "login" ? "Log in to your account" :
+              tab === "register" ? "Create an account" :
+                "Reset your password"}
           </DialogTitle>
           <DialogDescription>
-            {tab === "login" ? "Enter your email and password below to log in" : 
-             tab === "register" ? "Fill out the form below to create a new account" : 
-             "Enter your email to receive a reset link"}
+            {tab === "login" ? "Enter your email and password below to log in" :
+              tab === "register" ? "Fill out the form below to create a new account" :
+                "Enter your email to receive a reset link"}
           </DialogDescription>
         </DialogHeader>
 
@@ -174,9 +179,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Your email address" 
-                        {...field} 
+                      <Input
+                        placeholder="Your email address"
+                        {...field}
                         type="email"
                         autoComplete="email"
                       />
@@ -194,8 +199,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormLabel>Password</FormLabel>
                     <div className="relative">
                       <FormControl>
-                        <Input 
-                          placeholder="Your password" 
+                        <Input
+                          placeholder="Your password"
                           type={showPassword ? "text" : "password"}
                           {...field}
                           autoComplete="current-password"
@@ -216,9 +221,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                 )}
               />
 
-              <Button 
-                variant="link" 
-                size="sm" 
+              <Button
+                variant="link"
+                size="sm"
                 type="button"
                 onClick={() => setTab("forgot")}
                 className="px-0 text-muted-foreground"
@@ -288,9 +293,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="john.doe@example.com" 
-                        {...field} 
+                      <Input
+                        placeholder="john.doe@example.com"
+                        {...field}
                         type="email"
                         autoComplete="email"
                       />
@@ -308,8 +313,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormLabel>Password</FormLabel>
                     <div className="relative">
                       <FormControl>
-                        <Input 
-                          placeholder="Create a password" 
+                        <Input
+                          placeholder="Create a password"
                           type={showPassword ? "text" : "password"}
                           {...field}
                           autoComplete="new-password"
@@ -325,6 +330,45 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={registerForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Confirm your password"
+                        {...field}
+                        autoComplete="new-password"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={registerForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>I am a</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="customer">Customer</option>
+                        <option value="repairer">Repair Professional</option>
+                      </select>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -388,9 +432,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Your email address" 
-                        {...field} 
+                      <Input
+                        placeholder="Your email address"
+                        {...field}
                         type="email"
                         autoComplete="email"
                       />
