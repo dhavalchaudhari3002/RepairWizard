@@ -4,17 +4,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { Progress } from "@/components/ui/progress";
-import { useLocation } from "wouter";
 import { useState } from "react";
 import { loginSchema } from "@shared/schema";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Checkbox } from "@/components/ui/checkbox";
 
+// Registration schema
 const registerSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
   lastName: z.string().min(1, { message: "Last name is required" }),
@@ -35,15 +35,30 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
+// Password reset schemas
+const emailSchema = z.object({
+  email: z.string().email("Please enter a valid email address")
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
-type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+const otpSchema = z.object({
+  otp: z.string().length(6, "Please enter the 6-digit code"),
+});
+
+const passwordSchema = z.object({
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 type AuthTab = "login" | "register" | "forgot";
+type ResetStep = "email" | "otp" | "password";
 
 interface AuthDialogProps {
   mode?: AuthTab;
@@ -53,14 +68,16 @@ interface AuthDialogProps {
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
   const [tab, setTab] = useState<AuthTab>(mode);
+  const [resetStep, setResetStep] = useState<ResetStep>("email");
+  const [userEmail, setUserEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registrationProgress, setRegistrationProgress] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const [registrationProgress, setRegistrationProgress] = useState(0);
   const { loginMutation, register } = useAuth();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
-  const loginForm = useForm<LoginFormValues>({
+  // Login form
+  const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -68,7 +85,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
-  const registerForm = useForm<RegisterFormValues>({
+  // Registration form
+  const registerForm = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: "",
@@ -81,14 +99,32 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     },
   });
 
-  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(forgotPasswordSchema),
+  // Email form for forgot password
+  const emailForm = useForm<z.infer<typeof emailSchema>>({
+    resolver: zodResolver(emailSchema),
     defaultValues: {
       email: "",
     },
   });
 
-  const onLoginSubmit = async (values: LoginFormValues) => {
+  // OTP form for verification
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
+  // Password form for reset
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
     try {
       await loginMutation.mutateAsync(values);
@@ -100,7 +136,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     }
   };
 
-  const onRegisterSubmit = async (values: RegisterFormValues) => {
+  const onRegisterSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsSubmitting(true);
     try {
       const progressInterval = setInterval(() => {
@@ -124,29 +160,72 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     }
   };
 
-  const onForgotPasswordSubmit = async (values: ForgotPasswordFormValues) => {
+  const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
     setIsSubmitting(true);
     try {
-      const response = await apiRequest("POST", "/api/forgot-password", values);
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to send reset link");
+        throw new Error(error.message || "Failed to send reset code");
+      }
+
+      setUserEmail(values.email);
+      setResetStep("otp");
+
+      toast({
+        description: "Reset code sent to your email"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send reset code"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
+    if (values.otp.length === 6) {
+      setResetStep("password");
+    }
+  };
+
+  const handlePasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          otp: otpForm.getValues().otp,
+          newPassword: values.password
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to reset password");
       }
 
       toast({
-        title: "Reset link sent",
-        description: "If an account exists with this email, you'll receive a reset code shortly.",
+        description: "Password reset successful! You can now login."
       });
 
-      navigate("/reset-password");
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Forgot password error:", error);
+      setTab("login");
+      setResetStep("email");
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset link",
         variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to reset password"
       });
     } finally {
       setIsSubmitting(false);
@@ -158,14 +237,23 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {tab === "login" ? "Log in to your account" :
-              tab === "register" ? "Create an account" :
-                "Reset your password"}
+            {tab === "forgot" ? (
+              resetStep === "email" ? "Reset Password" :
+              resetStep === "otp" ? "Enter Reset Code" :
+              "Create New Password"
+            ) : (
+              tab === "login" ? "Log in to your account" : "Create an account"
+            )}
           </DialogTitle>
           <DialogDescription>
-            {tab === "login" ? "Enter your email and password below to log in" :
-              tab === "register" ? "Fill out the form below to create a new account" :
-                "Enter your email to receive a reset link"}
+            {tab === "forgot" ? (
+              resetStep === "email" ? "Enter your email to receive a reset code" :
+              resetStep === "otp" ? "Enter the 6-digit code sent to your email" :
+              "Choose a new password for your account"
+            ) : (
+              tab === "login" ? "Enter your email and password below to log in" :
+              "Fill out the form below to create a new account"
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -179,9 +267,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Your email address"
-                        {...field}
+                      <Input 
+                        placeholder="Your email address" 
+                        {...field} 
                         type="email"
                         autoComplete="email"
                       />
@@ -199,8 +287,8 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     <FormLabel>Password</FormLabel>
                     <div className="relative">
                       <FormControl>
-                        <Input
-                          placeholder="Your password"
+                        <Input 
+                          placeholder="Your password" 
                           type={showPassword ? "text" : "password"}
                           {...field}
                           autoComplete="current-password"
@@ -423,46 +511,160 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
         )}
 
         {tab === "forgot" && (
-          <Form {...forgotPasswordForm}>
-            <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
-              <FormField
-                control={forgotPasswordForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Your email address"
-                        {...field}
-                        type="email"
-                        autoComplete="email"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Reset Link"
-                  )}
-                </Button>
-                <div className="mt-2 text-center text-sm">
-                  <Button variant="link" size="sm" type="button" onClick={() => setTab("login")}>
-                    Back to login
+          <>
+            {resetStep === "email" && (
+              <Form {...emailForm}>
+                <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                            autoFocus
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Code"
+                    )}
                   </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
+                </form>
+              </Form>
+            )}
+
+            {resetStep === "otp" && (
+              <Form {...otpForm}>
+                <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
+                  <FormField
+                    control={otpForm.control}
+                    name="otp"
+                    render={({ field }) => (
+                      <FormItem className="space-y-4">
+                        <FormLabel>Reset Code</FormLabel>
+                        <FormControl>
+                          <div className="flex justify-center">
+                            <InputOTP
+                              maxLength={6}
+                              value={field.value}
+                              onChange={(value) => {
+                                field.onChange(value);
+                                if (value.length === 6) {
+                                  handleOTPSubmit({ otp: value });
+                                }
+                              }}
+                              autoFocus
+                            >
+                              <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                              </InputOTPGroup>
+                            </InputOTP>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )}
+
+            {resetStep === "password" && (
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Enter new password"
+                              autoFocus
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="Confirm new password"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Resetting...
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            )}
+
+            <Button
+              variant="link"
+              className="w-full mt-4"
+              onClick={() => {
+                setTab("login");
+                setResetStep("email");
+              }}
+            >
+              Back to Login
+            </Button>
+          </>
         )}
       </DialogContent>
     </Dialog>
