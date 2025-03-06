@@ -13,7 +13,7 @@ import { promisify } from "util";
 import { getErrorStats } from "./services/error-tracking";
 import type { SessionData } from "express-session";
 
-// Extend SessionData type to include passport
+// Declare module augmentation for SessionData
 declare module 'express-session' {
   interface SessionData {
     passport?: {
@@ -22,23 +22,47 @@ declare module 'express-session' {
   }
 }
 
+const HEARTBEAT_INTERVAL = 30000;
+const HEARTBEAT_TIMEOUT = 35000;
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize HTTP server
   const httpServer = createServer(app);
   console.log("Created HTTP server instance");
 
-  // Setup authentication before any other routes
   setupAuth(app);
   console.log("Authentication setup complete");
 
-  // Initialize WebSocket server after auth setup
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'
   });
   console.log("WebSocket server initialized");
 
-  // Helper function to get session and user from request
+  const clients = new Map<string, { 
+    ws: WebSocket; 
+    userId: number;
+    isAlive: boolean;
+    heartbeatTimeout?: NodeJS.Timeout;
+  }>();
+
+  function heartbeat(clientId: string) {
+    const client = clients.get(clientId);
+    if (client) {
+      client.isAlive = true;
+      // Clear existing timeout
+      if (client.heartbeatTimeout) {
+        clearTimeout(client.heartbeatTimeout);
+      }
+      // Set new timeout
+      client.heartbeatTimeout = setTimeout(() => {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.close(1000, 'Connection timed out');
+        }
+        clients.delete(clientId);
+      }, HEARTBEAT_TIMEOUT);
+    }
+  }
+
   const getUserFromRequest = async (req: IncomingMessage) => {
     try {
       const cookieHeader = req.headers.cookie;
@@ -60,7 +84,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // WebSocket connection handler with immediate welcome notification
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection attempt');
     const user = await getUserFromRequest(req);
@@ -71,27 +94,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const clientId = req.headers['sec-websocket-key'];
-    if (clientId) {
-      clients.set(clientId, { ws, userId: user.id });
-
-      // Send an immediate connection confirmation
-      ws.send(JSON.stringify({
-        type: 'connection',
-        data: { message: 'Connected successfully' }
-      }));
-
-      // Check for any unread notifications
-      const notifications = await storage.getUserNotifications(user.id);
-      if (notifications.length > 0) {
-        ws.send(JSON.stringify({
-          type: 'notifications',
-          data: notifications
-        }));
-      }
+    if (!clientId) {
+      ws.close(1008, 'Invalid connection');
+      return;
     }
 
+    // Initialize client with heartbeat
+    clients.set(clientId, { 
+      ws, 
+      userId: user.id, 
+      isAlive: true,
+      heartbeatTimeout: setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(1000, 'Connection timed out');
+        }
+        clients.delete(clientId);
+      }, HEARTBEAT_TIMEOUT)
+    });
+
+    // Send immediate connection confirmation
+    ws.send(JSON.stringify({
+      type: 'connection',
+      data: { message: 'Connected successfully' }
+    }));
+
+    // Check for unread notifications
+    const notifications = await storage.getUserNotifications(user.id);
+    if (notifications.length > 0) {
+      ws.send(JSON.stringify({
+        type: 'notifications',
+        data: notifications
+      }));
+    }
+
+    // Handle heartbeat
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        if (message.type === 'ping') {
+          heartbeat(clientId);
+          ws.send(JSON.stringify({ type: 'pong' }));
+        }
+      } catch (error) {
+        console.error('Error handling websocket message:', error);
+      }
+    });
+
     ws.on('close', () => {
-      if (clientId) clients.delete(clientId);
+      const client = clients.get(clientId);
+      if (client?.heartbeatTimeout) {
+        clearTimeout(client.heartbeatTimeout);
+      }
+      clients.delete(clientId);
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      const client = clients.get(clientId);
+      if (client?.heartbeatTimeout) {
+        clearTimeout(client.heartbeatTimeout);
+      }
+      clients.delete(clientId);
     });
   });
 
@@ -304,5 +367,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("All routes registered successfully");
   return httpServer;
 }
-
-const clients = new Map<string, { ws: WebSocket; userId: number }>();

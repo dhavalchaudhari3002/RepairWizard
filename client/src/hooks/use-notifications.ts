@@ -13,11 +13,17 @@ export function useNotifications() {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectDelay = 1000;
+  const heartbeatInterval = useRef<NodeJS.Timeout>();
 
   const connectWebSocket = useCallback(() => {
     if (!user) {
       console.log('No user, skipping WebSocket connection');
       return;
+    }
+
+    // Close existing connection if any
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.close();
     }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -27,9 +33,22 @@ export function useNotifications() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
+    // Setup heartbeat
+    const setupHeartbeat = () => {
+      if (heartbeatInterval.current) {
+        clearInterval(heartbeatInterval.current);
+      }
+      heartbeatInterval.current = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 30000); // Send heartbeat every 30 seconds
+    };
+
     ws.onopen = () => {
       console.log('WebSocket connected successfully');
       reconnectAttempts.current = 0;
+      setupHeartbeat();
       toast({
         title: "Connected",
         description: "Real-time notifications enabled",
@@ -43,16 +62,16 @@ export function useNotifications() {
         console.log('Received WebSocket message:', message);
 
         if (message.type === 'notification') {
-          // Show toast for new notification
           toast({
             title: message.data.title,
             description: message.data.message,
             duration: 5000
           });
-          // Update notifications in cache
           queryClient.invalidateQueries({ queryKey });
         } else if (message.type === 'connection') {
           console.log('Connection confirmed:', message.data);
+        } else if (message.type === 'pong') {
+          console.log('Heartbeat received');
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -61,9 +80,14 @@ export function useNotifications() {
 
     ws.onclose = (event) => {
       console.log('WebSocket connection closed:', event.code, event.reason);
+
+      // Clear heartbeat interval
+      if (heartbeatInterval.current) {
+        clearInterval(heartbeatInterval.current);
+      }
+
       wsRef.current = null;
 
-      // Don't attempt to reconnect if it was an authentication failure
       if (event.code === 1008) {
         console.log('Authentication failed - not attempting to reconnect');
         toast({
@@ -74,11 +98,12 @@ export function useNotifications() {
         return;
       }
 
-      // Attempt to reconnect if not explicitly closed and under max attempts
+      // Implement exponential backoff for reconnection
       if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
-        console.log(`Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+        const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+        console.log(`Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts}) in ${backoffDelay}ms`);
         reconnectAttempts.current++;
-        setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts.current);
+        setTimeout(connectWebSocket, backoffDelay);
 
         toast({
           title: "Connection Lost",
@@ -98,6 +123,9 @@ export function useNotifications() {
     };
 
     return () => {
+      if (heartbeatInterval.current) {
+        clearInterval(heartbeatInterval.current);
+      }
       if (ws.readyState === WebSocket.OPEN) {
         ws.close(1000, 'Component unmounting');
       }
@@ -144,7 +172,6 @@ export function useNotifications() {
     },
     enabled: !!user,
     retry: (failureCount, error) => {
-      // Don't retry on authentication errors
       if (error instanceof Error && error.message === "Not authenticated") {
         return false;
       }
