@@ -234,10 +234,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     </Dialog>
   );
 }
-import { useState } from "react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -248,6 +247,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -304,7 +304,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
       tosAccepted: false,
     },
   });
-  
+
   const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -342,15 +342,15 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
       }, 500);
 
       await register(values);
-      
+
       clearInterval(progressInterval);
       setRegistrationProgress(100);
-      
+
       toast({
         title: "Registration successful!",
         description: "Your account has been created. You can now log in.",
       });
-      
+
       setTimeout(() => {
         setTab("login");
         setRegistrationProgress(0);
@@ -367,24 +367,24 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
       setIsSubmitting(false);
     }
   };
-  
+
   const onForgotPasswordSubmit = async (values: ForgotPasswordFormValues) => {
     setIsSubmitting(true);
     try {
       const response = await apiRequest("POST", "/api/forgot-password", { 
         email: values.email 
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to send reset link");
       }
-      
+
       toast({
         title: "Reset link sent",
         description: "If an account exists with this email, you'll receive a reset code shortly.",
       });
-      
+
       // Redirect to the reset password page
       onOpenChange(false);
       navigate("/reset-password");
@@ -415,7 +415,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
              "Enter your email to receive a reset link"}
           </DialogDescription>
         </DialogHeader>
-        
+
         {tab === "login" ? (
           <Form {...loginForm}>
             <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
@@ -437,7 +437,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={loginForm.control}
                 name="password"
@@ -456,7 +456,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               <Button 
                 variant="link" 
                 size="sm" 
@@ -466,7 +466,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
               >
                 Forgot password?
               </Button>
-              
+
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Logging in..." : "Log in"}
@@ -497,7 +497,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={registerForm.control}
                   name="lastName"
@@ -512,7 +512,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   )}
                 />
               </div>
-              
+
               <FormField
                 control={registerForm.control}
                 name="email"
@@ -531,7 +531,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={registerForm.control}
                 name="password"
@@ -550,7 +550,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={registerForm.control}
                 name="tosAccepted"
@@ -572,11 +572,11 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               {registrationProgress > 0 && (
                 <Progress value={registrationProgress} className="h-2" />
               )}
-              
+
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Creating account..." : "Create account"}
@@ -611,7 +611,7 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login" }: AuthDia
                   </FormItem>
                 )}
               />
-              
+
               <DialogFooter>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Sending..." : "Send Reset Link"}
