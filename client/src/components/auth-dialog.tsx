@@ -19,9 +19,7 @@ type AuthDialogProps = {
 };
 
 const forgotPasswordSchema = z.object({
-  email: z.string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address")
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
 });
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
@@ -42,7 +40,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       email: "",
       password: "",
     },
-    mode: "onSubmit"
+    mode: "onChange"
   });
 
   const forgotPasswordForm = useForm({
@@ -93,7 +91,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 pb-4">
+        <div className="grid gap-6">
           {view === "login" ? (
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(handleSubmit)} className="space-y-4">
@@ -148,30 +146,32 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
 
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full"
-                  onClick={() => setView("forgot-password")}
-                  disabled={isSubmitting}
-                >
-                  Forgot your password?
-                </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full"
+                    onClick={() => setView("forgot-password")}
+                    disabled={isSubmitting}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
               </form>
             </Form>
           ) : (
