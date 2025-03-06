@@ -18,8 +18,12 @@ type AuthDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email format")
+  email: z.string()
+    .min(1, "Email is required")
+    .regex(emailPattern, "Please enter a valid email address")
 });
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
@@ -101,7 +105,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
-                          type="email" 
+                          type="email"
                           placeholder="Enter your email"
                           {...field}
                           disabled={isSubmitting}
@@ -184,6 +188,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           placeholder="Enter your email"
                           {...field}
                           disabled={isSubmitting}
+                          autoComplete="email"
                         />
                       </FormControl>
                       <FormMessage />
