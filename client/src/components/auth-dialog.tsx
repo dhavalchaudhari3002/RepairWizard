@@ -19,7 +19,12 @@ const registerSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
   lastName: z.string().min(1, { message: "Last name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   tosAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the Terms of Service and Privacy Policy to continue",
   }),
@@ -33,14 +38,16 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
+type AuthTab = "login" | "register" | "forgot";
+
 interface AuthDialogProps {
-  mode: "login" | "forgot-password";
+  mode?: AuthTab;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
-  const [tab, setTab] = useState<"login" | "register" | "forgot">(mode);
+  const [tab, setTab] = useState<AuthTab>(mode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationProgress, setRegistrationProgress] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -78,18 +85,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     setIsSubmitting(true);
     try {
       await loginMutation.mutateAsync(values);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
       onOpenChange(false);
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid email or password. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -108,22 +106,12 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       clearInterval(progressInterval);
       setRegistrationProgress(100);
 
-      toast({
-        title: "Registration successful!",
-        description: "Your account has been created. You can now log in.",
-      });
-
       setTimeout(() => {
         setTab("login");
         setRegistrationProgress(0);
       }, 1000);
     } catch (error) {
       console.error("Registration error:", error);
-      toast({
-        title: "Registration failed",
-        description: error instanceof Error ? error.message : "Failed to create account. Please try again.",
-        variant: "destructive",
-      });
       setRegistrationProgress(0);
     } finally {
       setIsSubmitting(false);
@@ -133,9 +121,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
   const onForgotPasswordSubmit = async (values: ForgotPasswordFormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await apiRequest("POST", "/api/forgot-password", { 
-        email: values.email 
-      });
+      const response = await apiRequest("POST", "/api/forgot-password", values);
 
       if (!response.ok) {
         const error = await response.json();
@@ -154,7 +140,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       console.error("Forgot password error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset link. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to send reset link",
         variant: "destructive",
       });
     } finally {
@@ -178,7 +164,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
           </DialogDescription>
         </DialogHeader>
 
-        {tab === "login" ? (
+        {tab === "login" && (
           <Form {...loginForm}>
             <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
               <FormField
@@ -260,7 +246,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               </DialogFooter>
             </form>
           </Form>
-        ) : tab === "register" ? (
+        )}
+
+        {tab === "register" && (
           <Form {...registerForm}>
             <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -388,7 +376,9 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
               </DialogFooter>
             </form>
           </Form>
-        ) : (
+        )}
+
+        {tab === "forgot" && (
           <Form {...forgotPasswordForm}>
             <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
               <FormField

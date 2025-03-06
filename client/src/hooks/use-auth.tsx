@@ -14,7 +14,7 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<{ message: string; user: Partial<User> }, Error, InsertUser>;
+  register: (data: InsertUser) => Promise<void>;
   forgotPasswordMutation: UseMutationResult<{ message: string }, Error, { email: string }>;
   resetPasswordMutation: UseMutationResult<{ message: string }, Error, { token: string; newPassword: string }>;
 };
@@ -72,33 +72,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: InsertUser) => {
-      console.log("Attempting registration with data:", { ...data, password: '[REDACTED]' });
+  const register = async (data: InsertUser): Promise<void> => {
+    try {
       const res = await apiRequest("POST", "/api/register", data);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Registration failed");
       }
-      return await res.json();
-    },
-    onSuccess: (response) => {
-      console.log("Registration successful:", response);
+      const response = await res.json();
+
       toast({
         title: "Registration successful!",
         description: "Welcome to AI Repair Assistant! You can now log in to access your account.",
         duration: 5000,
       });
-    },
-    onError: (error: Error) => {
+    } catch (error) {
       console.error("Registration error:", error);
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to register",
         variant: "destructive",
       });
-    },
-  });
+      throw error;
+    }
+  };
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -170,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         loginMutation,
         logoutMutation,
-        registerMutation,
+        register,
         forgotPasswordMutation,
         resetPasswordMutation,
       }}
