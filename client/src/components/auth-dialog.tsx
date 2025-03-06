@@ -18,12 +18,10 @@ type AuthDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
 const forgotPasswordSchema = z.object({
   email: z.string()
     .min(1, "Email is required")
-    .regex(emailPattern, "Please enter a valid email address")
+    .email("Please enter a valid email address")
 });
 
 export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogProps) {
@@ -44,6 +42,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
       email: "",
       password: "",
     },
+    mode: "onSubmit"
   });
 
   const forgotPasswordForm = useForm({
@@ -51,6 +50,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
     defaultValues: {
       email: "",
     },
+    mode: "onSubmit"
   });
 
   const handleSubmit = async (data: any) => {
@@ -109,6 +109,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                           placeholder="Enter your email"
                           {...field}
                           disabled={isSubmitting}
+                          autoComplete="email"
                         />
                       </FormControl>
                       <FormMessage />
@@ -196,33 +197,35 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending reset link...
-                    </>
-                  ) : (
-                    "Send Reset Link"
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending reset link...
+                      </>
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </Button>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => {
-                    setView("login");
-                    forgotPasswordForm.reset();
-                  }}
-                  disabled={isSubmitting}
-                >
-                  Back to Login
-                </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => {
+                      setView("login");
+                      forgotPasswordForm.reset();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    Back to Login
+                  </Button>
+                </div>
               </form>
             </Form>
           )}
