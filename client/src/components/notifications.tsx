@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Notification } from "@shared/schema";
+
+// Add notification sound
+const notificationSound = new Audio("/notification.mp3");
 
 export function NotificationBadge() {
   const { notifications = [], isLoading } = useNotifications();
@@ -23,12 +27,20 @@ export function NotificationBadge() {
   if (!unreadCount) return null;
 
   return (
-    <Badge
-      variant="destructive"
-      className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs"
-    >
-      {unreadCount}
-    </Badge>
+    <AnimatePresence>
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0 }}
+      >
+        <Badge
+          variant="destructive"
+          className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs"
+        >
+          {unreadCount}
+        </Badge>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -36,8 +48,14 @@ export function NotificationItem({ notification }: { notification: Notification 
   const { markAsRead } = useNotifications();
   const [isHovered, setIsHovered] = React.useState(false);
 
+  // Add animation for new notifications
+  const isNew = !notification.read;
+
   return (
-    <div
+    <motion.div
+      initial={isNew ? { opacity: 0, y: -20 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 100 }}
       className={cn(
         "relative flex flex-col gap-1 rounded-lg p-4 transition-colors",
         !notification.read && "bg-muted",
@@ -45,7 +63,12 @@ export function NotificationItem({ notification }: { notification: Notification 
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => !notification.read && markAsRead.mutate(notification.id)}
+      onClick={() => {
+        !notification.read && markAsRead.mutate(notification.id);
+        if (!notification.read) {
+          notificationSound.play();
+        }
+      }}
     >
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">{notification.title}</h4>
@@ -59,7 +82,7 @@ export function NotificationItem({ notification }: { notification: Notification 
       <time className="text-xs text-muted-foreground">
         {new Date(notification.createdAt).toLocaleDateString()}
       </time>
-    </div>
+    </motion.div>
   );
 }
 
@@ -131,13 +154,20 @@ export function NotificationList() {
   );
 }
 
-// Export NotificationsMenu as NotificationsPopover for compatibility
 export function NotificationsPopover() {
+  const { unreadCount } = useNotifications();
+  const [isOpen, setIsOpen] = React.useState(false);
+
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <motion.div
+            animate={unreadCount ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
+            transition={{ duration: 1, repeat: unreadCount ? Infinity : 0, repeatDelay: 3 }}
+          >
+            {unreadCount ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+          </motion.div>
           <NotificationBadge />
         </Button>
       </SheetTrigger>

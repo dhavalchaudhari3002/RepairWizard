@@ -4,6 +4,9 @@ import { useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
+// Add notification sound
+const notificationSound = new Audio("/notification.mp3");
+
 export function useNotifications() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -13,6 +16,33 @@ export function useNotifications() {
   const reconnectTimeout = useRef<NodeJS.Timeout>();
   const maxRetries = 3;
   const retryCount = useRef(0);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const showNotification = useCallback((title: string, message: string) => {
+    // Play notification sound
+    notificationSound.play().catch(console.error);
+
+    // Show desktop notification if permitted
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {
+        body: message,
+        icon: "/favicon.ico"
+      });
+    }
+
+    // Show toast notification
+    toast({
+      title,
+      description: message,
+      duration: 5000,
+    });
+  }, [toast]);
 
   const connectWebSocket = useCallback(() => {
     if (!user) return;
@@ -43,11 +73,7 @@ export function useNotifications() {
           const data = JSON.parse(event.data);
           if (data.type === 'notification') {
             queryClient.invalidateQueries({ queryKey });
-            toast({
-              title: data.data.title,
-              description: data.data.message,
-              duration: 5000,
-            });
+            showNotification(data.data.title, data.data.message);
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
@@ -69,7 +95,7 @@ export function useNotifications() {
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
     }
-  }, [user, queryClient, toast]);
+  }, [user, queryClient, showNotification]);
 
   useEffect(() => {
     connectWebSocket();
@@ -147,7 +173,7 @@ export function useNotifications() {
 
   return {
     notifications,
-    unreadCount: notifications.filter(n => !n.read).length,
+    unreadCount: notifications.filter((n: Notification) => !n.read).length,
     isLoading,
     error,
     markAsRead,
