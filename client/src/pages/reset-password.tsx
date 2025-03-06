@@ -353,3 +353,239 @@ export default function ResetPassword() {
     </div>
   );
 }
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation, useRoute } from "wouter";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { apiRequest } from "@/lib/queryClient";
+
+// Schema for the forgot password form
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+});
+
+// Schema for the reset password form
+const resetPasswordSchema = z.object({
+  otp: z.string().min(6, { message: "OTP must be 6 digits" }),
+  newPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(8, { message: "Please confirm your password" }),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export default function ResetPasswordPage() {
+  const [sent, setSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  // Form for the forgot password step
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  // Form for the reset password step
+  const resetPasswordForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      otp: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Handle the forgot password form submission
+  const onForgotPasswordSubmit = async (values: ForgotPasswordFormValues) => {
+    try {
+      const response = await apiRequest("POST", "/api/forgot-password", {
+        email: values.email,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send reset code. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store email for the next step
+      setEmail(values.email);
+      setSent(true);
+
+      toast({
+        title: "Success",
+        description: "A reset code has been sent to your email address.",
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle the reset password form submission
+  const onResetPasswordSubmit = async (values: ResetPasswordFormValues) => {
+    try {
+      const response = await apiRequest("POST", "/api/reset-password", {
+        otp: values.otp,
+        email: email,
+        newPassword: values.newPassword,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to reset password. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Your password has been successfully reset. You can now log in with your new password.",
+      });
+
+      // Redirect to login page
+      navigate("/");
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="container max-w-lg py-10">
+      {!sent ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Reset Password</CardTitle>
+            <CardDescription>Enter your email to receive a reset link</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Your email address" 
+                          {...field} 
+                          type="email"
+                          autoComplete="email"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={forgotPasswordForm.formState.isSubmitting}>
+                  {forgotPasswordForm.formState.isSubmitting ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button variant="link" onClick={() => navigate("/")}>Back to Login</Button>
+          </CardFooter>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Enter Reset Code</CardTitle>
+            <CardDescription>Enter the 6-digit code sent to your email</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...resetPasswordForm}>
+              <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={resetPasswordForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verification Code</FormLabel>
+                      <FormControl>
+                        <InputOTP maxLength={6} {...field}>
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={resetPasswordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} autoComplete="new-password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={resetPasswordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} autoComplete="new-password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={resetPasswordForm.formState.isSubmitting}>
+                  {resetPasswordForm.formState.isSubmitting ? "Resetting..." : "Reset Password"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button variant="link" onClick={() => setSent(false)}>Back</Button>
+          </CardFooter>
+        </Card>
+      )}
+    </div>
+  );
+}
