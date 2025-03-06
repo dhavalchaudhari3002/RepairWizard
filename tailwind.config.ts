@@ -15,9 +15,6 @@ export default {
         foreground: "hsl(var(--foreground))",
         card: {
           DEFAULT: "hsl(var(--card))",
-
-  darkMode: 'class',
-
           foreground: "hsl(var(--card-foreground))",
         },
         popover: {

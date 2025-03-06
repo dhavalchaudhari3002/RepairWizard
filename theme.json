@@ -1,12 +1,12 @@
 {
   "variant": "professional",
-  "primary": "hsl(220, 80%, 50%)",
-  "secondary": "hsl(200, 70%, 45%)",
-  "accent": "hsl(160, 60%, 45%)",
-  "background": "hsl(220, 33%, 98%)",
-  "text": "hsl(220, 15%, 20%)",
-  "muted": "hsl(220, 10%, 70%)",
-  "border": "hsl(220, 10%, 90%)",
+  "primary": "220 80% 50%",
+  "secondary": "200 70% 45%",
+  "accent": "160 60% 45%",
+  "background": "220 33% 98%",
+  "text": "220 15% 20%",
+  "muted": "220 10% 70%",
+  "border": "220 10% 90%",
   "appearance": "system",
   "radius": 0.75
 }
