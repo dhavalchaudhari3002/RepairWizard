@@ -10,134 +10,75 @@ export function useNotifications() {
   const { toast } = useToast();
   const queryKey = ["/api/notifications"];
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 1000;
-  const heartbeatInterval = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<NodeJS.Timeout>();
+  const maxRetries = 3;
+  const retryCount = useRef(0);
 
   const connectWebSocket = useCallback(() => {
-    if (!user) {
-      console.log('No user, skipping WebSocket connection');
-      return;
-    }
+    if (!user) return;
 
-    // Close existing connection if any
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    // Clear any existing connection
+    if (wsRef.current) {
       wsRef.current.close();
+      wsRef.current = null;
     }
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    console.log('Connecting to WebSocket:', wsUrl);
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    // Setup heartbeat
-    const setupHeartbeat = () => {
-      if (heartbeatInterval.current) {
-        clearInterval(heartbeatInterval.current);
-      }
-      heartbeatInterval.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'ping' }));
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        retryCount.current = 0;
+        if (reconnectTimeout.current) {
+          clearTimeout(reconnectTimeout.current);
+          reconnectTimeout.current = undefined;
         }
-      }, 30000); // Send heartbeat every 30 seconds
-    };
+      };
 
-    ws.onopen = () => {
-      console.log('WebSocket connected successfully');
-      reconnectAttempts.current = 0;
-      setupHeartbeat();
-      toast({
-        title: "Connected",
-        description: "Real-time notifications enabled",
-        duration: 3000
-      });
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('Received WebSocket message:', message);
-
-        if (message.type === 'notification') {
-          toast({
-            title: message.data.title,
-            description: message.data.message,
-            duration: 5000
-          });
-          queryClient.invalidateQueries({ queryKey });
-        } else if (message.type === 'connection') {
-          console.log('Connection confirmed:', message.data);
-        } else if (message.type === 'pong') {
-          console.log('Heartbeat received');
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'notification') {
+            queryClient.invalidateQueries({ queryKey });
+            toast({
+              title: data.data.title,
+              description: data.data.message,
+              duration: 5000,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
         }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
+      };
 
-    ws.onclose = (event) => {
-      console.log('WebSocket connection closed:', event.code, event.reason);
+      ws.onclose = () => {
+        wsRef.current = null;
+        if (retryCount.current < maxRetries) {
+          retryCount.current++;
+          reconnectTimeout.current = setTimeout(connectWebSocket, 2000);
+        }
+      };
 
-      // Clear heartbeat interval
-      if (heartbeatInterval.current) {
-        clearInterval(heartbeatInterval.current);
-      }
-
-      wsRef.current = null;
-
-      if (event.code === 1008) {
-        console.log('Authentication failed - not attempting to reconnect');
-        toast({
-          title: "Connection Error",
-          description: "Failed to authenticate real-time connection",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Implement exponential backoff for reconnection
-      if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
-        const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
-        console.log(`Attempting to reconnect (${reconnectAttempts.current + 1}/${maxReconnectAttempts}) in ${backoffDelay}ms`);
-        reconnectAttempts.current++;
-        setTimeout(connectWebSocket, backoffDelay);
-
-        toast({
-          title: "Connection Lost",
-          description: "Attempting to reconnect...",
-          variant: "destructive"
-        });
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to establish real-time connection",
-        variant: "destructive"
-      });
-    };
-
-    return () => {
-      if (heartbeatInterval.current) {
-        clearInterval(heartbeatInterval.current);
-      }
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'Component unmounting');
-      }
-    };
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        ws.close();
+      };
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+    }
   }, [user, queryClient, toast]);
 
   useEffect(() => {
-    const cleanup = connectWebSocket();
+    connectWebSocket();
     return () => {
-      cleanup?.();
       if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmounting');
+        wsRef.current.close();
+      }
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
       }
     };
   }, [connectWebSocket]);
@@ -145,57 +86,31 @@ export function useNotifications() {
   const { data: notifications = [], isLoading, error } = useQuery({
     queryKey,
     queryFn: async () => {
-      try {
-        console.log("Fetching notifications...");
-        const response = await fetch("/api/notifications", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include"
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error("Not authenticated");
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Received notifications:", data);
-        return data as Notification[];
-      } catch (error) {
-        console.error("Failed to fetch notifications:", error);
-        throw error;
+      const response = await fetch("/api/notifications", {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error(response.statusText);
       }
+      return response.json();
     },
-    enabled: !!user,
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message === "Not authenticated") {
-        return false;
-      }
-      return failureCount < 3;
-    }
+    enabled: !!user
   });
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: number) => {
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
         credentials: "include"
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to mark notification as read");
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to mark notification as read",
@@ -208,23 +123,20 @@ export function useNotifications() {
     mutationFn: async () => {
       const response = await fetch("/api/notifications/read-all", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
         credentials: "include"
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to mark all notifications as read");
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast({
         title: "Success",
-        description: "All notifications marked as read",
+        description: "All notifications marked as read"
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to mark all notifications as read",
@@ -239,6 +151,6 @@ export function useNotifications() {
     isLoading,
     error,
     markAsRead,
-    markAllAsRead,
+    markAllAsRead
   };
 }

@@ -13,7 +13,6 @@ import { promisify } from "util";
 import { getErrorStats } from "./services/error-tracking";
 import type { SessionData } from "express-session";
 
-// Declare module augmentation for SessionData
 declare module 'express-session' {
   interface SessionData {
     passport?: {
@@ -21,9 +20,6 @@ declare module 'express-session' {
     };
   }
 }
-
-const HEARTBEAT_INTERVAL = 30000;
-const HEARTBEAT_TIMEOUT = 35000;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -38,30 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   console.log("WebSocket server initialized");
 
-  const clients = new Map<string, { 
-    ws: WebSocket; 
-    userId: number;
-    isAlive: boolean;
-    heartbeatTimeout?: NodeJS.Timeout;
-  }>();
-
-  function heartbeat(clientId: string) {
-    const client = clients.get(clientId);
-    if (client) {
-      client.isAlive = true;
-      // Clear existing timeout
-      if (client.heartbeatTimeout) {
-        clearTimeout(client.heartbeatTimeout);
-      }
-      // Set new timeout
-      client.heartbeatTimeout = setTimeout(() => {
-        if (client.ws.readyState === WebSocket.OPEN) {
-          client.ws.close(1000, 'Connection timed out');
-        }
-        clients.delete(clientId);
-      }, HEARTBEAT_TIMEOUT);
-    }
-  }
+  const clients = new Map<number, WebSocket>();
 
   const getUserFromRequest = async (req: IncomingMessage) => {
     try {
@@ -86,75 +59,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection attempt');
-    const user = await getUserFromRequest(req);
 
+    const user = await getUserFromRequest(req);
     if (!user) {
+      console.log('Unauthorized WebSocket connection attempt');
       ws.close(1008, 'Unauthorized');
       return;
     }
 
-    const clientId = req.headers['sec-websocket-key'];
-    if (!clientId) {
-      ws.close(1008, 'Invalid connection');
-      return;
-    }
+    console.log(`User ${user.id} connected via WebSocket`);
+    clients.set(user.id, ws);
 
-    // Initialize client with heartbeat
-    clients.set(clientId, { 
-      ws, 
-      userId: user.id, 
-      isAlive: true,
-      heartbeatTimeout: setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close(1000, 'Connection timed out');
-        }
-        clients.delete(clientId);
-      }, HEARTBEAT_TIMEOUT)
-    });
-
-    // Send immediate connection confirmation
-    ws.send(JSON.stringify({
-      type: 'connection',
-      data: { message: 'Connected successfully' }
-    }));
-
-    // Check for unread notifications
-    const notifications = await storage.getUserNotifications(user.id);
-    if (notifications.length > 0) {
-      ws.send(JSON.stringify({
-        type: 'notifications',
-        data: notifications
-      }));
-    }
-
-    // Handle heartbeat
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'ping') {
-          heartbeat(clientId);
-          ws.send(JSON.stringify({ type: 'pong' }));
-        }
-      } catch (error) {
-        console.error('Error handling websocket message:', error);
-      }
+    ws.on('error', (error) => {
+      console.error(`WebSocket error for user ${user.id}:`, error);
     });
 
     ws.on('close', () => {
-      const client = clients.get(clientId);
-      if (client?.heartbeatTimeout) {
-        clearTimeout(client.heartbeatTimeout);
-      }
-      clients.delete(clientId);
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      const client = clients.get(clientId);
-      if (client?.heartbeatTimeout) {
-        clearTimeout(client.heartbeatTimeout);
-      }
-      clients.delete(clientId);
+      console.log(`User ${user.id} disconnected`);
+      clients.delete(user.id);
     });
   });
 
@@ -190,11 +112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedEntityId: repairRequest.id
       });
 
-      // Broadcast notification
-      const clientEntries = Array.from(clients.values());
-      const targetClient = clientEntries.find(({ userId }) => userId === req.user.id);
-      if (targetClient?.ws.readyState === WebSocket.OPEN) {
-        targetClient.ws.send(JSON.stringify({
+      const userWs = clients.get(req.user.id);
+      if (userWs?.readyState === WebSocket.OPEN) {
+        userWs.send(JSON.stringify({
           type: 'notification',
           data: notification
         }));
