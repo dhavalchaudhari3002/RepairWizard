@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { storage } from "./storage";
-import { insertRepairRequestSchema } from "@shared/schema";
+import { insertRepairRequestSchema, type User } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide } from "./services/openai";
 import { setupAuth } from "./auth";
@@ -12,12 +12,25 @@ import { parse as parseCookie } from "cookie";
 import { promisify } from "util";
 import { getErrorStats } from "./services/error-tracking";
 import type { SessionData } from "express-session";
+import { getProductRecommendations, updateProductPrices, updateProductReviews } from "./services/product-service";
 
 declare module 'express-session' {
   interface SessionData {
     passport?: {
       user: number;
     };
+  }
+}
+
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+    }
   }
 }
 
@@ -36,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const clients = new Map<number, WebSocket>();
 
-  const getUserFromRequest = async (req: IncomingMessage) => {
+  const getUserFromRequest = async (req: IncomingMessage): Promise<User | null> => {
     try {
       const cookieHeader = req.headers.cookie;
       if (!cookieHeader) return null;
@@ -47,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const actualSessionId = sessionId.split('.')[0].slice(2);
       const getSession = promisify(storage.sessionStore.get.bind(storage.sessionStore));
-      const session = await getSession(actualSessionId);
+      const session = await getSession(actualSessionId) as SessionData;
 
       if (!session?.passport?.user) return null;
       return await storage.getUser(session.passport.user);
@@ -97,14 +110,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
+      const user = req.user as Express.User;
       const data = insertRepairRequestSchema.parse(req.body);
       const repairRequest = await storage.createRepairRequest({
         ...data,
-        customerId: req.user.id
+        customerId: user.id
       });
 
       const notification = await storage.createNotification({
-        userId: req.user.id,
+        userId: user.id,
         title: "Repair Request Created",
         message: `Your repair request for ${data.productType} has been submitted successfully.`,
         type: "repair_update",
@@ -112,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedEntityId: repairRequest.id
       });
 
-      const userWs = clients.get(req.user.id);
+      const userWs = clients.get(user.id);
       if (userWs?.readyState === WebSocket.OPEN) {
         userWs.send(JSON.stringify({
           type: 'notification',
@@ -142,9 +156,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Unauthorized notification request");
       return res.status(401).json({ error: "Not authenticated" });
     }
+
     try {
-      console.log("Fetching notifications for user:", req.user.id);
-      const notifications = await storage.getUserNotifications(req.user.id);
+      const user = req.user as Express.User;
+      console.log("Fetching notifications for user:", user.id);
+      const notifications = await storage.getUserNotifications(user.id);
       console.log("Found notifications:", notifications.length);
       res.json(notifications);
     } catch (error) {
@@ -168,7 +184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.markNotificationAsRead(notificationId);
-      console.log(`Marked notification ${notificationId} as read for user ${req.user.id}`);
+      const user = req.user as Express.User;
+      console.log(`Marked notification ${notificationId} as read for user ${user.id}`);
       res.sendStatus(200);
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -185,8 +202,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
-      await storage.markAllNotificationsAsRead(req.user.id);
-      console.log(`Marked all notifications as read for user ${req.user.id}`);
+      const user = req.user as Express.User;
+      await storage.markAllNotificationsAsRead(user.id);
+      console.log(`Marked all notifications as read for user ${user.id}`);
       res.sendStatus(200);
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
@@ -281,6 +299,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching error statistics:", error);
       res.status(500).json({ error: "Failed to fetch error statistics" });
+    }
+  });
+
+  // Add new routes for product recommendations
+  app.get("/api/recommendations/:repairRequestId", async (req, res) => {
+    try {
+      const repairRequestId = parseInt(req.params.repairRequestId);
+      if (isNaN(repairRequestId)) {
+        return res.status(400).json({ error: "Invalid repair request ID" });
+      }
+
+      const recommendations = await getProductRecommendations(repairRequestId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching product recommendations:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch product recommendations",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

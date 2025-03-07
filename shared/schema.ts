@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, decimal, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -190,3 +190,116 @@ export type Notification = typeof notifications.$inferSelect;
 
 export type Error = typeof errors.$inferSelect;
 export type InsertError = typeof errors.$inferInsert;
+
+
+// New tables for product recommendations
+
+// Products table
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  brand: text("brand").notNull(),
+  imageUrl: text("image_url"),
+  specs: jsonb("specifications"), // Technical specifications as JSON
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Product prices across platforms
+export const productPrices = pgTable("product_prices", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  platform: text("platform").notNull(), // e.g., "Amazon", "eBay", etc.
+  price: decimal("price").notNull(),
+  currency: text("currency").default("USD").notNull(),
+  url: text("url").notNull(), // Link to the product
+  inStock: boolean("in_stock").default(true).notNull(),
+  lastChecked: timestamp("last_checked").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Product reviews aggregated from various platforms
+export const productReviews = pgTable("product_reviews", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  platform: text("platform").notNull(),
+  rating: decimal("rating").notNull(), // Average rating
+  reviewCount: integer("review_count").notNull(),
+  positivePoints: text("positive_points").array(), // Key positive points
+  negativePoints: text("negative_points").array(), // Key negative points
+  lastUpdated: timestamp("last_updated").notNull(),
+});
+
+// Product recommendations based on repair requests
+export const productRecommendations = pgTable("product_recommendations", {
+  id: serial("id").primaryKey(),
+  repairRequestId: integer("repair_request_id").references(() => repairRequests.id).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  reason: text("reason").notNull(), // Why this product is recommended
+  priority: integer("priority").notNull(), // Order of recommendation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Insert schemas for new tables
+export const insertProductSchema = createInsertSchema(products)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    name: z.string().min(1, "Product name is required"),
+    description: z.string().min(1, "Description is required"),
+    category: z.string().min(1, "Category is required"),
+    brand: z.string().min(1, "Brand is required"),
+    imageUrl: z.string().url().optional(),
+    specs: z.record(z.string(), z.any()).optional(),
+  });
+
+export const insertProductPriceSchema = createInsertSchema(productPrices)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    platform: z.string().min(1, "Platform is required"),
+    price: z.number().positive("Price must be positive"),
+    url: z.string().url("Must be a valid URL"),
+    currency: z.string().length(3, "Must be a valid currency code"),
+  });
+
+export const insertProductReviewSchema = createInsertSchema(productReviews)
+  .omit({
+    id: true,
+  })
+  .extend({
+    rating: z.number().min(0).max(5, "Rating must be between 0 and 5"),
+    reviewCount: z.number().positive("Review count must be positive"),
+    positivePoints: z.array(z.string()),
+    negativePoints: z.array(z.string()),
+  });
+
+export const insertProductRecommendationSchema = createInsertSchema(productRecommendations)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    reason: z.string().min(1, "Recommendation reason is required"),
+    priority: z.number().int().positive("Priority must be a positive integer"),
+  });
+
+// Type exports for new tables
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type ProductPrice = typeof productPrices.$inferSelect;
+export type InsertProductPrice = z.infer<typeof insertProductPriceSchema>;
+
+export type ProductReview = typeof productReviews.$inferSelect;
+export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;
+
+export type ProductRecommendation = typeof productRecommendations.$inferSelect;
+export type InsertProductRecommendation = z.infer<typeof insertProductRecommendationSchema>;
