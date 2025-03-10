@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import {
   products,
   productPrices,
@@ -10,6 +10,18 @@ import {
   type ProductReview,
   type ProductRecommendation,
 } from "@shared/schema";
+
+interface BestValueProduct extends Product {
+  prices: ProductPrice[];
+  reviews: ProductReview[];
+  reason: string;
+  valueScore: number;
+  bestPrice: {
+    price: number;
+    platform: string;
+    url: string;
+  };
+}
 
 export async function getProductRecommendations(repairRequestId: number) {
   const recommendations = await db
@@ -29,23 +41,40 @@ export async function getProductRecommendations(repairRequestId: number) {
       const prices = await db
         .select()
         .from(productPrices)
-        .where(eq(productPrices.productId, rec.productId));
+        .where(eq(productPrices.productId, rec.productId))
+        .orderBy(desc(productPrices.lastChecked));
 
       const reviews = await db
         .select()
         .from(productReviews)
         .where(eq(productReviews.productId, rec.productId));
 
+      // Calculate the value score based on price and rating
+      const avgRating = reviews.reduce((acc, rev) => acc + Number(rev.rating), 0) / reviews.length;
+      const lowestPrice = Math.min(...prices.map(p => Number(p.price)));
+      const bestPriceListing = prices.find(p => Number(p.price) === lowestPrice);
+
+      // Value score calculation: higher rating and lower price = better score
+      // Normalized to a 0-100 scale
+      const valueScore = ((avgRating / 5) * 50) + ((1 - (lowestPrice / 1000)) * 50);
+
       return {
         ...product,
         prices,
         reviews,
         reason: rec.reason,
+        valueScore,
+        bestPrice: {
+          price: lowestPrice,
+          platform: bestPriceListing?.platform || '',
+          url: bestPriceListing?.url || '',
+        },
       };
     })
   );
 
-  return recommendedProducts;
+  // Sort by value score, highest first
+  return recommendedProducts.sort((a, b) => b.valueScore - a.valueScore);
 }
 
 // Mock data for development - replace with real API integrations later
