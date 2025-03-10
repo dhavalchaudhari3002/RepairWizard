@@ -21,7 +21,11 @@ import { RepairShops } from "./repair-shops";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export function RepairForm() {
+interface RepairFormProps {
+  onSubmit?: (data: any) => void;
+}
+
+export function RepairForm({ onSubmit }: RepairFormProps) {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -65,6 +69,10 @@ export function RepairForm() {
         title: "Success!",
         description: "Your repair request has been submitted.",
       });
+      // Call the onSubmit prop if provided
+      if (onSubmit) {
+        onSubmit(data);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -99,7 +107,7 @@ export function RepairForm() {
     form.setValue('imageUrl', '', { shouldValidate: true });
   };
 
-  const onSubmit = (values: InsertRepairRequest) => {
+  const handleSubmit = (values: InsertRepairRequest) => {
     mutation.mutate(values);
   };
 
@@ -126,7 +134,7 @@ export function RepairForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="productType"
