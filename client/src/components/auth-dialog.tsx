@@ -26,7 +26,7 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
-  role: z.enum(["customer", "repairer"]).default("customer"),
+  role: z.enum(["customer", "repairer"] as const).default("customer"),
   tosAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the Terms of Service and Privacy Policy to continue",
   }),

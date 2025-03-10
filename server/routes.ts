@@ -63,7 +63,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const session = await getSession(actualSessionId) as SessionData;
 
       if (!session?.passport?.user) return null;
-      return await storage.getUser(session.passport.user);
+      const user = await storage.getUser(session.passport.user);
+      return user || null; 
     } catch (error) {
       console.error('Error getting user from session:', error);
       return null;
