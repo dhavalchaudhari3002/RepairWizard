@@ -52,21 +52,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const getUserFromRequest = async (req: IncomingMessage): Promise<User | null> => {
     try {
       const cookieHeader = req.headers.cookie;
-      if (!cookieHeader) return null;
+      if (!cookieHeader) {
+        console.log('No cookie header found');
+        return null;
+      }
 
       const cookies = parseCookie(cookieHeader);
       const sessionId = cookies['connect.sid'];
-      if (!sessionId) return null;
+      if (!sessionId) {
+        console.log('No session ID found in cookies');
+        return null;
+      }
 
+      // Clean the session ID - remove 's:' prefix and signature
       const actualSessionId = sessionId.split('.')[0].slice(2);
+
+      // Get session from store
       const getSession = promisify(storage.sessionStore.get.bind(storage.sessionStore));
       const session = await getSession(actualSessionId) as SessionData;
 
-      if (!session?.passport?.user) return null;
+      if (!session?.passport?.user) {
+        console.log('No user found in session');
+        return null;
+      }
+
       const user = await storage.getUser(session.passport.user);
-      return user || null; 
+      if (!user) {
+        console.log('User not found in database');
+        return null;
+      }
+
+      console.log('Successfully authenticated user:', user.id);
+      return user;
     } catch (error) {
-      console.error('Error getting user from session:', error);
+      console.error('Error in getUserFromRequest:', error);
       return null;
     }
   };
@@ -74,24 +93,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection attempt');
 
-    const user = await getUserFromRequest(req);
-    if (!user) {
-      console.log('Unauthorized WebSocket connection attempt');
-      ws.close(1008, 'Unauthorized');
-      return;
+    try {
+      const user = await getUserFromRequest(req);
+      if (!user) {
+        console.log('Unauthorized WebSocket connection attempt - closing connection');
+        ws.close(1008, 'Unauthorized');
+        return;
+      }
+
+      console.log(`User ${user.id} connected via WebSocket`);
+      clients.set(user.id, ws);
+
+      // Handle WebSocket errors
+      ws.on('error', (error) => {
+        console.error(`WebSocket error for user ${user.id}:`, error);
+      });
+
+      // Handle client disconnection
+      ws.on('close', () => {
+        console.log(`User ${user.id} disconnected`);
+        clients.delete(user.id);
+      });
+
+      // Send initial connection success message
+      ws.send(JSON.stringify({
+        type: 'connection',
+        status: 'connected',
+        userId: user.id
+      }));
+
+    } catch (error) {
+      console.error('Error handling WebSocket connection:', error);
+      ws.close(1011, 'Internal Server Error');
     }
-
-    console.log(`User ${user.id} connected via WebSocket`);
-    clients.set(user.id, ws);
-
-    ws.on('error', (error) => {
-      console.error(`WebSocket error for user ${user.id}:`, error);
-    });
-
-    ws.on('close', () => {
-      console.log(`User ${user.id} disconnected`);
-      clients.delete(user.id);
-    });
   });
 
   // API Routes
