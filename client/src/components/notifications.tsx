@@ -65,9 +65,6 @@ export function NotificationItem({ notification }: { notification: Notification 
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => {
         !notification.read && markAsRead.mutate(notification.id);
-        if (!notification.read) {
-          notificationSound.play();
-        }
       }}
     >
       <div className="flex items-center justify-between">
@@ -155,7 +152,7 @@ export function NotificationList() {
 }
 
 export function NotificationsPopover() {
-  const { unreadCount } = useNotifications();
+  const { unreadCount, notificationPrefs } = useNotifications();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -163,8 +160,8 @@ export function NotificationsPopover() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <motion.div
-            animate={unreadCount ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
-            transition={{ duration: 1, repeat: unreadCount ? Infinity : 0, repeatDelay: 3 }}
+            animate={unreadCount && notificationPrefs.animateBell ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
+            transition={{ duration: 1, repeat: (unreadCount && notificationPrefs.animateBell) ? Infinity : 0, repeatDelay: 3 }}
           >
             {unreadCount ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
           </motion.div>
@@ -176,6 +173,74 @@ export function NotificationsPopover() {
           <SheetTitle>Notifications</SheetTitle>
         </SheetHeader>
         <NotificationList />
+        <div className="mt-6 p-4 border-t">
+          <h4 className="text-sm font-medium mb-2">Notification Settings</h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label htmlFor="desktop-notifications" className="text-sm">
+                Desktop Notifications
+              </label>
+              <Switch 
+                id="desktop-notifications" 
+                checked={notificationPrefs.desktop}
+                onCheckedChange={(checked) => {
+                  useNotifications().setNotificationPrefs({
+                    ...notificationPrefs,
+                    desktop: checked
+                  });
+                  if (checked && "Notification" in window) {
+                    Notification.requestPermission();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="toast-notifications" className="text-sm">
+                Toast Notifications
+              </label>
+              <Switch 
+                id="toast-notifications" 
+                checked={notificationPrefs.toast}
+                onCheckedChange={(checked) => {
+                  useNotifications().setNotificationPrefs({
+                    ...notificationPrefs,
+                    toast: checked
+                  });
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="sound-notifications" className="text-sm">
+                Sound Alerts
+              </label>
+              <Switch 
+                id="sound-notifications" 
+                checked={notificationPrefs.sound}
+                onCheckedChange={(checked) => {
+                  useNotifications().setNotificationPrefs({
+                    ...notificationPrefs,
+                    sound: checked
+                  });
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="bell-animation" className="text-sm">
+                Bell Animation
+              </label>
+              <Switch 
+                id="bell-animation" 
+                checked={notificationPrefs.animateBell}
+                onCheckedChange={(checked) => {
+                  useNotifications().setNotificationPrefs({
+                    ...notificationPrefs,
+                    animateBell: checked
+                  });
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );

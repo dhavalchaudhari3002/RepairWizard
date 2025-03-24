@@ -1,11 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Notification } from "@shared/schema";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 // Add notification sound
 const notificationSound = new Audio("/notification.mp3");
+
+// Default notification preferences
+const DEFAULT_NOTIFICATION_PREFERENCES = {
+  sound: false,        // Disable sound by default
+  desktop: true,      // Enable desktop notifications by default
+  toast: true,        // Enable toast notifications by default
+  animateBell: false  // Disable bell animation by default
+};
 
 export function useNotifications() {
   const queryClient = useQueryClient();
@@ -16,33 +24,48 @@ export function useNotifications() {
   const reconnectTimeout = useRef<NodeJS.Timeout>();
   const maxRetries = 3;
   const retryCount = useRef(0);
+  
+  // Load notification preferences from localStorage or use defaults
+  const [notificationPrefs, setNotificationPrefs] = useState(() => {
+    const savedPrefs = localStorage.getItem('notificationPreferences');
+    return savedPrefs ? JSON.parse(savedPrefs) : DEFAULT_NOTIFICATION_PREFERENCES;
+  });
+  
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('notificationPreferences', JSON.stringify(notificationPrefs));
+  }, [notificationPrefs]);
 
   // Request notification permission on mount
   useEffect(() => {
-    if ("Notification" in window) {
+    if ("Notification" in window && notificationPrefs.desktop) {
       Notification.requestPermission();
     }
-  }, []);
+  }, [notificationPrefs.desktop]);
 
   const showNotification = useCallback((title: string, message: string) => {
-    // Play notification sound
-    notificationSound.play().catch(console.error);
+    // Play notification sound only if enabled
+    if (notificationPrefs.sound) {
+      notificationSound.play().catch(console.error);
+    }
 
-    // Show desktop notification if permitted
-    if ("Notification" in window && Notification.permission === "granted") {
+    // Show desktop notification if permitted and enabled
+    if (notificationPrefs.desktop && "Notification" in window && Notification.permission === "granted") {
       new Notification(title, {
         body: message,
         icon: "/favicon.ico"
       });
     }
 
-    // Show toast notification
-    toast({
-      title,
-      description: message,
-      duration: 5000,
-    });
-  }, [toast]);
+    // Show toast notification if enabled
+    if (notificationPrefs.toast) {
+      toast({
+        title,
+        description: message,
+        duration: 5000,
+      });
+    }
+  }, [toast, notificationPrefs]);
 
   const connectWebSocket = useCallback(() => {
     if (!user) return;
@@ -177,6 +200,8 @@ export function useNotifications() {
     isLoading,
     error,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    notificationPrefs,
+    setNotificationPrefs
   };
 }
