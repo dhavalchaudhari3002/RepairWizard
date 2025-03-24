@@ -102,11 +102,19 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
         </CardContent>
       </Card>
 
-      {/* Repair Guide Component */}
-      <RepairGuide 
-        productType={data.productType} 
-        issue={data.issueDescription || 'General repair guidance needed'} 
-      />
+      {/* Repair Guide Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Repair Guide</CardTitle>
+          <CardDescription>Step-by-step repair instructions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RepairGuide 
+            productType={data.productType} 
+            issue={data.issueDescription || 'General repair guidance needed'} 
+          />
+        </CardContent>
+      </Card>
       
       {/* Repair Questions Component */}
       <Card>

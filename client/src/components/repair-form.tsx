@@ -17,7 +17,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { RepairShops } from "./repair-shops";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -116,7 +115,6 @@ export function RepairForm({ onSubmit }: RepairFormProps) {
       <div className="space-y-8">
         <CostEstimate data={estimateData} />
         <RepairGuidance data={{ ...estimateData, productType: form.getValues('productType') }} />
-        <RepairShops />
         <Button 
           onClick={() => {
             setStep(1);
