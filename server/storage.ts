@@ -1,4 +1,4 @@
-import { users, repairShops, repairRequests, notifications, type User, type RepairShop, type RepairRequest, type Notification } from "@shared/schema";
+import { users, repairRequests, notifications, type User, type RepairRequest, type Notification } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -15,9 +15,6 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
-
-  // Repair shop operations
-  getAllRepairShops(): Promise<RepairShop[]>;
 
   // Repair request operations
   createRepairRequest(request: any): Promise<RepairRequest>;
@@ -54,14 +51,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Implement all the required methods from IStorage interface
-  async getAllRepairShops(): Promise<RepairShop[]> {
-    try {
-      return await db.select().from(repairShops); 
-    } catch (error) {
-      console.error("Error in getAllRepairShops:", error);
-      throw error;
-    }
-  }
 
   async createRepairRequest(requestData: any): Promise<RepairRequest> {
     try {

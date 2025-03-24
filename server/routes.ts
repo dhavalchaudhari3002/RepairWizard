@@ -127,15 +127,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Routes
-  app.get("/api/repair-shops", async (_req, res) => {
-    try {
-      const shops = await storage.getAllRepairShops();
-      res.json(shops);
-    } catch (error) {
-      console.error("Error fetching repair shops:", error);
-      res.status(500).json({ error: "Failed to fetch repair shops" });
-    }
-  });
 
   app.post("/api/repair-requests", async (req, res) => {
     try {

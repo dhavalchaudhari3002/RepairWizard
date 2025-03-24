@@ -2,13 +2,13 @@ import { pgTable, text, serial, integer, timestamp, boolean, decimal, jsonb } fr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table with role-based auth and email verification
+// Users table with auth and email verification
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["customer", "repairer"] }).notNull(),
+  role: text("role", { enum: ["customer"] }).notNull(), // Removed "repairer" role
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
@@ -49,7 +49,7 @@ export const insertUserSchema = createInsertSchema(users)
     confirmPassword: z.string(),
     email: baseUserSchema.shape.email,
     password: baseUserSchema.shape.password,
-    role: z.enum(["customer", "repairer"]),
+    role: z.enum(["customer"]), // Removed "repairer" role
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
   })
@@ -61,35 +61,12 @@ export const insertUserSchema = createInsertSchema(users)
 // Export login schema separately using the base schema
 export const loginSchema = baseUserSchema;
 
-// Repair Shops table
-export const repairShops = pgTable("repair_shops", {
-  id: serial("id").primaryKey(),
-  ownerId: integer("owner_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  address: text("address").notNull(),
-  phoneNumber: text("phone_number").notNull(),
-  specialties: text("specialties").array().notNull(),
-  rating: text("rating"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// Removed the Repair Shops and Repairers tables
 
-// Repairers table
-export const repairers = pgTable("repairers", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  shopId: integer("shop_id").references(() => repairShops.id).notNull(),
-  specialties: text("specialties").array().notNull(),
-  experience: text("experience"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Updated repair requests with relationships - made customerId nullable
+// Updated repair requests to focus on AI assistance only
 export const repairRequests = pgTable("repair_requests", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => users.id), // Made nullable
-  shopId: integer("shop_id").references(() => repairShops.id),
-  repairerId: integer("repairer_id").references(() => repairers.id),
   productType: text("product_type").notNull(),
   issueDescription: text("issue_description").notNull(),
   imageUrl: text("image_url"),
@@ -110,28 +87,6 @@ export const notifications = pgTable("notifications", {
 });
 
 // Insert schemas
-export const insertRepairShopSchema = createInsertSchema(repairShops)
-  .omit({
-    id: true,
-    createdAt: true,
-    rating: true,
-  })
-  .extend({
-    name: z.string().min(1, "Shop name is required"),
-    address: z.string().min(1, "Address is required"),
-    phoneNumber: z.string().min(1, "Phone number is required"),
-    specialties: z.array(z.string()).min(1, "At least one specialty is required"),
-  });
-
-export const insertRepairerSchema = createInsertSchema(repairers)
-  .omit({
-    id: true,
-    createdAt: true,
-  })
-  .extend({
-    specialties: z.array(z.string()).min(1, "At least one specialty is required"),
-    experience: z.string().optional(),
-  });
 
 export const insertRepairRequestSchema = createInsertSchema(repairRequests)
   .pick({
@@ -175,12 +130,6 @@ export const errors = pgTable("errors", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
-
-export type InsertRepairShop = z.infer<typeof insertRepairShopSchema>;
-export type RepairShop = typeof repairShops.$inferSelect;
-
-export type InsertRepairer = z.infer<typeof insertRepairerSchema>;
-export type Repairer = typeof repairers.$inferSelect;
 
 export type InsertRepairRequest = z.infer<typeof insertRepairRequestSchema>;
 export type RepairRequest = typeof repairRequests.$inferSelect;
