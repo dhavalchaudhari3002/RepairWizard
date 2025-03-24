@@ -25,26 +25,46 @@ export default function Home() {
     window.location.href = "/auth";
   };
 
+  // Simple test function for API ping
+  const testPing = async () => {
+    try {
+      const response = await fetch('/api/ping');
+      if (response.ok) {
+        const data = await response.json();
+        alert(`API is working! Response: ${JSON.stringify(data)}`);
+      } else {
+        alert(`API error: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      alert(`Fetch error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-12">
-        {/* Debug section - click title 3 times to show/hide */}
-        <div 
-          className="cursor-default select-none" 
-          onClick={() => setShowDebug(!showDebug)}
-        >
-          {showDebug && <DebugInfo />}
+        {/* Simple debug section that doesn't rely on components */}
+        <div className="mb-8 p-4 border rounded bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-bold mb-2">Debug Controls</h2>
+          <div className="flex gap-2">
+            <button 
+              onClick={testPing}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Test API Ping
+            </button>
+            <button 
+              onClick={goToAuth}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Go to Auth Page
+            </button>
+          </div>
         </div>
 
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div 
-            className="flex items-center justify-center gap-3 mb-4"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDebug(!showDebug);
-            }}
-          >
+          <div className="flex items-center justify-center gap-3 mb-4">
             <Wrench className="h-10 w-10 text-primary" />
             <h1 className="text-4xl font-bold">AI Repair Assistant</h1>
           </div>
