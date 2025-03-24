@@ -23,4 +23,6 @@ export function ProtectedRoute({ component: Component }: ProtectedRouteProps) {
   }
 
   return <Component />;
+
+  return <Component />;
 }
