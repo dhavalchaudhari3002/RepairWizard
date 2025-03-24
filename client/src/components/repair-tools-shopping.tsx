@@ -316,9 +316,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Bright LED flashlight with adjustable focus and magnetic base for hands-free use",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=LED+Flashlight",
       pricing: [
-        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Home Depot", price: 14.99, url: "https://www.homedepot.com/b/Electrical-Flashlights/LED/N-5yc1vZbm93Z1z0un32", inStock: true, freeShipping: false, deliveryDays: 1 },
-        { platform: "Walmart", price: 11.99, url: "https://www.walmart.com/browse/tools/flashlights/1072864_1080944_5225111", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -433,7 +431,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Search className="h-4 w-4 animate-pulse" />
-                    <span>Searching across multiple retailers...</span>
+                    <span>Searching Amazon for the best deals...</span>
                   </div>
                   <Progress value={45} className="h-2" />
                 </div>
@@ -489,7 +487,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
           Best Deals on Repair Tools
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          We've compared prices across multiple retailers to find you the best deals
+          Find the tools you need for your repair on Amazon
         </p>
       </CardHeader>
 
@@ -718,13 +716,13 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
         <div className="mt-6 pt-4 border-t">
           <Button variant="secondary" className="w-full" asChild>
             <a
-              href={`https://www.google.com/search?q=${encodeURIComponent('buy ' + tools.join(' '))}&tbm=shop`}
+              href={`https://www.amazon.com/s?k=${encodeURIComponent(tools.join(' repair tools'))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2"
             >
               <Search className="h-4 w-4" />
-              Search for more tools and compare prices
+              Search for more tools on Amazon
             </a>
           </Button>
         </div>
