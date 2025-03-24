@@ -7,7 +7,7 @@ import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
 import ResetPassword from "@/pages/reset-password";
 import ErrorDashboard from "@/pages/error-dashboard";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AuthProvider } from "@/hooks/use-auth";
 import { NavBar } from "@/components/navbar";
 
 function Router() {
