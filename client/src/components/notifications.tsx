@@ -208,12 +208,20 @@ export function NotificationsPopover() {
         </SheetHeader>
         <NotificationList />
         <div className="mt-6 p-4 border-t">
-          <h4 className="text-sm font-medium mb-2">Notification Settings</h4>
-          <div className="space-y-3">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium">Notification Settings</h4>
+            <Badge variant="outline" className="px-2 py-1">
+              Customize
+            </Badge>
+          </div>
+          <div className="space-y-4 bg-muted/30 p-3 rounded-lg">
             <div className="flex items-center justify-between">
-              <label htmlFor="desktop-notifications" className="text-sm">
-                Desktop Notifications
-              </label>
+              <div>
+                <label htmlFor="desktop-notifications" className="text-sm font-medium">
+                  Desktop Notifications
+                </label>
+                <p className="text-xs text-muted-foreground">Show alerts on your desktop</p>
+              </div>
               <Switch 
                 id="desktop-notifications" 
                 checked={notificationPrefs.desktop}
@@ -221,9 +229,12 @@ export function NotificationsPopover() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <label htmlFor="toast-notifications" className="text-sm">
-                Toast Notifications
-              </label>
+              <div>
+                <label htmlFor="toast-notifications" className="text-sm font-medium">
+                  Toast Notifications
+                </label>
+                <p className="text-xs text-muted-foreground">Show in-app pop-up messages</p>
+              </div>
               <Switch 
                 id="toast-notifications" 
                 checked={notificationPrefs.toast}
@@ -231,9 +242,12 @@ export function NotificationsPopover() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <label htmlFor="sound-notifications" className="text-sm">
-                Sound Alerts
-              </label>
+              <div>
+                <label htmlFor="sound-notifications" className="text-sm font-medium">
+                  Sound Alerts
+                </label>
+                <p className="text-xs text-muted-foreground">Play a sound when new notifications arrive</p>
+              </div>
               <Switch 
                 id="sound-notifications" 
                 checked={notificationPrefs.sound}
@@ -241,9 +255,12 @@ export function NotificationsPopover() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <label htmlFor="bell-animation" className="text-sm">
-                Bell Animation
-              </label>
+              <div>
+                <label htmlFor="bell-animation" className="text-sm font-medium">
+                  Bell Animation
+                </label>
+                <p className="text-xs text-muted-foreground">Animate the bell icon for new alerts</p>
+              </div>
               <Switch 
                 id="bell-animation" 
                 checked={notificationPrefs.animateBell}

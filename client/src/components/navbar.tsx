@@ -15,18 +15,99 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Menu, User, AlertTriangle, Wrench } from "lucide-react";
+import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
 import { useState } from "react";
 import { ThemeToggle } from "../styles/theme-toggle";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
-  const { notifications = [], isLoading: notificationsLoading } = useNotifications();
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { 
+    notifications = [], 
+    isLoading: notificationsLoading,
+    notificationPrefs,
+    setNotificationPrefs 
+  } = useNotifications();
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    !notificationPrefs.desktop && !notificationPrefs.toast && !notificationPrefs.sound
+      ? false
+      : true
+  );
+
+  // Handler functions for notification preferences
+  const handleDesktopToggle = (checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      desktop: checked
+    });
+    
+    if (checked && "Notification" in window) {
+      Notification.requestPermission();
+    }
+  };
+
+  const handleToastToggle = (checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      toast: checked
+    });
+  };
+
+  const handleSoundToggle = (checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      sound: checked
+    });
+  };
+
+  const handleBellAnimationToggle = (checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      animateBell: checked
+    });
+  };
+
+  // Toggle all notifications on/off
+  const handleAllNotificationsToggle = (checked: boolean) => {
+    setNotificationsEnabled(checked);
+    
+    if (checked) {
+      // Turn on defaults
+      setNotificationPrefs({
+        desktop: true,
+        toast: true,
+        sound: true,
+        animateBell: true
+      });
+      
+      if ("Notification" in window) {
+        Notification.requestPermission();
+      }
+    } else {
+      // Turn off all
+      setNotificationPrefs({
+        desktop: false,
+        toast: false,
+        sound: false,
+        animateBell: false
+      });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -62,6 +143,115 @@ export function NavBar() {
 
             {user ? (
               <>
+                {/* Notification Settings Dialog */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="relative">
+                      <Settings className="h-4 w-4" />
+                      <span className="sr-only">Notification Settings</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Notification Settings</DialogTitle>
+                      <DialogDescription>
+                        Control how and when you receive notifications
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="flex items-center justify-between py-4 border-b">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium">Notifications</h4>
+                          <Badge variant={notificationsEnabled ? "default" : "destructive"} className="px-2 py-0.5 text-xs">
+                            {notificationsEnabled ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {notificationsEnabled ? "You will receive notifications" : "All notifications are turned off"}
+                        </p>
+                      </div>
+                      <Switch 
+                        id="notifications-master-toggle"
+                        checked={notificationsEnabled}
+                        onCheckedChange={handleAllNotificationsToggle}
+                      />
+                    </div>
+                    
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-medium">Notification channels</h4>
+                        <p className="text-xs text-muted-foreground">Choose how you want to be notified</p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label htmlFor="desktop-notifications" className="text-sm font-medium">
+                              Desktop Notifications
+                            </label>
+                            <p className="text-xs text-muted-foreground">Show alerts on your desktop</p>
+                          </div>
+                          <Switch 
+                            id="desktop-notifications" 
+                            checked={notificationPrefs.desktop}
+                            onCheckedChange={handleDesktopToggle}
+                            disabled={!notificationsEnabled}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label htmlFor="toast-notifications" className="text-sm font-medium">
+                              Toast Notifications
+                            </label>
+                            <p className="text-xs text-muted-foreground">Show in-app pop-up messages</p>
+                          </div>
+                          <Switch 
+                            id="toast-notifications" 
+                            checked={notificationPrefs.toast}
+                            onCheckedChange={handleToastToggle}
+                            disabled={!notificationsEnabled}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label htmlFor="sound-notifications" className="text-sm font-medium">
+                              Sound Alerts
+                            </label>
+                            <p className="text-xs text-muted-foreground">Play a sound for new notifications</p>
+                          </div>
+                          <Switch 
+                            id="sound-notifications" 
+                            checked={notificationPrefs.sound}
+                            onCheckedChange={handleSoundToggle}
+                            disabled={!notificationsEnabled}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label htmlFor="bell-animation" className="text-sm font-medium">
+                              Bell Animation
+                            </label>
+                            <p className="text-xs text-muted-foreground">Animate the bell icon for new alerts</p>
+                          </div>
+                          <Switch 
+                            id="bell-animation" 
+                            checked={notificationPrefs.animateBell}
+                            onCheckedChange={handleBellAnimationToggle}
+                            disabled={!notificationsEnabled}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button type="button" variant="secondary">
+                        Save preferences
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
                 <NotificationsPopover />
                 <div className="hidden md:flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">
