@@ -13,7 +13,7 @@ export default function Home() {
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const [repairData, setRepairData] = useState<any>(null);
   const [, navigate] = useLocation();
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
 
   const handleRepairSubmit = (data: any) => {
     setRepairData(data);
@@ -22,7 +22,7 @@ export default function Home() {
   };
   
   const goToAuth = () => {
-    navigate("/auth");
+    window.location.href = "/auth";
   };
 
   return (
