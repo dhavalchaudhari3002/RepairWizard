@@ -55,13 +55,10 @@ export default function Home() {
               </Card>
             </div>
             
-            {/* Display guidance and recommendations if user has submitted data */}
+            {/* Display guidance and repair shops if user has submitted data */}
             {repairData && (
               <div className="grid gap-8 mt-8">
                 <RepairGuidance data={repairData} />
-                {repairRequestId && (
-                  <ProductRecommendations repairRequestId={repairRequestId} />
-                )}
                 <RepairShops />
               </div>
             )}
