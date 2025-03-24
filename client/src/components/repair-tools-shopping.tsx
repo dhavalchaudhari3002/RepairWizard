@@ -369,49 +369,20 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
     
     // Simulate the "searching across platforms" experience
     setIsLoading(true);
-    setSearchQueryStarted(true);
     
     // Using mock data - in production this would be an API call
     setTimeout(() => {
-      const items: ToolItem[] = [];
+      // For testing, always display some default tools
+      const defaultTools = [
+        MOCK_TOOL_DATA["Screwdriver"][0],
+        MOCK_TOOL_DATA["Wood glue"][0],
+        MOCK_TOOL_DATA["Flashlight"][0]
+      ];
       
-      // Map the general tool names to our specific tool database entries
-      tools.forEach(toolName => {
-        // Find all possible mappings for this tool
-        let mappings: string[] = [];
-        for (const [key, values] of Object.entries(TOOL_NAME_MAPPING)) {
-          if (values.some(value => 
-            toolName.toLowerCase().includes(value.toLowerCase()) || 
-            value.toLowerCase().includes(toolName.toLowerCase())
-          )) {
-            mappings.push(key);
-          }
-        }
-        
-        // If no mappings found, add the original name
-        if (mappings.length === 0) {
-          mappings = [toolName];
-        }
-        
-        // Find tools that match any of the mappings
-        mappings.forEach(mapping => {
-          const toolOptions = MOCK_TOOL_DATA[mapping];
-          if (toolOptions && toolOptions.length > 0) {
-            // Only add if we don't already have this tool
-            if (!items.some(item => item.id === toolOptions[0].id)) {
-              items.push(toolOptions[0]);
-            }
-          }
-        });
-      });
-      
-      // Sort by best value rating (highest first)
-      const sortedItems = [...items].sort((a, b) => b.bestValueRating - a.bestValueRating);
-      
-      setToolItems(sortedItems);
+      setToolItems(defaultTools);
       setIsLoading(false);
-    }, 2000); // Longer delay to simulate a thorough search
-  }, [tools, isVisible]);
+    }, 1000);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
