@@ -22,9 +22,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface RepairFormProps {
   onSubmit?: (data: any) => void;
+  onResetForm?: () => void;
 }
 
-export function RepairForm({ onSubmit }: RepairFormProps) {
+export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);

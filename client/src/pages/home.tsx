@@ -3,7 +3,6 @@ import { RepairForm } from "@/components/repair-form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Wrench } from "lucide-react";
 import { ProductRecommendations } from "@/components/product-recommendations";
-import { RepairGuidance } from "@/components/repair-guidance";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,11 +10,13 @@ import { useAuth } from "@/hooks/use-auth";
 export default function Home() {
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const [repairData, setRepairData] = useState<any>(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
   const [, navigate] = useLocation();
   const { user } = useAuth(); // Get authentication status
 
   const handleRepairSubmit = (data: any) => {
     setRepairData(data);
+    setFormSubmitted(true);
     // Assuming the repair request creation returns an ID
     setRepairRequestId(1); // For now, hardcoding to 1 since we have sample data
   };
@@ -49,17 +50,13 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RepairForm onSubmit={handleRepairSubmit} />
+                  <RepairForm 
+                    onSubmit={handleRepairSubmit} 
+                    onResetForm={() => setFormSubmitted(false)} 
+                  />
                 </CardContent>
               </Card>
             </div>
-            
-            {/* Display comprehensive repair guidance if user has submitted data */}
-            {repairData && (
-              <div className="grid gap-8 mt-8">
-                <RepairGuidance data={repairData} />
-              </div>
-            )}
           </div>
         ) : (
           // Content for unauthenticated users - show the hero and features sections
