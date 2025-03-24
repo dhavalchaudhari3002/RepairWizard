@@ -20,7 +20,7 @@ export default function Home() {
   };
   
   const goToAuth = () => {
-    window.location.href = "/auth";
+    navigate("/auth");
   };
 
   return (
