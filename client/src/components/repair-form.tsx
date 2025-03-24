@@ -121,6 +121,10 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
             setStep(1);
             form.reset();
             setImagePreview(null);
+            // Call the onResetForm callback if it exists
+            if (onResetForm) {
+              onResetForm();
+            }
           }}
           variant="outline"
           className="w-full"
