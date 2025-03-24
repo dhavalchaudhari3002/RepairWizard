@@ -421,42 +421,35 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Finding the Best Deals on Repair Tools...
+            Finding Tools on Amazon...
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {searchQueryStarted ? (
-              <>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Search className="h-4 w-4 animate-pulse" />
-                    <span>Searching Amazon for the best deals...</span>
-                  </div>
-                  <Progress value={45} className="h-2" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="space-y-3 border rounded-lg p-4">
-                      <Skeleton className="h-24 w-full rounded-md" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Search className="h-4 w-4 animate-pulse" />
+                <span>Searching Amazon for repair tools...</span>
+              </div>
+              <Progress value={45} className="h-2" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="space-y-3 border rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <Skeleton className="h-24 w-24 rounded-md flex-shrink-0" />
+                    <div className="flex-grow space-y-2">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-3 w-5/6" />
-                      <div className="flex justify-between">
+                      <div className="flex justify-between pt-2">
                         <Skeleton className="h-4 w-1/4" />
-                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-8 w-20" />
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <Search className="h-10 w-10 mx-auto animate-pulse text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">Preparing to search for the best tool deals...</p>
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -523,190 +516,33 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
                     <div className="flex-grow space-y-2">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <h3 className="font-medium text-lg">{tool.name}</h3>
-                        <Badge className="flex items-center gap-1">
-                          {tool.bestValueRating}% <Award className="h-3 w-3 ml-1" /> Value
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-500 stroke-yellow-500" />
+                          {avgRating.toFixed(1)}
                         </Badge>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{tool.description}</p>
                       
-                      <div className="flex flex-wrap gap-3 pt-1">
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-500 stroke-yellow-500" />
-                          {avgRating.toFixed(1)} ({tool.reviews.reduce((sum, r) => sum + r.reviewCount, 0)} reviews)
-                        </Badge>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="font-semibold text-lg text-primary">
+                          ${lowestPrice.toFixed(2)}
+                        </span>
                         
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <TrendingDown className="h-3 w-3 text-green-500" />
-                          Best price: ${lowestPrice.toFixed(2)} at {bestPriceOffer?.platform}
-                        </Badge>
-                        
-                        {fastestShipping && (
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            Fastest delivery: {fastestShipping.deliveryDays} day{fastestShipping.deliveryDays !== 1 ? 's' : ''} ({fastestShipping.platform})
-                          </Badge>
-                        )}
+                        <Button size="sm" asChild>
+                          <a
+                            href={bestPriceOffer?.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2"
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                            Buy Now
+                          </a>
+                        </Button>
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                <Tabs defaultValue="pricing">
-                  <div className="border-b px-4">
-                    <TabsList className="w-full justify-start h-12 rounded-none bg-transparent pl-0 ml-0">
-                      <TabsTrigger value="pricing" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                        Pricing Comparison
-                      </TabsTrigger>
-                      <TabsTrigger value="reviews" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                        Reviews
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-                  
-                  <TabsContent value="pricing" className="p-4 space-y-4">
-                    <div className="grid gap-3">
-                      {tool.pricing.map((priceOffer, idx) => (
-                        <div 
-                          key={`${priceOffer.platform}-${idx}`} 
-                          className={`flex items-center justify-between p-3 rounded-lg ${priceOffer.price === lowestPrice ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900' : 'border'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            {priceOffer.price === lowestPrice && (
-                              <Badge className="bg-green-600">Best Price</Badge>
-                            )}
-                            <div>
-                              <p className="font-medium">{priceOffer.platform}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                {priceOffer.freeShipping && <span>Free shipping</span>}
-                                {priceOffer.deliveryDays && (
-                                  <span>{priceOffer.deliveryDays} day{priceOffer.deliveryDays !== 1 ? 's' : ''} delivery</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <p className={`font-semibold text-lg ${priceOffer.price === lowestPrice ? 'text-green-600 dark:text-green-400' : ''}`}>
-                              ${priceOffer.price.toFixed(2)}
-                            </p>
-                            <Button size="sm" asChild>
-                              <a
-                                href={priceOffer.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2"
-                              >
-                                {priceOffer.price === lowestPrice ? (
-                                  <>
-                                    <ShoppingCart className="h-4 w-4" />
-                                    Buy Now
-                                  </>
-                                ) : "View"}
-                              </a>
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="reviews" className="p-4 space-y-4">
-                    <div className="flex flex-col gap-1 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Star className="h-5 w-5 fill-yellow-500 stroke-yellow-500" />
-                        <span className="font-medium text-lg">{avgRating.toFixed(1)} out of 5</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Based on {tool.reviews.reduce((sum, r) => sum + r.reviewCount, 0)} reviews across {tool.reviews.length} platforms
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      {tool.reviews.map((review, idx) => (
-                        <div key={`${review.platform}-${idx}`} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                              <h4 className="font-medium">{review.platform} Reviews</h4>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 fill-yellow-500 stroke-yellow-500" />
-                              <span className="font-medium">{review.rating}</span>
-                              <span className="text-sm text-muted-foreground">({review.reviewCount})</span>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                  <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm.53 5.47a.75.75 0 00-1.06 0l-3 3a.75.75 0 101.06 1.06l1.72-1.72v5.69a.75.75 0 001.5 0v-5.69l1.72 1.72a.75.75 0 101.06-1.06l-3-3z" clipRule="evenodd" />
-                                </svg>
-                                Pros
-                              </h5>
-                              <ul className="space-y-1">
-                                {review.positivePoints.map((point, i) => (
-                                  <li key={i} className="text-sm flex items-start gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5">
-                                      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-                                    </svg>
-                                    {point}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                  <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-.53 14.03a.75.75 0 001.06 0l3-3a.75.75 0 10-1.06-1.06l-1.72 1.72V8.25a.75.75 0 00-1.5 0v5.69l-1.72-1.72a.75.75 0 00-1.06 1.06l3 3z" clipRule="evenodd" />
-                                </svg>
-                                Cons
-                              </h5>
-                              <ul className="space-y-1">
-                                {review.negativePoints.map((point, i) => (
-                                  <li key={i} className="text-sm flex items-start gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5">
-                                      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
-                                    </svg>
-                                    {point}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 pt-3 border-t">
-                            <Button variant="outline" size="sm" asChild className="w-full">
-                              <a
-                                href={`https://www.google.com/search?q=${encodeURIComponent(tool.name + " reviews " + review.platform)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                                Read more reviews on {review.platform}
-                              </a>
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                
-                <div className="p-4 border-t">
-                  <Button className="w-full" asChild>
-                    <a
-                      href={bestPriceOffer?.url || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      Buy for ${lowestPrice.toFixed(2)} at {bestPriceOffer?.platform}
-                    </a>
-                  </Button>
                 </div>
               </div>
             );
