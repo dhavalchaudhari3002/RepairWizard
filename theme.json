@@ -7,6 +7,6 @@
   "text": "hsl(220, 15%, 20%)",
   "muted": "hsl(220, 10%, 70%)",
   "border": "hsl(220, 10%, 90%)",
-  "appearance": "system",
+  "appearance": "dark",
   "radius": 0.75
 }

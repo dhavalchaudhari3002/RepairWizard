@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force dark mode */
+html {
+  @apply dark;
+}
+
 @layer base {
   :root {
     --background: 220 33% 98%;
