@@ -156,6 +156,39 @@ export function NotificationsPopover() {
   const { unreadCount, notificationPrefs, setNotificationPrefs } = useNotifications();
   const [isOpen, setIsOpen] = React.useState(false);
 
+  // Create these handler functions outside of the render
+  const handleDesktopToggle = React.useCallback((checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      desktop: checked
+    });
+    
+    if (checked && "Notification" in window) {
+      Notification.requestPermission();
+    }
+  }, [notificationPrefs, setNotificationPrefs]);
+
+  const handleToastToggle = React.useCallback((checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      toast: checked
+    });
+  }, [notificationPrefs, setNotificationPrefs]);
+
+  const handleSoundToggle = React.useCallback((checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      sound: checked
+    });
+  }, [notificationPrefs, setNotificationPrefs]);
+
+  const handleBellAnimationToggle = React.useCallback((checked: boolean) => {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      animateBell: checked
+    });
+  }, [notificationPrefs, setNotificationPrefs]);
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -184,15 +217,7 @@ export function NotificationsPopover() {
               <Switch 
                 id="desktop-notifications" 
                 checked={notificationPrefs.desktop}
-                onCheckedChange={(checked: boolean) => {
-                  setNotificationPrefs({
-                    ...notificationPrefs,
-                    desktop: checked
-                  });
-                  if (checked && "Notification" in window) {
-                    Notification.requestPermission();
-                  }
-                }}
+                onCheckedChange={handleDesktopToggle}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -202,12 +227,7 @@ export function NotificationsPopover() {
               <Switch 
                 id="toast-notifications" 
                 checked={notificationPrefs.toast}
-                onCheckedChange={(checked: boolean) => {
-                  setNotificationPrefs({
-                    ...notificationPrefs,
-                    toast: checked
-                  });
-                }}
+                onCheckedChange={handleToastToggle}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -217,12 +237,7 @@ export function NotificationsPopover() {
               <Switch 
                 id="sound-notifications" 
                 checked={notificationPrefs.sound}
-                onCheckedChange={(checked: boolean) => {
-                  setNotificationPrefs({
-                    ...notificationPrefs,
-                    sound: checked
-                  });
-                }}
+                onCheckedChange={handleSoundToggle}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -232,12 +247,7 @@ export function NotificationsPopover() {
               <Switch 
                 id="bell-animation" 
                 checked={notificationPrefs.animateBell}
-                onCheckedChange={(checked: boolean) => {
-                  useNotifications().setNotificationPrefs({
-                    ...notificationPrefs,
-                    animateBell: checked
-                  });
-                }}
+                onCheckedChange={handleBellAnimationToggle}
               />
             </div>
           </div>
