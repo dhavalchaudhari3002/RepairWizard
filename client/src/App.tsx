@@ -15,12 +15,8 @@ function Router() {
   // Hide navbar on auth and reset-password routes
   const showNavBar = !["auth", "reset-password"].includes(location.split("/")[1]);
   
-  // TEMPORARY FIX: Bypass to auth page directly for now
-  // This will solve the loading issue immediately
-  if (location === "/") {
-    window.location.href = "/auth";
-    return null;
-  }
+  // Keep on homepage to show the application
+  // Don't redirect so user can interact with the home page
   
   return (
     <div className="relative min-h-screen flex flex-col">
