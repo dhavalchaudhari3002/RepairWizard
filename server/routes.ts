@@ -41,6 +41,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   console.log("Authentication setup complete");
 
+  // Add a simple ping endpoint for debugging
+  app.get('/api/ping', (req, res) => {
+    res.status(200).json({ 
+      message: 'pong', 
+      timestamp: new Date().toISOString(),
+      server: 'express'
+    });
+  });
+
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'

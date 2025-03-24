@@ -7,11 +7,13 @@ import { RepairGuidance } from "@/components/repair-guidance";
 import { RepairShops } from "@/components/repair-shops";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { DebugInfo } from "@/components/debug-info";
 
 export default function Home() {
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const [repairData, setRepairData] = useState<any>(null);
   const [, navigate] = useLocation();
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleRepairSubmit = (data: any) => {
     setRepairData(data);
@@ -26,9 +28,23 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-12">
+        {/* Debug section - click title 3 times to show/hide */}
+        <div 
+          className="cursor-default select-none" 
+          onClick={() => setShowDebug(!showDebug)}
+        >
+          {showDebug && <DebugInfo />}
+        </div>
+
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div 
+            className="flex items-center justify-center gap-3 mb-4"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDebug(!showDebug);
+            }}
+          >
             <Wrench className="h-10 w-10 text-primary" />
             <h1 className="text-4xl font-bold">AI Repair Assistant</h1>
           </div>
