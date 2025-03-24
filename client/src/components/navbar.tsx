@@ -45,9 +45,7 @@ export function NavBar() {
   const unreadCount = notifications.filter((n: any) => !n.read).length;
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
-    !notificationPrefs.desktop && !notificationPrefs.toast && !notificationPrefs.sound
-      ? false
-      : true
+    notificationPrefs.desktop || notificationPrefs.toast || notificationPrefs.sound || notificationPrefs.animateBell
   );
 
   // Handler functions for notification preferences
