@@ -2,6 +2,7 @@ import * as React from "react";
 import { Bell, BellRing } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -152,7 +153,7 @@ export function NotificationList() {
 }
 
 export function NotificationsPopover() {
-  const { unreadCount, notificationPrefs } = useNotifications();
+  const { unreadCount, notificationPrefs, setNotificationPrefs } = useNotifications();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -183,8 +184,8 @@ export function NotificationsPopover() {
               <Switch 
                 id="desktop-notifications" 
                 checked={notificationPrefs.desktop}
-                onCheckedChange={(checked) => {
-                  useNotifications().setNotificationPrefs({
+                onCheckedChange={(checked: boolean) => {
+                  setNotificationPrefs({
                     ...notificationPrefs,
                     desktop: checked
                   });
@@ -201,8 +202,8 @@ export function NotificationsPopover() {
               <Switch 
                 id="toast-notifications" 
                 checked={notificationPrefs.toast}
-                onCheckedChange={(checked) => {
-                  useNotifications().setNotificationPrefs({
+                onCheckedChange={(checked: boolean) => {
+                  setNotificationPrefs({
                     ...notificationPrefs,
                     toast: checked
                   });
@@ -216,8 +217,8 @@ export function NotificationsPopover() {
               <Switch 
                 id="sound-notifications" 
                 checked={notificationPrefs.sound}
-                onCheckedChange={(checked) => {
-                  useNotifications().setNotificationPrefs({
+                onCheckedChange={(checked: boolean) => {
+                  setNotificationPrefs({
                     ...notificationPrefs,
                     sound: checked
                   });
@@ -231,7 +232,7 @@ export function NotificationsPopover() {
               <Switch 
                 id="bell-animation" 
                 checked={notificationPrefs.animateBell}
-                onCheckedChange={(checked) => {
+                onCheckedChange={(checked: boolean) => {
                   useNotifications().setNotificationPrefs({
                     ...notificationPrefs,
                     animateBell: checked
