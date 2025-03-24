@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import type { Notification as AppNotification } from "@shared/schema";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -41,7 +42,7 @@ export function NavBar() {
     notificationPrefs,
     setNotificationPrefs 
   } = useNotifications();
-  const unreadCount = notifications.filter((n: Notification) => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     !notificationPrefs.desktop && !notificationPrefs.toast && !notificationPrefs.sound
