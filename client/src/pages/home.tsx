@@ -20,7 +20,8 @@ export default function Home() {
   };
   
   const goToAuth = () => {
-    navigate("/auth");
+    // Navigate directly to auth page with a query parameter to open dialog
+    navigate("/auth?dialog=open");
   };
 
   return (

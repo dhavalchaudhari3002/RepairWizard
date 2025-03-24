@@ -1,13 +1,22 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { useState } from "react";
+import { Redirect, useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { AuthDialog } from "@/components/auth-dialog";
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
 
 export default function AuthPage() {
   const { user } = useAuth();
+  const [location] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Check URL for dialog=open parameter and open dialog automatically
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.split('?')[1]);
+    if (searchParams.get('dialog') === 'open') {
+      setShowAuthDialog(true);
+    }
+  }, [location]);
 
   // Redirect if already logged in
   if (user) {
