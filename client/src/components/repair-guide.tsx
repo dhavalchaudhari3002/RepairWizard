@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, ShoppingCart } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RepairQuestions } from "./repair-questions";
+import { RepairToolsShopping } from "./repair-tools-shopping";
 
 interface RepairGuideStep {
   step: number;
@@ -34,6 +35,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showToolShopping, setShowToolShopping] = useState(false);
   const { toast } = useToast();
 
   const generateGuide = async () => {
@@ -71,6 +73,8 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
 
       setGuide(data);
       setCurrentStep(0);
+      // Show tool shopping by default with the guide
+      setShowToolShopping(true);
       toast({
         title: "Success",
         description: "Repair guide generated successfully.",
@@ -135,15 +139,24 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Clock className="h-4 w-4" />
               <span>{guide.estimatedTime}</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openYoutubeSearch}
-              className="ml-auto"
-            >
-              <PlayCircle className="h-4 w-4 mr-2" />
-              Find Video Tutorials
-            </Button>
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowToolShopping(!showToolShopping)}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {showToolShopping ? "Hide Tools" : "Buy Tools"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openYoutubeSearch}
+              >
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Video Tutorials
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -165,10 +178,21 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
 
           {/* Tools Required */}
           <div>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Tools Required
-            </h3>
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Wrench className="h-4 w-4" />
+                Tools Required
+              </h3>
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={() => setShowToolShopping(true)}
+                className="text-primary"
+              >
+                <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                Buy Tools
+              </Button>
+            </div>
             <ul className="list-disc list-inside grid grid-cols-2 gap-2">
               {guide.tools.map((tool, i) => (
                 <li key={i} className="text-sm">{tool}</li>
@@ -221,6 +245,9 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tool Shopping Section */}
+      <RepairToolsShopping tools={guide.tools} isVisible={showToolShopping} />
 
       {/* Q&A Section - Only shown after guide is generated */}
       <Card>
