@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export function DebugInfo() {
   const [apiStatus, setApiStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [serverTime, setServerTime] = useState<string | null>(null);
+  const [routingResult, setRoutingResult] = useState<string | null>(null);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     checkApiStatus();
@@ -28,6 +31,29 @@ export function DebugInfo() {
     } catch (error) {
       setApiStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  };
+
+  const testNavigation = () => {
+    try {
+      navigate('/auth');
+      setRoutingResult('Navigation attempted to /auth');
+    } catch (error) {
+      setRoutingResult(`Navigation error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const testDialogAPI = async () => {
+    try {
+      const response = await fetch('/api/ping');
+      if (response.ok) {
+        const data = await response.json();
+        alert(`API response: ${JSON.stringify(data)}`);
+      } else {
+        alert(`API error: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      alert(`Fetch error: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -64,13 +90,35 @@ export function DebugInfo() {
             </div>
           )}
           
-          <Button 
-            onClick={checkApiStatus}
-            variant="outline"
-            className="w-full mt-4"
-          >
-            Check Connection
-          </Button>
+          {routingResult && (
+            <div className="text-blue-500 text-sm mt-2">
+              {routingResult}
+            </div>
+          )}
+          
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button 
+              onClick={checkApiStatus}
+              variant="outline"
+            >
+              Check Connection
+            </Button>
+            
+            <Button 
+              onClick={testNavigation}
+              variant="outline"
+            >
+              Test Routing
+            </Button>
+            
+            <Button 
+              onClick={testDialogAPI}
+              variant="outline"
+              className="col-span-2"
+            >
+              Test Alert API
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
