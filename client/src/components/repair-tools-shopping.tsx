@@ -305,9 +305,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Comfortable respirator masks that filter dust and particles during sanding and painting",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=N95+Masks",
       pricing: [
-        { platform: "Amazon", price: 16.99, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Home Depot", price: 18.95, url: "https://homedepot.com/example", inStock: true, freeShipping: false, deliveryDays: 1 },
-        { platform: "Walmart", price: 15.99, url: "https://walmart.com/example", inStock: true, freeShipping: true, deliveryDays: 3 }
+        { platform: "Amazon", price: 16.99, url: "https://www.amazon.com/s?k=n95+dust+mask+valve", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 18.95, url: "https://www.homedepot.com/b/Safety-Equipment-Respiratory-Protection-Disposable-Respirators/N-5yc1vZcloz", inStock: true, freeShipping: false, deliveryDays: 1 },
+        { platform: "Walmart", price: 15.99, url: "https://www.walmart.com/browse/home-improvement/dust-masks/1072864_1031899_1043806_6411433", inStock: true, freeShipping: true, deliveryDays: 3 }
       ],
       reviews: [
         { 
@@ -337,9 +337,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Bright LED flashlight with adjustable focus and magnetic base for hands-free use",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=LED+Flashlight",
       pricing: [
-        { platform: "Amazon", price: 12.95, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Home Depot", price: 14.99, url: "https://homedepot.com/example", inStock: true, freeShipping: false, deliveryDays: 1 },
-        { platform: "Walmart", price: 11.99, url: "https://walmart.com/example", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 14.99, url: "https://www.homedepot.com/b/Electrical-Flashlights/LED/N-5yc1vZbm93Z1z0un32", inStock: true, freeShipping: false, deliveryDays: 1 },
+        { platform: "Walmart", price: 11.99, url: "https://www.walmart.com/browse/tools/flashlights/1072864_1080944_5225111", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
