@@ -19,9 +19,13 @@ export default function Home() {
     setRepairRequestId(1); // For now, hardcoding to 1 since we have sample data
   };
   
+  // Using a direct approach without relying on URL parameters
   const goToAuth = () => {
-    // Navigate directly to auth page with a query parameter to open dialog
-    navigate("/auth?dialog=open");
+    // First navigate to the auth page
+    navigate("/auth");
+    
+    // Then set a flag in localStorage to indicate dialog should be opened
+    localStorage.setItem("openAuthDialog", "true");
   };
 
   return (
