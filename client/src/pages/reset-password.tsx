@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,13 +46,6 @@ export default function ResetPassword() {
   const [currentStep, setCurrentStep] = useState<"email" | "otp" | "password">("email");
   const [userEmail, setUserEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
-  
-  // Force dark mode when component mounts
-  useEffect(() => {
-    // Ensure dark mode is applied
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-  }, []);
 
   // Email form setup
   const emailForm = useForm<z.infer<typeof emailSchema>>({
