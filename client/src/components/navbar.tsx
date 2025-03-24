@@ -115,7 +115,7 @@ export function NavBar() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Wrench className="h-6 w-6 text-primary" />
             <span className="hidden font-bold sm:inline-block">
-              RepairAI Assistant
+              Smart Repair Partner
             </span>
           </Link>
         </div>
