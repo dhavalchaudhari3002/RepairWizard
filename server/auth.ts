@@ -185,8 +185,14 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
+      // More graceful response that client can handle better
+      console.log("User not authenticated for /api/user request");
+      return res.status(401).json({ 
+        message: "Not authenticated",
+        authenticated: false
+      });
     }
+    console.log("Authenticated user found:", req.user?.id);
     res.json(req.user);
   });
 

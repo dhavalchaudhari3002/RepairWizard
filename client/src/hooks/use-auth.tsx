@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await fetch("/api/user");
         if (!response.ok) {
           if (response.status === 401) {
+            console.log("User not authenticated");
             return null;
           }
           throw new Error("Failed to fetch user data");
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return response.json();
       } catch (err) {
         console.error("Error fetching user:", err);
+        // Don't throw error here, just return null to prevent infinite loading
         return null;
       }
     },
@@ -48,6 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    // Add this to prevent infinite loading
+    refetchOnReconnect: false,
   });
 
   const loginMutation = useMutation({
