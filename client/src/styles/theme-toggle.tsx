@@ -1,38 +1,21 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDarkMode } from "@/hooks/use-dark-mode";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  
-  useEffect(() => {
-    // Check if user has a saved preference
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    
-    // Always default to dark theme if no preference is set
-    const initialTheme = savedTheme || "dark";
-    
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle("dark", initialTheme === "dark");
-  }, []);
-  
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-  };
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   
   return (
     <Button 
       variant="ghost" 
       size="icon" 
-      onClick={toggleTheme}
-      aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-      title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+      onClick={toggleDarkMode}
+      aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+      {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
     </Button>
   );
 }

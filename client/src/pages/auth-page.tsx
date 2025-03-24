@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AuthDialog } from "@/components/auth-dialog";
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
@@ -8,13 +8,6 @@ import { Wrench } from "lucide-react";
 export default function AuthPage() {
   const { user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-
-  // Force dark mode when component mounts
-  useEffect(() => {
-    // Ensure dark mode is applied
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-  }, []);
 
   // Redirect if already logged in
   if (user) {

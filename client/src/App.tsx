@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import ResetPassword from "@/pages/reset-password";
 import ErrorDashboard from "@/pages/error-dashboard";
 import { AuthProvider } from "@/hooks/use-auth";
+import { DarkModeProvider } from "@/hooks/use-dark-mode";
 import { NavBar } from "@/components/navbar";
 
 function Router() {
@@ -39,7 +40,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <DarkModeProvider>
+          <Router />
+        </DarkModeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
