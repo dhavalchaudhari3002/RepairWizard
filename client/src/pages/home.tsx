@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Wrench } from "lucide-react";
 import { ProductRecommendations } from "@/components/product-recommendations";
 import { RepairGuidance } from "@/components/repair-guidance";
-import { RepairShops } from "@/components/repair-shops";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,11 +54,10 @@ export default function Home() {
               </Card>
             </div>
             
-            {/* Display guidance and repair shops if user has submitted data */}
+            {/* Display comprehensive repair guidance if user has submitted data */}
             {repairData && (
               <div className="grid gap-8 mt-8">
                 <RepairGuidance data={repairData} />
-                <RepairShops />
               </div>
             )}
           </div>
