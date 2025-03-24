@@ -44,3 +44,12 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+import ExampleAuthPage from "@/pages/example-auth-page";
+
+export default function App() {
+  return (
+    <Route path="/auth">
+      <ExampleAuthPage />
+    </Route>
+  );
+}
