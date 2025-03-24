@@ -268,6 +268,9 @@ export function NotificationsPopover() {
               />
             </div>
           </div>
+          <div className="mt-4 text-center">
+            <p className="text-xs text-muted-foreground">Preferences are saved automatically</p>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

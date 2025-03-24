@@ -245,10 +245,8 @@ export function NavBar() {
                       </div>
                     </div>
                     
-                    <DialogFooter>
-                      <Button type="button" variant="secondary">
-                        Save preferences
-                      </Button>
+                    <DialogFooter className="text-xs text-muted-foreground">
+                      <p>Preferences are saved automatically</p>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
