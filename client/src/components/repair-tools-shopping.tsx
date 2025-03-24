@@ -48,10 +48,10 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete set with multiple precision heads for all repair needs. Magnetic tips hold screws securely.",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
       pricing: [
-        { platform: "Amazon", price: 24.99, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Home Depot", price: 27.95, url: "https://homedepot.com/example", inStock: true, freeShipping: true, deliveryDays: 3 },
-        { platform: "eBay", price: 22.50, url: "https://ebay.com/example", inStock: true, freeShipping: false, deliveryDays: 5 },
-        { platform: "Walmart", price: 23.99, url: "https://walmart.com/example", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 24.99, url: "https://www.amazon.com/s?k=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 27.95, url: "https://www.homedepot.com/b/Tools-Hand-Tools-Screwdrivers-Nut-Drivers/N-5yc1vZc22k", inStock: true, freeShipping: true, deliveryDays: 3 },
+        { platform: "eBay", price: 22.50, url: "https://www.ebay.com/sch/i.html?_nkw=screwdriver+set", inStock: true, freeShipping: false, deliveryDays: 5 },
+        { platform: "Walmart", price: 23.99, url: "https://www.walmart.com/browse/tools/screwdrivers-nutdrivers/1072864_1031899_1067612", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -79,9 +79,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Perfect for small electronics repairs with specialized bits for phones, laptops, and tablets",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Precision+Kit",
       pricing: [
-        { platform: "Amazon", price: 19.95, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Best Buy", price: 22.99, url: "https://bestbuy.com/example", inStock: true, freeShipping: true, deliveryDays: 1 },
-        { platform: "eBay", price: 17.50, url: "https://ebay.com/example", inStock: true, freeShipping: false, deliveryDays: 5 }
+        { platform: "Amazon", price: 19.95, url: "https://www.amazon.com/s?k=precision+electronics+screwdriver+kit", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Best Buy", price: 22.99, url: "https://www.bestbuy.com/site/tools-hardware", inStock: true, freeShipping: true, deliveryDays: 1 },
+        { platform: "eBay", price: 17.50, url: "https://www.ebay.com/sch/i.html?_nkw=electronics+repair+kit", inStock: true, freeShipping: false, deliveryDays: 5 }
       ],
       reviews: [
         { 
@@ -111,10 +111,10 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Industrial-strength wood glue that creates permanent, water-resistant bonds stronger than the wood itself",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wood+Glue",
       pricing: [
-        { platform: "Amazon", price: 8.99, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Home Depot", price: 7.95, url: "https://homedepot.com/example", inStock: true, freeShipping: false, deliveryDays: 1 },
-        { platform: "Lowe's", price: 8.49, url: "https://lowes.com/example", inStock: true, freeShipping: false, deliveryDays: 1 },
-        { platform: "Walmart", price: 7.49, url: "https://walmart.com/example", inStock: true, freeShipping: true, deliveryDays: 3 }
+        { platform: "Amazon", price: 8.99, url: "https://www.amazon.com/s?k=wood+glue", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 7.95, url: "https://www.homedepot.com/b/Paint-Paint-Supplies-Glue-Wood-Glue/N-5yc1vZbqnv", inStock: true, freeShipping: false, deliveryDays: 1 },
+        { platform: "Lowe's", price: 8.49, url: "https://www.lowes.com/pl/Wood-glue-Glues-adhesives-Paint/4294512322", inStock: true, freeShipping: false, deliveryDays: 1 },
+        { platform: "Walmart", price: 7.49, url: "https://www.walmart.com/browse/arts-crafts-sewing/wood-glue/1334134_6355365_1285274", inStock: true, freeShipping: true, deliveryDays: 3 }
       ],
       reviews: [
         { 
@@ -241,9 +241,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete repair kit with 6 wood-tone markers and fill sticks for furniture touch-ups",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Touch+Up+Kit",
       pricing: [
-        { platform: "Amazon", price: 19.99, url: "https://amazon.com/example", inStock: true, freeShipping: true, deliveryDays: 2 },
-        { platform: "Walmart", price: 22.95, url: "https://walmart.com/example", inStock: true, freeShipping: true, deliveryDays: 3 },
-        { platform: "Home Depot", price: 21.49, url: "https://homedepot.com/example", inStock: true, freeShipping: false, deliveryDays: 1 }
+        { platform: "Amazon", price: 19.99, url: "https://www.amazon.com/s?k=furniture+touch+up+kit", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Walmart", price: 22.95, url: "https://www.walmart.com/browse/home-improvement/furniture-touch-up/1072864_1067617_1230932", inStock: true, freeShipping: true, deliveryDays: 3 },
+        { platform: "Home Depot", price: 21.49, url: "https://www.homedepot.com/b/Paint-Stains-Finishes-Furniture-Touch-Up/N-5yc1vZ1z18g83", inStock: true, freeShipping: false, deliveryDays: 1 }
       ],
       reviews: [
         { 
