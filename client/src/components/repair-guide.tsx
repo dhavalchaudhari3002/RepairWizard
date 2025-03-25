@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, Sh
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RepairQuestions } from "./repair-questions";
-import { RepairToolsShopping } from "./repair-tools-shopping";
+import { useLocation } from "wouter";
 
 interface RepairGuideStep {
   step: number;
@@ -37,6 +37,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
   const [loading, setLoading] = useState(false);
   const [showToolShopping, setShowToolShopping] = useState(false);
   const { toast } = useToast();
+  const [_, navigate] = useLocation();
 
   const generateGuide = async () => {
     if (!productType || !issue) {
@@ -143,10 +144,10 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowToolShopping(!showToolShopping)}
+                onClick={() => navigate("/tools")}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {showToolShopping ? "Hide Tools" : "Buy Tools"}
+                Buy Tools
               </Button>
               <Button
                 variant="outline"
@@ -186,7 +187,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Button 
                 variant="link" 
                 size="sm" 
-                onClick={() => setShowToolShopping(true)}
+                onClick={() => navigate("/tools")}
                 className="text-primary"
               >
                 <ShoppingCart className="h-3.5 w-3.5 mr-1" />
