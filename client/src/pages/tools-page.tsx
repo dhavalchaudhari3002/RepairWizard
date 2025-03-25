@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ToolList } from "@/components/tool-list";
 import { useLocation } from "wouter";
-import { useSearch } from "wouter/use-location";
 
 // Define the tools data
 // In a real app, this would likely come from an API or database
@@ -121,30 +120,197 @@ const woodworkingTools = [
   }
 ];
 
+// Helper function to find recommended tools based on names
+function findRecommendedTools(toolNames) {
+  // Create an array with all available tools
+  const allTools = [...phoneRepairTools, ...laptopRepairTools, ...woodworkingTools];
+  
+  // Map of generic tool names to specific product recommendations
+  const toolMapping = {
+    // Phone/Electronics tools
+    "screwdriver set": phoneRepairTools[0], // iFixit Pro Tech Toolkit
+    "precision screwdriver": phoneRepairTools[0], // iFixit Pro Tech Toolkit
+    "anti-static wrist strap": phoneRepairTools[1],
+    "pry tools": phoneRepairTools[2], // Phone Screen Opening Tools
+    "opening tools": phoneRepairTools[2],
+    "screw mat": phoneRepairTools[3], // Magnetic Screw Mat
+    "magnetic mat": phoneRepairTools[3],
+    "heat gun": phoneRepairTools[4],
+    
+    // Laptop tools
+    "precision screwdriver set": laptopRepairTools[0],
+    "spudger": laptopRepairTools[1], // Spudger Tool Set
+    "spudger tool": laptopRepairTools[1],
+    "anti-static gloves": laptopRepairTools[2],
+    "thermal paste": laptopRepairTools[3],
+    "compressed air": laptopRepairTools[4],
+    "air duster": laptopRepairTools[4],
+    
+    // Woodworking tools
+    "drill": woodworkingTools[0], // DEWALT Cordless Drill
+    "cordless drill": woodworkingTools[0],
+    "sander": woodworkingTools[1], // WEN Random Orbit Sander
+    "clamps": woodworkingTools[2], // IRWIN QUICK-GRIP Clamps
+    "wood glue": woodworkingTools[3], // Titebond Ultimate Wood Glue
+    "circular saw": woodworkingTools[4], // CRAFTSMAN Circular Saw
+    
+    // Common tools
+    "socket set": {
+      name: "DEWALT Socket Set",
+      description: "40-piece socket set with ratchet, perfect for car and home repairs",
+      price: 24.97,
+      imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Socket+Set",
+      amazonUrl: "https://www.amazon.com/DEWALT-Socket-Set-SAE-Piece/dp/B000GTSOYM"
+    },
+    "pliers": {
+      name: "IRWIN VISE-GRIP Pliers Set",
+      description: "3-piece pliers set including needle nose, diagonal, and slip joint pliers",
+      price: 19.98,
+      imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Pliers+Set",
+      amazonUrl: "https://www.amazon.com/Tools-VISE-GRIP-Original-3-Piece-2078705/dp/B07MDLT6SK"
+    },
+    "car jack": {
+      name: "Torin Big Red Hydraulic Floor Jack",
+      description: "3 ton capacity steel floor jack for vehicle maintenance",
+      price: 44.99,
+      imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Floor+Jack",
+      amazonUrl: "https://www.amazon.com/Torin-Hydraulic-Trolley-Floor-Capacity/dp/B0028JQYVE"
+    },
+    "wrench": {
+      name: "TEKTON Wrench Set",
+      description: "30-piece combination wrench set with storage pouch",
+      price: 52.99,
+      imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wrench+Set",
+      amazonUrl: "https://www.amazon.com/TEKTON-Combination-Wrench-30-Piece-WRN53190/dp/B00I5THC4C"
+    },
+    "screwdriver": {
+      name: "CRAFTSMAN Screwdriver Set",
+      description: "12-piece set with various sizes and types for all-purpose repairs",
+      price: 39.97,
+      imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
+      amazonUrl: "https://www.amazon.com/CRAFTSMAN-Screwdriver-Slotted-Cushion-CMHT65048/dp/B07ZYTBKYS"
+    }
+  };
+
+  // Convert tool names to lowercase for case-insensitive matching
+  const lowerCaseToolNames = toolNames.map(name => name.toLowerCase());
+  
+  // Find matching tools from our mapping
+  const recommendedTools = [];
+  
+  lowerCaseToolNames.forEach(toolName => {
+    // First check for exact matches
+    for (const [key, tool] of Object.entries(toolMapping)) {
+      if (toolName === key || toolName.includes(key)) {
+        if (!recommendedTools.some(t => t.name === tool.name)) {
+          recommendedTools.push(tool);
+        }
+        return;
+      }
+    }
+    
+    // If no exact match, look for partial matches
+    for (const [key, tool] of Object.entries(toolMapping)) {
+      if (toolName.includes(key) || key.includes(toolName)) {
+        if (!recommendedTools.some(t => t.name === tool.name)) {
+          recommendedTools.push(tool);
+        }
+        return;
+      }
+    }
+    
+    // If no match found for this tool name, add a generic recommendation
+    const hasMatch = Object.entries(toolMapping).some(([key, _]) => 
+      toolName === key || toolName.includes(key) || key.includes(toolName)
+    );
+    
+    if (!hasMatch) {
+      recommendedTools.push({
+        name: toolName,
+        description: `Essential tool for your repair project`,
+        price: 19.99,
+        imageUrl: `https://placehold.co/200x200/e2e8f0/1e293b?text=${encodeURIComponent(toolName)}`,
+        amazonUrl: `https://www.amazon.com/s?k=${encodeURIComponent(toolName)}`
+      });
+    }
+  });
+  
+  return recommendedTools;
+}
+
 export default function ToolsPage() {
+  const [location] = useLocation();
+  const [requiredTools, setRequiredTools] = useState([]);
+  const [toolNames, setToolNames] = useState([]);
+  
+  useEffect(() => {
+    // Parse the URL to get the tools parameter
+    const params = new URLSearchParams(window.location.search);
+    const toolsParam = params.get('tools');
+    
+    if (toolsParam) {
+      // Split the comma-separated list of tools
+      const toolList = decodeURIComponent(toolsParam).split(',');
+      setToolNames(toolList);
+      
+      // Find recommended tools based on the names
+      const recommended = findRecommendedTools(toolList);
+      setRequiredTools(recommended);
+    }
+  }, [location]);
+  
+  // If no specific tools were requested, show all categories
+  if (toolNames.length === 0) {
+    return (
+      <div className="container mx-auto py-8 space-y-12">
+        <div>
+          <h1 className="text-4xl font-bold mb-6">Essential Tools by Category</h1>
+          <p className="text-lg text-muted-foreground mb-8">
+            Find the right tools for your specific project, each with direct links to Amazon.
+          </p>
+        </div>
+        
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Phone Repair Tools</h2>
+          <ToolList taskType="Phone Repair" tools={phoneRepairTools} />
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Laptop Repair Tools</h2>
+          <ToolList taskType="Laptop Repair" tools={laptopRepairTools} />
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Woodworking Tools</h2>
+          <ToolList taskType="Woodworking" tools={woodworkingTools} />
+        </section>
+      </div>
+    );
+  }
+  
+  // Show only the required tools for the specific repair
   return (
     <div className="container mx-auto py-8 space-y-12">
       <div>
-        <h1 className="text-4xl font-bold mb-6">Essential Tools by Category</h1>
+        <h1 className="text-4xl font-bold mb-6">Required Tools for Your Repair</h1>
         <p className="text-lg text-muted-foreground mb-8">
-          Find the right tools for your specific project, each with direct links to Amazon.
+          Here are the specific tools recommended for your repair project.
         </p>
       </div>
       
       <section>
-        <h2 className="text-2xl font-semibold mb-4">Phone Repair Tools</h2>
-        <ToolList taskType="Phone Repair" tools={phoneRepairTools} />
+        <h2 className="text-2xl font-semibold mb-4">Recommended Tools</h2>
+        <ToolList taskType="Your Repair" tools={requiredTools} />
       </section>
-
-      <section>
-        <h2 className="text-2xl font-semibold mb-4">Laptop Repair Tools</h2>
-        <ToolList taskType="Laptop Repair" tools={laptopRepairTools} />
-      </section>
-
-      <section>
-        <h2 className="text-2xl font-semibold mb-4">Woodworking Tools</h2>
-        <ToolList taskType="Woodworking" tools={woodworkingTools} />
-      </section>
+      
+      <div className="mt-8 p-4 border rounded-lg bg-muted/50">
+        <h3 className="text-lg font-medium mb-2">Tools needed for your repair:</h3>
+        <ul className="list-disc list-inside space-y-1">
+          {toolNames.map((tool, index) => (
+            <li key={index} className="text-sm text-muted-foreground">{tool}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

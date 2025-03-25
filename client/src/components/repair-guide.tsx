@@ -141,7 +141,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/tools?type=${encodeURIComponent(productType)}`)}
+                onClick={() => navigate(`/tools?tools=${encodeURIComponent(guide.tools.join(','))}`)}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Buy Tools
@@ -184,7 +184,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Button 
                 variant="link" 
                 size="sm" 
-                onClick={() => navigate(`/tools?type=${encodeURIComponent(productType)}`)}
+                onClick={() => navigate(`/tools?tools=${encodeURIComponent(guide.tools.join(','))}`)}
                 className="text-primary"
               >
                 <ShoppingCart className="h-3.5 w-3.5 mr-1" />
