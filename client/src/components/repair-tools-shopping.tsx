@@ -365,24 +365,39 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
   const [searchQueryStarted, setSearchQueryStarted] = useState(false);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || !tools.length) return;
     
     // Simulate the "searching across platforms" experience
     setIsLoading(true);
     
     // Using mock data - in production this would be an API call
     setTimeout(() => {
-      // For testing, always display some default tools
-      const defaultTools = [
-        MOCK_TOOL_DATA["Screwdriver"][0],
-        MOCK_TOOL_DATA["Wood glue"][0],
-        MOCK_TOOL_DATA["Flashlight"][0]
-      ];
+      // Filter tools based on the tools array passed to the component
+      const relevantTools: ToolItem[] = [];
       
-      setToolItems(defaultTools);
+      // Look through each tool in the passed array and find matching tools
+      tools.forEach(toolName => {
+        // Try to find the tool in our mapping (normalize tool names)
+        const matchingToolNames = Object.entries(TOOL_NAME_MAPPING).find(
+          ([_, aliases]) => aliases.some(alias => 
+            alias.toLowerCase() === toolName.toLowerCase()
+          )
+        );
+        
+        // If we found a matching tool category
+        if (matchingToolNames && MOCK_TOOL_DATA[matchingToolNames[0]]) {
+          // Add the first tool from that category if not already added
+          const toolToAdd = MOCK_TOOL_DATA[matchingToolNames[0]][0];
+          if (!relevantTools.some(t => t.id === toolToAdd.id)) {
+            relevantTools.push(toolToAdd);
+          }
+        }
+      });
+      
+      setToolItems(relevantTools);
       setIsLoading(false);
     }, 1000);
-  }, [isVisible]);
+  }, [isVisible, tools]);
 
   if (!isVisible) return null;
 
@@ -448,10 +463,10 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />
-          Best Deals on Repair Tools
+          Recommended Repair Tools
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Find the tools you need for your repair on Amazon
+          Tools you might need for this repair
         </p>
       </CardHeader>
 
@@ -529,7 +544,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
               className="flex items-center justify-center gap-2"
             >
               <Search className="h-4 w-4" />
-              Search for more tools on Amazon
+              Search for additional tools online
             </a>
           </Button>
         </div>
