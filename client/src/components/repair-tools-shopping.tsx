@@ -48,7 +48,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete set with multiple precision heads for all repair needs. Magnetic tips hold screws securely.",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
       pricing: [
-        { platform: "Amazon", price: 24.99, url: "https://www.amazon.com/s?k=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 24.99, url: "https://www.amazon.com/s?k=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 26.95, url: "https://www.homedepot.com/s?keyword=screwdriver+set", inStock: true, freeShipping: false, deliveryDays: 3 },
+        { platform: "Walmart", price: 22.99, url: "https://www.walmart.com/search/?query=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -316,7 +318,9 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Bright LED flashlight with adjustable focus and magnetic base for hands-free use",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=LED+Flashlight",
       pricing: [
-        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Home Depot", price: 15.49, url: "https://www.homedepot.com/s?keyword=led+flashlight", inStock: true, freeShipping: false, deliveryDays: 3 },
+        { platform: "Walmart", price: 11.99, url: "https://www.walmart.com/search/?query=led+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -510,22 +514,38 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
                       
                       <p className="text-sm text-muted-foreground">{tool.description}</p>
                       
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="font-semibold text-lg text-primary">
-                          ${lowestPrice.toFixed(2)}
-                        </span>
-                        
-                        <Button size="sm" asChild>
-                          <a
-                            href={bestPriceOffer?.url || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2"
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                            Buy Now
-                          </a>
-                        </Button>
+                      <div className="mt-4">
+                        <div className="mb-2">
+                          <span className="text-sm font-medium">Available from:</span>
+                        </div>
+                        <div className="space-y-2">
+                          {tool.pricing.map((price, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{price.platform}:</span>
+                                <span className={`${price.price === lowestPrice ? "text-green-600 dark:text-green-500 font-medium" : ""}`}>
+                                  ${price.price.toFixed(2)}
+                                  {price.price === lowestPrice && 
+                                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" variant="outline">
+                                      Best Price
+                                    </Badge>
+                                  }
+                                </span>
+                              </div>
+                              <Button size="sm" variant="outline" asChild>
+                                <a
+                                  href={price.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1"
+                                >
+                                  <ShoppingCart className="h-3 w-3" />
+                                  Buy
+                                </a>
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
