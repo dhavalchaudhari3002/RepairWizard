@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ToolList } from "@/components/tool-list";
+import { useLocation } from "wouter";
+import { useSearch } from "wouter/use-location";
 
 // Define the tools data
 // In a real app, this would likely come from an API or database
