@@ -347,15 +347,21 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
 
 // Map general tool names to specific tool names in our database
 const TOOL_NAME_MAPPING: Record<string, string[]> = {
-  "Screwdriver": ["Screwdriver"],
+  "Screwdriver": ["Screwdriver", "Phillips screwdriver", "Flathead screwdriver"],
   "Wood glue": ["Wood glue", "Glue"],
   "Clamp": ["Clamp"],
-  "Gloves": ["Gloves"],
+  "Gloves": ["Gloves", "Work gloves", "Anti-static gloves"],
   "Sandpaper": ["Sandpaper"],
   "Paint or varnish": ["Paint or varnish", "Paint", "Varnish"],
   "Paintbrush": ["Paintbrush", "Brush"],
   "Mask": ["Mask", "Dust mask"],
-  "Flashlight": ["Flashlight"]
+  "Flashlight": ["Flashlight"],
+  "Precision screwdriver": ["Precision screwdriver", "Phone repair screwdriver set"],
+  "Spudger": ["Spudger", "Plastic opening tool", "Pry tool"],
+  "Tweezers": ["Tweezers", "ESD tweezers"],
+  "Heat gun": ["Heat gun", "Heat plate", "Hair dryer"],
+  "Suction cup": ["Suction cup", "Screen removal tool"],
+  "Opening picks": ["Opening picks", "Guitar picks", "Plastic picks"]
 };
 
 interface RepairToolsShoppingProps {
