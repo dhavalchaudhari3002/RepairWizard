@@ -35,7 +35,6 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showToolShopping, setShowToolShopping] = useState(false);
   const { toast } = useToast();
   const [_, navigate] = useLocation();
 
@@ -74,8 +73,6 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
 
       setGuide(data);
       setCurrentStep(0);
-      // Show tool shopping by default with the guide
-      setShowToolShopping(true);
       toast({
         title: "Success",
         description: "Repair guide generated successfully.",
@@ -246,9 +243,6 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Tool Shopping Section */}
-      <RepairToolsShopping tools={guide.tools} isVisible={showToolShopping} />
 
       {/* Q&A Section - Only shown after guide is generated */}
       <Card>
