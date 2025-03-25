@@ -411,7 +411,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Finding Tools on Amazon...
+            Finding Recommended Tools...
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -419,7 +419,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Search className="h-4 w-4 animate-pulse" />
-                <span>Searching Amazon for repair tools...</span>
+                <span>Searching for tools matching your repair...</span>
               </div>
               <Progress value={45} className="h-2" />
             </div>
@@ -514,38 +514,27 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
                       
                       <p className="text-sm text-muted-foreground">{tool.description}</p>
                       
-                      <div className="mt-4">
-                        <div className="mb-2">
-                          <span className="text-sm font-medium">Available from:</span>
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center">
+                          <span className="font-semibold text-lg text-primary">
+                            ${lowestPrice.toFixed(2)}
+                          </span>
+                          <Badge className="ml-2" variant="outline">
+                            Best Price
+                          </Badge>
                         </div>
-                        <div className="space-y-2">
-                          {tool.pricing.map((price, index) => (
-                            <div key={index} className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{price.platform}:</span>
-                                <span className={`${price.price === lowestPrice ? "text-green-600 dark:text-green-500 font-medium" : ""}`}>
-                                  ${price.price.toFixed(2)}
-                                  {price.price === lowestPrice && 
-                                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" variant="outline">
-                                      Best Price
-                                    </Badge>
-                                  }
-                                </span>
-                              </div>
-                              <Button size="sm" variant="outline" asChild>
-                                <a
-                                  href={price.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1"
-                                >
-                                  <ShoppingCart className="h-3 w-3" />
-                                  Buy
-                                </a>
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
+                        
+                        <Button size="sm" asChild>
+                          <a
+                            href={bestPriceOffer?.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2"
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                            Buy Now
+                          </a>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -558,7 +547,7 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
         <div className="mt-6 pt-4 border-t">
           <Button variant="secondary" className="w-full" asChild>
             <a
-              href={`https://www.amazon.com/s?k=${encodeURIComponent(tools.join(' repair tools'))}`}
+              href={`https://www.google.com/search?q=${encodeURIComponent(tools.join(' repair tools'))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2"
