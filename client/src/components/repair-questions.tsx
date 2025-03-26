@@ -7,15 +7,17 @@ import { apiRequest } from "@/lib/queryClient";
 interface RepairQuestionsProps {
   productType: string;
   issueDescription?: string;
+  currentStep?: number;
 }
 
 interface QuestionAnswer {
   question: string;
   answer: string;
   imageUrl?: string | null;
+  role?: "user" | "assistant";
 }
 
-export function RepairQuestions({ productType, issueDescription }: RepairQuestionsProps) {
+export function RepairQuestions({ productType, issueDescription, currentStep }: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
   const [conversation, setConversation] = useState<QuestionAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -30,6 +30,8 @@ interface RepairQuestionInput {
   productType: string;
   issueDescription?: string;
   imageUrl?: string;
+  context?: { role: "user" | "assistant"; content: string }[];
+  currentStep?: number;
 }
 
 export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
@@ -117,12 +119,20 @@ Format your response as a JSON object with an "answer" field containing your res
 
     const contextPrompt = `Product Type: ${input.productType}${
       input.issueDescription ? `\nReported Issue: ${input.issueDescription}` : ''
+    }${
+      input.currentStep !== undefined ? `\nCurrent Repair Guide Step: ${input.currentStep + 1}` : ''
     }`;
 
     const messages: any[] = [
       { role: "system", content: systemPrompt }
     ];
-
+    
+    // Add previous conversation context if it exists
+    if (input.context && input.context.length > 0) {
+      messages.push(...input.context);
+    }
+    
+    // Add the current question as the most recent message
     if (input.imageUrl) {
       messages.push({
         role: "user",
@@ -144,11 +154,12 @@ Format your response as a JSON object with an "answer" field containing your res
       });
     }
 
+    // Use a longer context window for conversation history
     const response = await openai.chat.completions.create({
       model: input.imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 800
     });
 
     const content = response.choices[0]?.message?.content;
