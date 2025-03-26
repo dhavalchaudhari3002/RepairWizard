@@ -530,17 +530,15 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
                           </Badge>
                         </div>
                         
-                        <Button size="sm" asChild>
-                          <a
-                            href={bestPriceOffer?.url || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2"
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                            Buy Now
-                          </a>
-                        </Button>
+                        <a
+                          href={bestPriceOffer?.url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary text-sm flex items-center gap-1"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                          Available online
+                        </a>
                       </div>
                     </div>
                   </div>
