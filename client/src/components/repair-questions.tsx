@@ -46,6 +46,12 @@ export function RepairQuestions({ productType, issueDescription, currentStep }: 
 
     setIsLoading(true);
     try {
+      // Convert conversation to the format expected by the API
+      const context = conversation.flatMap(qa => [
+        { role: "user", content: qa.question },
+        { role: "assistant", content: qa.answer }
+      ]);
+      
       const response = await apiRequest(
         "POST", 
         "/api/repair-questions",
@@ -53,15 +59,21 @@ export function RepairQuestions({ productType, issueDescription, currentStep }: 
           question, 
           productType, 
           issueDescription,
-          imageUrl: imagePreview 
+          imageUrl: imagePreview,
+          context,
+          currentStep 
         }
       );
       const data = await response.json();
+      
+      // Add the new Q&A to the conversation history
       setConversation(prev => [...prev, { 
         question, 
         answer: data.answer,
-        imageUrl: imagePreview 
+        imageUrl: imagePreview,
+        role: "user" 
       }]);
+      
       setQuestion(""); // Clear input after successful response
       setImagePreview(null); // Clear image after sending
     } catch (error) {

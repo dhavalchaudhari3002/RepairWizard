@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, ShoppingCart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, ShoppingCart, MessageCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { RepairQuestions } from "./repair-questions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RepairGuideStep {
   step: number;
@@ -194,7 +196,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
             </div>
           </div>
 
-          {/* Step Instructions */}
+          {/* Step Instructions with Interactive Q&A */}
           <div className="border rounded-lg p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Step {step.step} of {guide.steps.length}</h3>
@@ -218,24 +220,49 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               </div>
             </div>
 
-            <h4 className="font-medium mb-2">{step.title}</h4>
-            <p className="text-sm mb-4">{step.description}</p>
+            <Tabs defaultValue="instructions" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                <TabsTrigger value="questions" className="flex items-center justify-center gap-1">
+                  <MessageCircle className="h-4 w-4" />
+                  Questions
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="instructions" className="mt-0">
+                <h4 className="font-medium mb-2">{step.title}</h4>
+                <p className="text-sm mb-4">{step.description}</p>
 
-            {step.safetyWarnings && step.safetyWarnings.length > 0 && (
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded p-3 mb-4">
-                <h5 className="text-sm font-medium mb-1">Step-specific Safety Notes:</h5>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  {step.safetyWarnings.map((warning, i) => (
-                    <li key={i}>{warning}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                {step.safetyWarnings && step.safetyWarnings.length > 0 && (
+                  <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded p-3 mb-4">
+                    <h5 className="text-sm font-medium mb-1">Step-specific Safety Notes:</h5>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {step.safetyWarnings.map((warning, i) => (
+                        <li key={i}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-            <div className="bg-muted rounded p-3">
-              <h5 className="text-sm font-medium mb-1">Visual Guide:</h5>
-              <p className="text-sm text-muted-foreground">{step.imageDescription}</p>
-            </div>
+                <div className="bg-muted rounded p-3">
+                  <h5 className="text-sm font-medium mb-1">Visual Guide:</h5>
+                  <p className="text-sm text-muted-foreground">{step.imageDescription}</p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="questions" className="mt-0">
+                <div className="bg-muted/30 rounded-lg p-3 mb-4">
+                  <p className="text-sm">
+                    Have questions about <strong>"{step.title}"</strong>? Ask for help or clarification about this specific step.
+                  </p>
+                </div>
+                <RepairQuestions 
+                  productType={productType} 
+                  issueDescription={issue}
+                  currentStep={currentStep}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </CardContent>
       </Card>
