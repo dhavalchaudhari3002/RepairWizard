@@ -175,7 +175,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
             </div>
             <div className="space-y-4">
               {guide.tools.map((tool, i) => {
-                const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(tool)}`;
+                const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(tool)}&tag=youraffiliateID-20`;
                 return (
                   <div key={i} className="flex justify-between items-center border-b pb-2">
                     <span className="text-sm">{tool}</span>

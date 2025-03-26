@@ -88,35 +88,35 @@ const woodworkingTools = [
     description: "Compact, lightweight design fits into tight areas with LED light ring",
     price: 99.00,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Cordless+Drill",
-    amazonUrl: "https://www.amazon.com/DEWALT-DCD771C2-20V-Lithium-Ion-Compact/dp/B00ET5VMTU"
+    amazonUrl: "https://www.amazon.com/DEWALT-DCD771C2-20V-Lithium-Ion-Compact/dp/B00ET5VMTU?tag=youraffiliateID-20"
   },
   {
     name: "WEN Random Orbit Sander",
     description: "5-inch random orbital sander with dust collector for smooth finishing",
     price: 35.27,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Orbit+Sander",
-    amazonUrl: "https://www.amazon.com/WEN-6301-Random-Orbital-Sander/dp/B00BD5G9VA"
+    amazonUrl: "https://www.amazon.com/WEN-6301-Random-Orbital-Sander/dp/B00BD5G9VA?tag=youraffiliateID-20"
   },
   {
     name: "IRWIN QUICK-GRIP Clamps",
     description: "4-pack of one-handed bar clamps for securing workpieces",
     price: 34.97,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Quick+Clamps",
-    amazonUrl: "https://www.amazon.com/IRWIN-QUICK-GRIP-1964758-One-Handed-Special/dp/B001DSY4QO"
+    amazonUrl: "https://www.amazon.com/IRWIN-QUICK-GRIP-1964758-One-Handed-Special/dp/B001DSY4QO?tag=youraffiliateID-20"
   },
   {
     name: "Titebond Ultimate Wood Glue",
     description: "Waterproof wood adhesive with superior bond strength",
     price: 7.47,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wood+Glue",
-    amazonUrl: "https://www.amazon.com/Titebond-1416-Ultimate-Glue-16-Ounce/dp/B0002YQ3KA"
+    amazonUrl: "https://www.amazon.com/Titebond-1416-Ultimate-Glue-16-Ounce/dp/B0002YQ3KA?tag=youraffiliateID-20"
   },
   {
     name: "CRAFTSMAN Circular Saw",
     description: "7-1/4-inch corded circular saw for precise, powerful cutting",
     price: 49.98,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Circular+Saw",
-    amazonUrl: "https://www.amazon.com/CRAFTSMAN-CMES500-Circular-Laser-Guide/dp/B07TT4Q7LB"
+    amazonUrl: "https://www.amazon.com/CRAFTSMAN-CMES500-Circular-Laser-Guide/dp/B07TT4Q7LB?tag=youraffiliateID-20"
   }
 ];
 
@@ -160,35 +160,35 @@ function findRecommendedTools(toolNames) {
       description: "40-piece socket set with ratchet, perfect for car and home repairs",
       price: 24.97,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Socket+Set",
-      amazonUrl: "https://www.amazon.com/DEWALT-Socket-Set-SAE-Piece/dp/B000GTSOYM"
+      amazonUrl: "https://www.amazon.com/DEWALT-Socket-Set-SAE-Piece/dp/B000GTSOYM?tag=youraffiliateID-20"
     },
     "pliers": {
       name: "IRWIN VISE-GRIP Pliers Set",
       description: "3-piece pliers set including needle nose, diagonal, and slip joint pliers",
       price: 19.98,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Pliers+Set",
-      amazonUrl: "https://www.amazon.com/Tools-VISE-GRIP-Original-3-Piece-2078705/dp/B07MDLT6SK"
+      amazonUrl: "https://www.amazon.com/Tools-VISE-GRIP-Original-3-Piece-2078705/dp/B07MDLT6SK?tag=youraffiliateID-20"
     },
     "car jack": {
       name: "Torin Big Red Hydraulic Floor Jack",
       description: "3 ton capacity steel floor jack for vehicle maintenance",
       price: 44.99,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Floor+Jack",
-      amazonUrl: "https://www.amazon.com/Torin-Hydraulic-Trolley-Floor-Capacity/dp/B0028JQYVE"
+      amazonUrl: "https://www.amazon.com/Torin-Hydraulic-Trolley-Floor-Capacity/dp/B0028JQYVE?tag=youraffiliateID-20"
     },
     "wrench": {
       name: "TEKTON Wrench Set",
       description: "30-piece combination wrench set with storage pouch",
       price: 52.99,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wrench+Set",
-      amazonUrl: "https://www.amazon.com/TEKTON-Combination-Wrench-30-Piece-WRN53190/dp/B00I5THC4C"
+      amazonUrl: "https://www.amazon.com/TEKTON-Combination-Wrench-30-Piece-WRN53190/dp/B00I5THC4C?tag=youraffiliateID-20"
     },
     "screwdriver": {
       name: "CRAFTSMAN Screwdriver Set",
       description: "12-piece set with various sizes and types for all-purpose repairs",
       price: 39.97,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
-      amazonUrl: "https://www.amazon.com/CRAFTSMAN-Screwdriver-Slotted-Cushion-CMHT65048/dp/B07ZYTBKYS"
+      amazonUrl: "https://www.amazon.com/CRAFTSMAN-Screwdriver-Slotted-Cushion-CMHT65048/dp/B07ZYTBKYS?tag=youraffiliateID-20"
     }
   };
 
