@@ -240,20 +240,6 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Q&A Section - Only shown after guide is generated */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ask about your repair</CardTitle>
-          <CardDescription>Have questions about the repair process? Ask our AI assistant.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RepairQuestions 
-            productType={productType} 
-            issueDescription={issue}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }
