@@ -141,14 +141,6 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/tools?tools=${encodeURIComponent(guide.tools.join(','))}`)}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Buy Tools
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={openYoutubeSearch}
               >
                 <PlayCircle className="h-4 w-4 mr-2" />
@@ -181,21 +173,26 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
                 <Wrench className="h-4 w-4" />
                 Tools Required
               </h3>
-              <Button 
-                variant="link" 
-                size="sm" 
-                onClick={() => navigate(`/tools?tools=${encodeURIComponent(guide.tools.join(','))}`)}
-                className="text-primary"
-              >
-                <ShoppingCart className="h-3.5 w-3.5 mr-1" />
-                Buy Tools
-              </Button>
             </div>
-            <ul className="list-disc list-inside grid grid-cols-2 gap-2">
-              {guide.tools.map((tool, i) => (
-                <li key={i} className="text-sm">{tool}</li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              {guide.tools.map((tool, i) => {
+                const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(tool)}`;
+                return (
+                  <div key={i} className="flex justify-between items-center border-b pb-2">
+                    <span className="text-sm">{tool}</span>
+                    <a
+                      href={searchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary text-xs flex items-center gap-1"
+                    >
+                      <ShoppingCart className="h-3 w-3" />
+                      Find on Amazon
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Step Instructions */}
