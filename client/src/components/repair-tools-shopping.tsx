@@ -48,7 +48,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete set with multiple precision heads for all repair needs. Magnetic tips hold screws securely.",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
       pricing: [
-        { platform: "Amazon", price: 24.99, url: "https://www.amazon.com/s?k=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Amazon", price: 24.99, url: "https://www.amazon.com/s?k=screwdriver+set&tag=youraffiliateID-20&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 },
         { platform: "Home Depot", price: 26.95, url: "https://www.homedepot.com/s?keyword=screwdriver+set", inStock: true, freeShipping: false, deliveryDays: 3 },
         { platform: "Walmart", price: 22.99, url: "https://www.walmart.com/search/?query=screwdriver+set", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
@@ -78,7 +78,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Perfect for small electronics repairs with specialized bits for phones, laptops, and tablets",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Precision+Kit",
       pricing: [
-        { platform: "Amazon", price: 19.95, url: "https://www.amazon.com/s?k=precision+electronics+screwdriver+kit", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 19.95, url: "https://www.amazon.com/s?k=precision+electronics+screwdriver+kit&tag=youraffiliateID-20&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -108,7 +108,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Industrial-strength wood glue that creates permanent, water-resistant bonds stronger than the wood itself",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wood+Glue",
       pricing: [
-        { platform: "Amazon", price: 8.99, url: "https://www.amazon.com/s?k=wood+glue", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 8.99, url: "https://www.amazon.com/s?k=wood+glue&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -138,7 +138,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Versatile one-handed bar clamps perfect for woodworking and furniture repairs",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Bar+Clamps",
       pricing: [
-        { platform: "Amazon", price: 34.99, url: "https://www.amazon.com/s?k=bar+clamp+set", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 34.99, url: "https://www.amazon.com/s?k=bar+clamp+set&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -168,7 +168,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Durable work gloves that protect hands while allowing smartphone operation",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Work+Gloves",
       pricing: [
-        { platform: "Amazon", price: 15.95, url: "https://www.amazon.com/s?k=work+gloves+touchscreen", inStock: true, freeShipping: true, deliveryDays: 1 }
+        { platform: "Amazon", price: 15.95, url: "https://www.amazon.com/s?k=work+gloves+touchscreen&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 1 }
       ],
       reviews: [
         { 
@@ -198,7 +198,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete set of sandpaper sheets in various grits for all wood finishing needs",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Sandpaper",
       pricing: [
-        { platform: "Amazon", price: 12.99, url: "https://www.amazon.com/s?k=sandpaper+assortment", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 12.99, url: "https://www.amazon.com/s?k=sandpaper+assortment&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -228,7 +228,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Complete repair kit with 6 wood-tone markers and fill sticks for furniture touch-ups",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Touch+Up+Kit",
       pricing: [
-        { platform: "Amazon", price: 19.99, url: "https://www.amazon.com/s?k=furniture+touch+up+kit", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 19.99, url: "https://www.amazon.com/s?k=furniture+touch+up+kit&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -258,7 +258,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Professional-grade fine tip brushes perfect for furniture touch-ups and detailing",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Paintbrushes",
       pricing: [
-        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=detail+paint+brush+set", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=detail+paint+brush+set&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -288,7 +288,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Comfortable respirator masks that filter dust and particles during sanding and painting",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=N95+Masks",
       pricing: [
-        { platform: "Amazon", price: 16.99, url: "https://www.amazon.com/s?k=n95+dust+mask+valve", inStock: true, freeShipping: true, deliveryDays: 2 }
+        { platform: "Amazon", price: 16.99, url: "https://www.amazon.com/s?k=n95+dust+mask+valve&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
       reviews: [
         { 
@@ -318,7 +318,7 @@ const MOCK_TOOL_DATA: Record<string, ToolItem[]> = {
       description: "Bright LED flashlight with adjustable focus and magnetic base for hands-free use",
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=LED+Flashlight",
       pricing: [
-        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 },
+        { platform: "Amazon", price: 12.95, url: "https://www.amazon.com/s?k=magnetic+led+inspection+flashlight&tag=youraffiliateID-20", inStock: true, freeShipping: true, deliveryDays: 2 },
         { platform: "Home Depot", price: 15.49, url: "https://www.homedepot.com/s?keyword=led+flashlight", inStock: true, freeShipping: false, deliveryDays: 3 },
         { platform: "Walmart", price: 11.99, url: "https://www.walmart.com/search/?query=led+flashlight", inStock: true, freeShipping: true, deliveryDays: 2 }
       ],
@@ -551,13 +551,13 @@ export function RepairToolsShopping({ tools, isVisible }: RepairToolsShoppingPro
         <div className="mt-6 pt-4 border-t">
           <Button variant="secondary" className="w-full" asChild>
             <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(tools.join(' repair tools'))}`}
+              href={`https://www.amazon.com/s?k=${encodeURIComponent(tools.join('+'))}&tag=youraffiliateID-20`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2"
             >
-              <Search className="h-4 w-4" />
-              Search for additional tools online
+              <ShoppingCart className="h-4 w-4" />
+              Find more tools on Amazon
             </a>
           </Button>
         </div>

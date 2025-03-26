@@ -120,8 +120,16 @@ const woodworkingTools = [
   }
 ];
 
+interface Tool {
+  name: string;
+  description: string;
+  price: number;
+  imageUrl?: string;
+  amazonUrl: string;
+}
+
 // Helper function to find recommended tools based on names
-function findRecommendedTools(toolNames) {
+function findRecommendedTools(toolNames: string[]): Tool[] {
   // Create an array with all available tools
   const allTools = [...phoneRepairTools, ...laptopRepairTools, ...woodworkingTools];
   
@@ -193,12 +201,12 @@ function findRecommendedTools(toolNames) {
   };
 
   // Convert tool names to lowercase for case-insensitive matching
-  const lowerCaseToolNames = toolNames.map(name => name.toLowerCase());
+  const lowerCaseToolNames = toolNames.map((name: string) => name.toLowerCase());
   
   // Find matching tools from our mapping
-  const recommendedTools = [];
+  const recommendedTools: Tool[] = [];
   
-  lowerCaseToolNames.forEach(toolName => {
+  lowerCaseToolNames.forEach((toolName: string) => {
     // First check for exact matches
     for (const [key, tool] of Object.entries(toolMapping)) {
       if (toolName === key || toolName.includes(key)) {
@@ -240,8 +248,8 @@ function findRecommendedTools(toolNames) {
 
 export default function ToolsPage() {
   const [location] = useLocation();
-  const [requiredTools, setRequiredTools] = useState([]);
-  const [toolNames, setToolNames] = useState([]);
+  const [requiredTools, setRequiredTools] = useState<Tool[]>([]);
+  const [toolNames, setToolNames] = useState<string[]>([]);
   
   useEffect(() => {
     // Parse the URL to get the tools parameter
