@@ -10,35 +10,35 @@ const phoneRepairTools = [
     description: "Professional toolkit with precision bits for repairing smartphones, tablets, and laptops",
     price: 69.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=iFixit+Kit",
-    amazonUrl: "https://www.amazon.com/iFixit-Pro-Tech-Toolkit-Electronics/dp/B01GF0KV6G"
+    amazonUrl: "https://www.amazon.com/iFixit-Pro-Tech-Toolkit-Electronics/dp/B01GF0KV6G?tag=youraffiliateID-20"
   },
   {
     name: "Anti-Static Wrist Strap",
     description: "Prevents static discharge that can damage sensitive electronic components during repair",
     price: 6.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wrist+Strap",
-    amazonUrl: "https://www.amazon.com/Wristband-Bracelet-Grounding-Discharge-Prevention/dp/B08CXQN86W"
+    amazonUrl: "https://www.amazon.com/Wristband-Bracelet-Grounding-Discharge-Prevention/dp/B08CXQN86W?tag=youraffiliateID-20"
   },
   {
     name: "Phone Screen Opening Tools",
     description: "Set of plastic pry tools and suction cups for safely opening smartphone screens",
     price: 11.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Opening+Tools",
-    amazonUrl: "https://www.amazon.com/Opening-Precision-Screwdriver-Non-Abrasive-Smartphones/dp/B01N4HS7QW"
+    amazonUrl: "https://www.amazon.com/Opening-Precision-Screwdriver-Non-Abrasive-Smartphones/dp/B01N4HS7QW?tag=youraffiliateID-20"
   },
   {
     name: "Magnetic Screw Mat",
     description: "Keeps tiny screws organized during phone disassembly and repair",
     price: 13.95,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screw+Mat",
-    amazonUrl: "https://www.amazon.com/Magnetic-Project-Cellphone-Disassembly-Technicians/dp/B06Y5GVQPR"
+    amazonUrl: "https://www.amazon.com/Magnetic-Project-Cellphone-Disassembly-Technicians/dp/B06Y5GVQPR?tag=youraffiliateID-20"
   },
   {
     name: "Heat Gun",
     description: "Used for softening adhesive when removing screens, batteries, and other components",
     price: 22.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Heat+Gun",
-    amazonUrl: "https://www.amazon.com/Wagner-Spraytech-0503008-Heat-Ultra/dp/B00004TUCV"
+    amazonUrl: "https://www.amazon.com/Wagner-Spraytech-0503008-Heat-Ultra/dp/B00004TUCV?tag=youraffiliateID-20"
   }
 ];
 
@@ -49,35 +49,35 @@ const laptopRepairTools = [
     description: "45-in-1 screwdriver set with magnetic tips for laptop, tablet, and electronics repair",
     price: 16.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Precision+Set",
-    amazonUrl: "https://www.amazon.com/Precision-Screwdriver-Magnetic-Electronics-Cellphone/dp/B08PF6H7QN"
+    amazonUrl: "https://www.amazon.com/Precision-Screwdriver-Magnetic-Electronics-Cellphone/dp/B08PF6H7QN?tag=youraffiliateID-20"
   },
   {
     name: "Spudger Tool Set",
     description: "Nylon pry tools for safely separating components without causing damage",
     price: 8.95,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Spudger+Tools",
-    amazonUrl: "https://www.amazon.com/Plastic-Spudger-Opening-Tablets-MacBook/dp/B00KKVPZKE"
+    amazonUrl: "https://www.amazon.com/Plastic-Spudger-Opening-Tablets-MacBook/dp/B00KKVPZKE?tag=youraffiliateID-20"
   },
   {
     name: "Anti-Static Gloves",
     description: "Prevents static discharge that can damage sensitive laptop components",
     price: 12.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=ESD+Gloves",
-    amazonUrl: "https://www.amazon.com/Static-Resistant-Gloves-Computer-Working/dp/B087C2K85D"
+    amazonUrl: "https://www.amazon.com/Static-Resistant-Gloves-Computer-Working/dp/B087C2K85D?tag=youraffiliateID-20"
   },
   {
     name: "Thermal Paste",
     description: "High performance thermal compound for CPU and GPU cooling",
     price: 8.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Thermal+Paste",
-    amazonUrl: "https://www.amazon.com/ARCTIC-MX-4-Compound-Performance-Interface/dp/B0795DP124"
+    amazonUrl: "https://www.amazon.com/ARCTIC-MX-4-Compound-Performance-Interface/dp/B0795DP124?tag=youraffiliateID-20"
   },
   {
     name: "Compressed Air Duster",
     description: "For removing dust from fans, keyboards, and hard-to-reach places",
     price: 9.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Air+Duster",
-    amazonUrl: "https://www.amazon.com/Compressed-Computer-Keyboard-Electronics-Compressed-Air/dp/B07SHJZ797"
+    amazonUrl: "https://www.amazon.com/Compressed-Computer-Keyboard-Electronics-Compressed-Air/dp/B07SHJZ797?tag=youraffiliateID-20"
   }
 ];
 
@@ -230,7 +230,7 @@ function findRecommendedTools(toolNames) {
         description: `Essential tool for your repair project`,
         price: 19.99,
         imageUrl: `https://placehold.co/200x200/e2e8f0/1e293b?text=${encodeURIComponent(toolName)}`,
-        amazonUrl: `https://www.amazon.com/s?k=${encodeURIComponent(toolName)}`
+        amazonUrl: `https://www.amazon.com/s?k=${encodeURIComponent(toolName)}&tag=youraffiliateID-20`
       });
     }
   });

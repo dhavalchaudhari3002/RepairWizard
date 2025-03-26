@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, ShoppingCart } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { RepairQuestions } from "./repair-questions";
 import { useLocation } from "wouter";
 
 interface RepairGuideStep {

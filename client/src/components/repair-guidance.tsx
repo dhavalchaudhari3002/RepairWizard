@@ -6,7 +6,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
-import { RepairQuestions } from "./repair-questions";
 import { RepairGuide } from "./repair-guide";
 
 interface RepairGuidanceData {
@@ -64,20 +63,6 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
           <RepairGuide 
             productType={data.productType} 
             issue={data.issueDescription || 'General repair guidance needed'} 
-          />
-        </CardContent>
-      </Card>
-      
-      {/* Repair Questions Component */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Have Questions?</CardTitle>
-          <CardDescription>Ask our AI about your repair needs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RepairQuestions 
-            productType={data.productType}
-            issueDescription={data.issueDescription}
           />
         </CardContent>
       </Card>
