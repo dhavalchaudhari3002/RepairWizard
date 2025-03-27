@@ -21,9 +21,18 @@ import type { Notification } from "@shared/schema";
 const notificationSound = new Audio("/notification.mp3");
 
 export function NotificationBadge() {
-  const { notifications = [], isLoading } = useNotifications();
+  const { notifications = [], isLoading, notificationPrefs } = useNotifications();
   if (isLoading) return null;
 
+  // Check if notifications are enabled
+  const notificationsEnabled = notificationPrefs.desktop || 
+                              notificationPrefs.toast || 
+                              notificationPrefs.sound || 
+                              notificationPrefs.animateBell;
+  
+  // If notifications are disabled, don't show badge
+  if (!notificationsEnabled) return null;
+  
   const unreadCount = notifications.filter((n: Notification) => !n.read).length;
   if (!unreadCount) return null;
 
@@ -236,8 +245,8 @@ export function NotificationsPopover() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <motion.div
-            animate={unreadCount && notificationPrefs.animateBell ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
-            transition={{ duration: 1, repeat: (unreadCount && notificationPrefs.animateBell) ? Infinity : 0, repeatDelay: 3 }}
+            animate={unreadCount && notificationPrefs.animateBell && notificationsEnabled ? { rotate: [0, -10, 10, -10, 10, 0] } : {}}
+            transition={{ duration: 1, repeat: (unreadCount && notificationPrefs.animateBell && notificationsEnabled) ? Infinity : 0, repeatDelay: 3 }}
           >
             {unreadCount ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
           </motion.div>

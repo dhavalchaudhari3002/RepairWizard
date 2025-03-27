@@ -51,13 +51,28 @@ export function useNotifications() {
   }, [notificationPrefs.desktop]);
 
   const showNotification = useCallback((title: string, message: string) => {
+    // Check if any notifications are enabled at all - if all are off, don't show anything
+    const notificationsEnabled = notificationPrefs.desktop || 
+                                 notificationPrefs.toast || 
+                                 notificationPrefs.sound || 
+                                 notificationPrefs.animateBell;
+    
+    if (!notificationsEnabled) {
+      console.log('Notifications are disabled, skipping notification:', title);
+      return;
+    }
+    
     // Play notification sound only if enabled
     if (notificationPrefs.sound) {
-      notificationSound.play().catch(console.error);
+      console.log('Playing notification sound for:', title);
+      notificationSound.play().catch(error => {
+        console.error('Failed to play notification sound:', error);
+      });
     }
 
     // Show desktop notification if permitted and enabled
     if (notificationPrefs.desktop && "Notification" in window && Notification.permission === "granted") {
+      console.log('Showing desktop notification for:', title);
       new Notification(title, {
         body: message,
         icon: "/favicon.ico"
@@ -66,6 +81,7 @@ export function useNotifications() {
 
     // Show toast notification if enabled
     if (notificationPrefs.toast) {
+      console.log('Showing toast notification for:', title);
       toast({
         title,
         description: message,
