@@ -185,15 +185,15 @@ export default function ErrorDashboard() {
           
           {/* Environment Selector */}
           <Select 
-            value={environment || ""} 
-            onValueChange={(value) => setEnvironment(value || undefined)}
+            value={environment || "all"} 
+            onValueChange={(value) => setEnvironment(value === "all" ? undefined : value)}
           >
             <SelectTrigger className="w-[150px]">
               <Server className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Environments</SelectItem>
+              <SelectItem value="all">All Environments</SelectItem>
               {Object.keys(errorStats.environmentCounts || {}).map((env) => (
                 <SelectItem key={env} value={env}>
                   {env.charAt(0).toUpperCase() + env.slice(1)}
@@ -204,15 +204,15 @@ export default function ErrorDashboard() {
           
           {/* Severity Selector */}
           <Select 
-            value={severity || ""} 
-            onValueChange={(value: any) => setSeverity(value || undefined)}
+            value={severity || "all"} 
+            onValueChange={(value: any) => setSeverity(value === "all" ? undefined : value)}
           >
             <SelectTrigger className="w-[150px]">
               <AlertCircle className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Severities</SelectItem>
+              <SelectItem value="all">All Severities</SelectItem>
               <SelectItem value="low">Low</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>

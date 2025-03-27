@@ -41,7 +41,7 @@ async function testErrorTracking() {
       message: "Direct test error for database",
       type: "DirectTestError",
       stack: error.stack,
-      userId: 1,
+      userId: 26, // Using valid user ID from database
       path: "/api/direct-test",
       requestId: "direct-test-123",
       userAgent: "Direct Test User Agent",
