@@ -6,10 +6,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Brain, ChevronRight, Info, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
 
 export function CostEstimate({ data }: { data: any }) {
+  const [showMLInfo, setShowMLInfo] = useState(false);
+  
   // Calculate a dynamic progress value based on the cost range
   const { progressValue, progressColor } = useMemo(() => {
     // Define our cost scale boundaries
@@ -57,8 +70,69 @@ export function CostEstimate({ data }: { data: any }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cost Estimate</CardTitle>
-        <CardDescription>Based on typical repair costs</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Cost Estimate</CardTitle>
+            <CardDescription>
+              {data.useML 
+                ? "Using machine learning analysis" 
+                : "Based on typical repair costs"}
+            </CardDescription>
+          </div>
+          {data.useML && (
+            <Dialog open={showMLInfo} onOpenChange={setShowMLInfo}>
+              <DialogTrigger asChild>
+                <Badge variant="outline" className="flex items-center gap-1 border-primary/50 cursor-pointer hover:bg-primary/10 transition-colors">
+                  <Brain className="h-3 w-3 text-primary" />
+                  <span className="text-xs">AI Powered</span>
+                  <Info className="h-3 w-3 ml-1 text-muted-foreground" />
+                </Badge>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    AI-Powered Cost Estimates
+                  </DialogTitle>
+                  <DialogDescription>
+                    How machine learning improves repair cost accuracy
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Training Data Analysis</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Our machine learning model is trained on thousands of real repair cases across different device types and issues.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Personalized Estimates</h4>
+                    <p className="text-sm text-muted-foreground">
+                      The model considers device specifics, issue complexity, parts costs, and labor requirements to provide a more accurate estimate.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Continuous Learning</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Our system improves over time as more repair data becomes available, making estimates increasingly accurate.
+                    </p>
+                  </div>
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <span className="text-primary">Benefits:</span>
+                    </div>
+                    <ul className="text-sm space-y-1 mt-1 pl-5 list-disc text-muted-foreground">
+                      <li>More precise cost ranges</li>
+                      <li>Better prediction of repair difficulty</li>
+                      <li>More accurate time estimates</li>
+                      <li>Confidence scoring to indicate estimate reliability</li>
+                    </ul>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -88,6 +162,23 @@ export function CostEstimate({ data }: { data: any }) {
             <p className={cn("text-sm font-medium", difficultyColor)}>{data.difficulty}</p>
           </div>
         </div>
+        
+        {data.useML && data.confidence && (
+          <div className="pt-2 border-t">
+            <div className="flex justify-between items-center mb-1">
+              <h4 className="text-sm font-medium">AI Confidence</h4>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(data.confidence * 100)}%
+              </span>
+            </div>
+            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-500" 
+                style={{ width: `${data.confidence * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

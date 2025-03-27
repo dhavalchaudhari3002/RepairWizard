@@ -13,6 +13,13 @@ import { promisify } from "util";
 import { getErrorStats } from "./services/error-tracking";
 import type { SessionData } from "express-session";
 import { getProductRecommendations, updateProductPrices, updateProductReviews } from "./services/product-service";
+import { setupRepairCostAPI } from "./ml-services/repair-cost-api";
+import { 
+  predictRepairCost, 
+  getRepairDifficulty, 
+  estimateRepairTime, 
+  getIssuesAndRecommendations 
+} from "./ml-services/repair-cost-model";
 
 declare module 'express-session' {
   interface SessionData {
@@ -328,10 +335,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/repair-requests/:id/estimate", async (req, res) => {
     const productType = req.query.productType as string;
-    console.log(`Generating estimate for product type: "${productType}"`);
+    const useML = req.query.useML === 'true';
+    console.log(`Generating estimate for product type: "${productType}", useML: ${useML}`);
+    
+    // Check if we should use ML-based estimation
+    if (useML) {
+      try {
+        console.log('Using ML model for repair estimation');
+        // Get cost prediction from ML model
+        const prediction = await predictRepairCost(
+          productType,
+          'general_repair',
+          0,  // Default parts cost
+          1,  // Default labor hours
+          'medium'  // Default complexity
+        );
+        
+        // Get additional information
+        const difficulty = getRepairDifficulty(prediction.predictedCost, 'medium');
+        const timeEstimate = estimateRepairTime(prediction.predictedCost, 'medium');
+        const { commonIssues, recommendations } = getIssuesAndRecommendations(productType);
+        
+        const mlEstimate = {
+          costRange: prediction.costRange,
+          timeEstimate,
+          difficulty,
+          commonIssues,
+          recommendations,
+          modelType: 'machine-learning',
+          confidence: prediction.confidence
+        };
+        
+        console.log(`Generated ML estimate: ${JSON.stringify(mlEstimate)}`);
+        return res.json(mlEstimate);
+      } catch (error) {
+        console.warn('ML estimation failed, falling back to mock data:', error);
+        // If ML fails, fall back to mock data silently
+      }
+    }
+    
+    // Fallback to mock data or if useML is false
     const estimate = generateMockEstimate(productType);
-    console.log(`Generated estimate: ${JSON.stringify(estimate)}`);
-    res.json(estimate);
+    console.log(`Generated rule-based estimate: ${JSON.stringify(estimate)}`);
+    res.json({
+      ...estimate,
+      modelType: 'rule-based'
+    });
   });
 
   app.post("/api/repair-questions", async (req, res) => {
@@ -414,6 +463,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Initialize ML-based repair cost estimation API
+  try {
+    await setupRepairCostAPI(app);
+    console.log("ML-based repair cost API initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize ML-based repair cost API:", error);
+    console.log("Application will continue with rule-based estimation only");
+  }
 
   console.log("All routes registered successfully");
   return httpServer;

@@ -17,8 +17,15 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RepairFormProps {
   onSubmit?: (data: any) => void;
@@ -29,6 +36,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [step, setStep] = useState(1);
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [useML, setUseML] = useState<boolean>(true);
   const { toast } = useToast();
 
   const form = useForm<InsertRepairRequest>({
@@ -53,7 +61,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       const data = await res.json();
 
       // Then, get the estimate
-      const estimateUrl = `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}`;
+      const estimateUrl = `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}&useML=${useML}`;
       const estimateRes = await apiRequest(
         "GET",
         estimateUrl
@@ -225,6 +233,27 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="flex items-center justify-between mb-4 p-3 border rounded-md bg-muted/30">
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Brain className={`h-5 w-5 ${useML ? 'text-primary' : 'text-muted-foreground'}`} />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Machine learning provides more accurate estimates based on thousands of repair data points</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <span className="text-sm font-medium">Use AI-powered cost estimates</span>
+          </div>
+          <Switch
+            checked={useML}
+            onCheckedChange={setUseML}
+            aria-label="Toggle ML-based estimation"
+          />
+        </div>
 
         <Button 
           type="submit" 
