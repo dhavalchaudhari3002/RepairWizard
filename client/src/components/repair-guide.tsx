@@ -220,49 +220,54 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
               </div>
             </div>
 
-            <Tabs defaultValue="instructions" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="instructions">Instructions</TabsTrigger>
-                <TabsTrigger value="questions" className="flex items-center justify-center gap-1">
-                  <MessageCircle className="h-4 w-4" />
-                  Questions
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="instructions" className="mt-0">
-                <h4 className="font-medium mb-2">{step.title}</h4>
-                <p className="text-sm mb-4">{step.description}</p>
+            <div className="space-y-6">
+              {/* Instructions Section */}
+              <div className="mb-6">
+                <div className="bg-primary/5 p-3 rounded-t-lg">
+                  <h4 className="font-medium">Instructions</h4>
+                </div>
+                <div className="p-4 border border-t-0 rounded-b-lg">
+                  <h4 className="font-medium mb-2">{step.title}</h4>
+                  <p className="text-sm mb-4">{step.description}</p>
 
-                {step.safetyWarnings && step.safetyWarnings.length > 0 && (
-                  <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded p-3 mb-4">
-                    <h5 className="text-sm font-medium mb-1">Step-specific Safety Notes:</h5>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      {step.safetyWarnings.map((warning, i) => (
-                        <li key={i}>{warning}</li>
-                      ))}
-                    </ul>
+                  {step.safetyWarnings && step.safetyWarnings.length > 0 && (
+                    <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded p-3 mb-4">
+                      <h5 className="text-sm font-medium mb-1">Step-specific Safety Notes:</h5>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        {step.safetyWarnings.map((warning, i) => (
+                          <li key={i}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="bg-muted rounded p-3">
+                    <h5 className="text-sm font-medium mb-1">Visual Guide:</h5>
+                    <p className="text-sm text-muted-foreground">{step.imageDescription}</p>
                   </div>
-                )}
-
-                <div className="bg-muted rounded p-3">
-                  <h5 className="text-sm font-medium mb-1">Visual Guide:</h5>
-                  <p className="text-sm text-muted-foreground">{step.imageDescription}</p>
                 </div>
-              </TabsContent>
+              </div>
               
-              <TabsContent value="questions" className="mt-0">
-                <div className="bg-muted/30 rounded-lg p-3 mb-4">
-                  <p className="text-sm">
-                    Have questions about <strong>"{step.title}"</strong>? Ask for help or clarification about this specific step.
-                  </p>
+              {/* Questions Section */}
+              <div>
+                <div className="bg-muted p-3 rounded-t-lg flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <h4 className="font-medium">Questions</h4>
                 </div>
-                <RepairQuestions 
-                  productType={productType} 
-                  issueDescription={issue}
-                  currentStep={currentStep}
-                />
-              </TabsContent>
-            </Tabs>
+                <div className="p-4 border border-t-0 rounded-b-lg">
+                  <div className="bg-muted/30 rounded-lg p-3 mb-4">
+                    <p className="text-sm">
+                      Have questions about <strong>"{step.title}"</strong>? Ask for help or clarification about this specific step.
+                    </p>
+                  </div>
+                  <RepairQuestions 
+                    productType={productType} 
+                    issueDescription={issue}
+                    currentStep={currentStep}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
