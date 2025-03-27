@@ -13,6 +13,7 @@ interface RepairGuidanceData {
   issueDescription?: string;
   commonIssues: string[];
   recommendations: string[];
+  repairRequestId?: number;
 }
 
 export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
@@ -62,7 +63,8 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
         <CardContent>
           <RepairGuide 
             productType={data.productType} 
-            issue={data.issueDescription || 'General repair guidance needed'} 
+            issue={data.issueDescription || 'General repair guidance needed'}
+            repairRequestId={data.repairRequestId}
           />
         </CardContent>
       </Card>
