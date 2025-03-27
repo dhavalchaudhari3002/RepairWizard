@@ -69,7 +69,7 @@ Provide your response in this exact JSON format:
           content: `Generate a repair guide for ${productType}. Issue: ${issue}`
         }
       ],
-      temperature: 0.7,
+      temperature: 0, // Set to 0 for consistent, deterministic responses
       max_tokens: 2000
     });
 
@@ -158,7 +158,7 @@ Format your response as a JSON object with an "answer" field containing your res
     const response = await openai.chat.completions.create({
       model: input.imageUrl ? "gpt-4-vision-preview" : "gpt-4",
       messages,
-      temperature: 0.7,
+      temperature: 0, // Set to 0 for consistent, deterministic responses
       max_tokens: 800
     });
 

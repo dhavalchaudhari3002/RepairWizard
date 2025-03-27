@@ -1,0 +1,31 @@
+Model Architecture:
+
+Hidden Layers: A single hidden layer with 8 neurons might be too simplistic for complex relationships in repair cost prediction. Consider adding more hidden layers or increasing the number of neurons per layer. Experiment with different architectures (e.g., convolutional neural networks if you have textual data).
+
+Activation Functions: While ReLU is common, explore other activation functions like sigmoid, tanh, or LeakyReLU, especially in the output layer.
+
+Regularization: To prevent overfitting, incorporate regularization techniques like L1 or L2 regularization during training.
+
+Training Parameters:
+
+Epochs: 100 epochs might be sufficient, but it depends on the complexity of your data. Monitor the validation loss and adjust epochs accordingly.
+
+Batch Size: Batch size of 8 might be too small. Experiment with larger batch sizes (e.g., 32, 64) to potentially speed up training.
+
+Learning Rate: The Adam optimizer has a learning rate. You might need to tune this value for optimal convergence.
+
+Feature Engineering:
+
+Interaction Terms: Create new features by combining existing ones (e.g., device type * issue type). This can capture complex interactions.
+
+Feature Scaling: While you mention normalization, consider other scaling techniques like standardization (z-score normalization) to see if it improves performance.
+
+Domain Expertise: Incorporate domain knowledge about repair costs. Are there specific device models or issue types that are consistently more expensive to repair?
+
+Evaluation Metrics:
+
+Mean Squared Error (MSE): MSE is a good starting point, but consider other metrics like Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), or R-squared to get a more comprehensive understanding of your model's performance.
+
+Hyperparameter Tuning:
+
+Grid Search or Random Search: Systematically explore different combinations of hyperparameters (e.g., number of layers, neurons, activation functions, learning rate) to find the best-performing configuration.
