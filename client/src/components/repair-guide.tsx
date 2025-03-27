@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, ShoppingCart, MessageCircle } from "lucide-react";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { RepairQuestions } from "./repair-questions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
 
 interface RepairGuideStep {
   step: number;
@@ -39,6 +40,56 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [_, navigate] = useLocation();
+  const { 
+    trackGuideView,
+    trackStepView,
+    trackStepSkip,
+    trackGuideCompletion,
+    trackGuideAbandonment,
+    trackVideoSearch
+  } = useInteractionTracking();
+  
+  // Reference for guide start time to calculate duration
+  const startTimeRef = useRef<Date | null>(null);
+  
+  // Track guide completion when reaching the last step
+  useEffect(() => {
+    if (guide && repairRequestId && currentStep === guide.steps.length - 1) {
+      // User has reached the last step - this could be considered completion
+      // We'll track this event only once when they first reach the last step
+      if (startTimeRef.current) {
+        const durationSeconds = Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000);
+        trackGuideCompletion(repairRequestId, productType, guide.title, durationSeconds);
+      }
+    }
+  }, [currentStep, guide, productType, repairRequestId, trackGuideCompletion]);
+  
+  // Track initial step view
+  useEffect(() => {
+    if (guide && repairRequestId && currentStep === 0) {
+      // Track viewing the first step
+      trackStepView(repairRequestId, productType, guide.title, guide.steps[0].step);
+    }
+  }, [guide, productType, repairRequestId, trackStepView]);
+  
+  // Cleanup effect to track abandonment if the component unmounts
+  useEffect(() => {
+    return () => {
+      if (guide && repairRequestId && startTimeRef.current) {
+        // Check if guide wasn't completed
+        if (currentStep < guide.steps.length - 1) {
+          const durationSeconds = Math.round((new Date().getTime() - startTimeRef.current.getTime()) / 1000);
+          trackGuideAbandonment(
+            repairRequestId, 
+            productType, 
+            guide.title, 
+            guide.steps[currentStep].step, 
+            durationSeconds
+          );
+        }
+      }
+    };
+  }, [guide, currentStep, productType, repairRequestId, trackGuideAbandonment]);
 
   const generateGuide = async () => {
     if (!productType || !issue) {
@@ -75,6 +126,15 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
 
       setGuide(data);
       setCurrentStep(0);
+      
+      // Start tracking time
+      startTimeRef.current = new Date();
+      
+      // Track guide view
+      if (repairRequestId) {
+        trackGuideView(repairRequestId, productType, data.title);
+      }
+      
       toast({
         title: "Success",
         description: "Repair guide generated successfully.",
@@ -94,6 +154,12 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
   const openYoutubeSearch = () => {
     if (!guide) return;
     const searchQuery = encodeURIComponent(`${guide.title} ${guide.videoKeywords.join(' ')}`);
+    
+    // Track the video search interaction
+    if (repairRequestId) {
+      trackVideoSearch(repairRequestId, productType, { searchTerms: guide.videoKeywords });
+    }
+    
     window.open(`https://www.youtube.com/results?search_query=${searchQuery}`, '_blank');
   };
 
@@ -205,7 +271,20 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                  onClick={() => {
+                    const newStep = Math.max(0, currentStep - 1);
+                    setCurrentStep(newStep);
+                    
+                    // Track step view when navigating to previous step
+                    if (repairRequestId && newStep !== currentStep) {
+                      trackStepView(
+                        repairRequestId, 
+                        productType, 
+                        guide.title, 
+                        guide.steps[newStep].step
+                      );
+                    }
+                  }}
                   disabled={currentStep === 0}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -213,7 +292,20 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setCurrentStep(prev => Math.min(guide.steps.length - 1, prev + 1))}
+                  onClick={() => {
+                    const newStep = Math.min(guide.steps.length - 1, currentStep + 1);
+                    setCurrentStep(newStep);
+                    
+                    // Track step view when navigating to next step
+                    if (repairRequestId && newStep !== currentStep) {
+                      trackStepView(
+                        repairRequestId, 
+                        productType, 
+                        guide.title, 
+                        guide.steps[newStep].step
+                      );
+                    }
+                  }}
                   disabled={currentStep === guide.steps.length - 1}
                 >
                   <ChevronRight className="h-4 w-4" />

@@ -3,7 +3,12 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { storage } from "./storage";
-import { insertRepairRequestSchema, type User } from "@shared/schema";
+import { 
+  insertRepairRequestSchema,
+  insertUserInteractionSchema, 
+  type User,
+  type InsertUserInteraction 
+} from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide } from "./services/openai";
 import { setupAuth } from "./auth";
@@ -459,6 +464,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching product recommendations:", error);
       res.status(500).json({ 
         error: "Failed to fetch product recommendations",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // User Interaction Tracking Routes
+  app.post("/api/interactions", async (req, res) => {
+    try {
+      // User ID is optional (anonymous interactions allowed)
+      const userId = req.isAuthenticated() ? (req.user as Express.User).id : null;
+      
+      // Validate the data with the schema
+      const interactionData = insertUserInteractionSchema.parse({
+        ...req.body,
+        userId: userId || req.body.userId
+      });
+      
+      // Track the interaction in the database
+      const interaction = await storage.trackUserInteraction(interactionData);
+      console.log("Tracked user interaction:", {
+        id: interaction.id,
+        type: interaction.interactionType,
+        userId: interaction.userId,
+        repairRequestId: interaction.repairRequestId
+      });
+      
+      res.status(201).json(interaction);
+    } catch (error) {
+      console.error("Error tracking user interaction:", error);
+      res.status(400).json({ 
+        error: "Failed to track interaction",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/interactions/user/:userId", async (req, res) => {
+    try {
+      // Only allow users to access their own interactions or admins
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = req.user as Express.User;
+      const targetUserId = parseInt(req.params.userId);
+      
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      // Only allow users to see their own interactions (unless admin)
+      if (user.id !== targetUserId && user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized to view these interactions" });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const interactions = await storage.getUserInteractions(targetUserId, limit);
+      
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching user interactions:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch interactions",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/interactions/repair/:repairRequestId", async (req, res) => {
+    try {
+      const repairRequestId = parseInt(req.params.repairRequestId);
+      
+      if (isNaN(repairRequestId)) {
+        return res.status(400).json({ error: "Invalid repair request ID" });
+      }
+      
+      const interactions = await storage.getRepairRequestInteractions(repairRequestId);
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching repair request interactions:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch interactions",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/interactions/stats", async (req, res) => {
+    try {
+      // This endpoint should be admin-only in production
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = req.user as Express.User;
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized to view interaction stats" });
+      }
+      
+      // Parse query parameters
+      const type = req.query.type as string || undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      
+      const stats = await storage.getInteractionStats(type, startDate, endDate);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching interaction stats:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch interaction statistics",
         details: error instanceof Error ? error.message : String(error)
       });
     }

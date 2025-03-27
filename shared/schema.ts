@@ -285,3 +285,31 @@ export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;
 
 export type ProductRecommendation = typeof productRecommendations.$inferSelect;
 export type InsertProductRecommendation = z.infer<typeof insertProductRecommendationSchema>;
+
+// User Interaction Tracking
+export const userInteractions = pgTable("user_interactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  repairRequestId: integer("repair_request_id").references(() => repairRequests.id),
+  interactionType: text("interaction_type", { 
+    enum: ["view_guide", "view_step", "ask_question", "skip_step", "complete_guide", "abandon_guide", "click_product", "search_video"]
+  }).notNull(),
+  guideStep: integer("guide_step"), // For step-specific interactions
+  guideTitle: text("guide_title"), // Store the guide title for easier reporting
+  productType: text("product_type"), // Store the product type for analytics
+  durationSeconds: integer("duration_seconds"), // Time spent on a particular step
+  metadata: jsonb("metadata"), // Additional data like search terms, clicked products
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertUserInteractionSchema = createInsertSchema(userInteractions)
+  .omit({
+    id: true,
+    timestamp: true,
+  })
+  .extend({
+    metadata: z.record(z.any()).optional(),
+  });
+
+export type UserInteraction = typeof userInteractions.$inferSelect;
+export type InsertUserInteraction = z.infer<typeof insertUserInteractionSchema>;

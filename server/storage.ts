@@ -1,6 +1,16 @@
-import { users, repairRequests, notifications, type User, type RepairRequest, type Notification } from "@shared/schema";
+import { 
+  users, 
+  repairRequests, 
+  notifications, 
+  userInteractions,
+  type User, 
+  type RepairRequest, 
+  type Notification,
+  type UserInteraction,
+  type InsertUserInteraction
+} from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { sendWelcomeEmail } from "./services/email";
@@ -26,6 +36,21 @@ export interface IStorage {
   getUserNotifications(userId: number): Promise<Notification[]>;
   markNotificationAsRead(id: number): Promise<void>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
+
+  // User Interaction Tracking
+  trackUserInteraction(interaction: InsertUserInteraction): Promise<UserInteraction>;
+  getUserInteractions(userId: number, limit?: number): Promise<UserInteraction[]>;
+  getRepairRequestInteractions(repairRequestId: number): Promise<UserInteraction[]>;
+  getInteractionStats(
+    type?: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{ 
+    count: number; 
+    avgDuration?: number;
+    topProductTypes?: {productType: string, count: number}[];
+    interactionsByType?: {type: string, count: number}[];
+  }>;
 
   // Session store
   sessionStore: session.Store;
@@ -328,6 +353,149 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.id, userId));
     } catch (error) {
       console.error("Error in updateUserPassword:", error);
+      throw error;
+    }
+  }
+
+  // User Interaction Tracking Methods
+  async trackUserInteraction(interactionData: InsertUserInteraction): Promise<UserInteraction> {
+    try {
+      const [interaction] = await db
+        .insert(userInteractions)
+        .values(interactionData)
+        .returning();
+      return interaction;
+    } catch (error) {
+      console.error("Error in trackUserInteraction:", error);
+      throw error;
+    }
+  }
+
+  async getUserInteractions(userId: number, limit: number = 50): Promise<UserInteraction[]> {
+    try {
+      return await db
+        .select()
+        .from(userInteractions)
+        .where(eq(userInteractions.userId, userId))
+        .orderBy(desc(userInteractions.timestamp))
+        .limit(limit);
+    } catch (error) {
+      console.error("Error in getUserInteractions:", error);
+      throw error;
+    }
+  }
+
+  async getRepairRequestInteractions(repairRequestId: number): Promise<UserInteraction[]> {
+    try {
+      return await db
+        .select()
+        .from(userInteractions)
+        .where(eq(userInteractions.repairRequestId, repairRequestId))
+        .orderBy(desc(userInteractions.timestamp));
+    } catch (error) {
+      console.error("Error in getRepairRequestInteractions:", error);
+      throw error;
+    }
+  }
+
+  async getInteractionStats(
+    type?: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{ 
+    count: number; 
+    avgDuration?: number;
+    topProductTypes?: {productType: string, count: number}[];
+    interactionsByType?: {type: string, count: number}[];
+  }> {
+    try {
+      // Build filter conditions first
+      const conditions = [];
+      
+      if (type) {
+        conditions.push(eq(userInteractions.interactionType, type));
+      }
+      
+      if (startDate) {
+        conditions.push(sql`${userInteractions.timestamp} >= ${startDate}`);
+      }
+      
+      if (endDate) {
+        conditions.push(sql`${userInteractions.timestamp} <= ${endDate}`);
+      }
+      
+      // Get total count with conditions
+      let countQuery = db.select({ count: count() }).from(userInteractions);
+      if (conditions.length > 0) {
+        countQuery = countQuery.where(and(...conditions));
+      }
+      const [countResult] = await countQuery;
+      
+      // Calculate average duration for interactions with duration data
+      let durationQuery = db
+        .select({
+          avgDuration: sql`AVG(${userInteractions.durationSeconds})::float`
+        })
+        .from(userInteractions)
+        .where(sql`${userInteractions.durationSeconds} IS NOT NULL`);
+      
+      if (conditions.length > 0) {
+        durationQuery = durationQuery.where(and(...conditions));
+      }
+      const [durationResult] = await durationQuery;
+      
+      // Get top product types
+      let productTypesQuery = db
+        .select({
+          productType: userInteractions.productType,
+          count: count()
+        })
+        .from(userInteractions)
+        .where(sql`${userInteractions.productType} IS NOT NULL`);
+      
+      if (conditions.length > 0) {
+        productTypesQuery = productTypesQuery.where(and(...conditions));
+      }
+      
+      const topProductTypes = await productTypesQuery
+        .groupBy(userInteractions.productType)
+        .orderBy(desc(count()))
+        .limit(5);
+      
+      // Get interactions grouped by type
+      let interactionsByTypeQuery = db
+        .select({
+          type: userInteractions.interactionType,
+          count: count()
+        })
+        .from(userInteractions);
+      
+      // Only apply date filters to the interactions by type query
+      const dateConditions = conditions.filter(c => 
+        c.toString().includes('timestamp'));
+      
+      if (dateConditions.length > 0) {
+        interactionsByTypeQuery = interactionsByTypeQuery.where(and(...dateConditions));
+      }
+      
+      const interactionsByType = await interactionsByTypeQuery
+        .groupBy(userInteractions.interactionType)
+        .orderBy(desc(count()));
+      
+      return {
+        count: countResult?.count || 0,
+        avgDuration: durationResult?.avgDuration as number | undefined,
+        topProductTypes: topProductTypes.map(pt => ({ 
+          productType: pt.productType || 'Unknown', 
+          count: Number(pt.count) 
+        })),
+        interactionsByType: interactionsByType.map(it => ({ 
+          type: it.type as string, 
+          count: Number(it.count) 
+        })),
+      };
+    } catch (error) {
+      console.error("Error in getInteractionStats:", error);
       throw error;
     }
   }
