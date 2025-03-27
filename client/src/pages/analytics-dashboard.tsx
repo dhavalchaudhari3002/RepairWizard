@@ -100,12 +100,12 @@ function AnalyticsDashboardContent() {
             </div>
             <div>
               <p className="text-sm font-medium mb-2">Interaction Type</p>
-              <Select value={interactionType || ""} onValueChange={value => setInteractionType(value === "" ? undefined : value)}>
+              <Select value={interactionType || "all"} onValueChange={value => setInteractionType(value === "all" ? undefined : value)}>
                 <SelectTrigger className="w-[240px]">
                   <SelectValue placeholder="All interaction types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All interaction types</SelectItem>
+                  <SelectItem value="all">All interaction types</SelectItem>
                   <SelectItem value="view_guide">View Guide</SelectItem>
                   <SelectItem value="view_step">View Step</SelectItem>
                   <SelectItem value="ask_question">Ask Question</SelectItem>

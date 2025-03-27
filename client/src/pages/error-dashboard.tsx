@@ -195,7 +195,7 @@ export default function ErrorDashboard() {
             <SelectContent>
               <SelectItem value="all">All Environments</SelectItem>
               {Object.keys(errorStats.environmentCounts || {}).map((env) => (
-                <SelectItem key={env} value={env}>
+                env && <SelectItem key={env} value={env}>
                   {env.charAt(0).toUpperCase() + env.slice(1)}
                 </SelectItem>
               ))}
