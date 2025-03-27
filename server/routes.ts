@@ -67,7 +67,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws'
+    path: '/ws',
+    clientTracking: true,
+    // Add ping/pong to keep connections alive
+    pingInterval: 30000,
+    pingTimeout: 5000
   });
   console.log("WebSocket server initialized");
 
@@ -119,17 +123,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await getUserFromRequest(req);
-      
+
       if (user) {
         console.log(`Authenticated WebSocket connection for user ${user.id}`);
         // Store the WebSocket connection for this user
         clients.set(user.id, ws);
-        
+
         ws.on('message', (message) => {
           try {
             const data = JSON.parse(message.toString());
             console.log(`Message from user ${user.id}:`, data);
-            
+
             // Handle ping messages for connection health check
             if (data.type === 'ping') {
               ws.send(JSON.stringify({
@@ -141,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error(`Error parsing message from user ${user.id}:`, error);
           }
         });
-        
+
         ws.on('error', (error) => {
           console.error(`WebSocket error for user ${user.id}:`, error);
         });
@@ -161,12 +165,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // For development, allow unauthenticated connections but with limited functionality
         console.log('Allowing connection without authentication temporarily');
-        
+
         ws.on('message', (message) => {
           try {
             const data = JSON.parse(message.toString());
             console.log('Message from unauthenticated client:', data);
-            
+
             // Handle ping messages for connection health check
             if (data.type === 'ping') {
               ws.send(JSON.stringify({
@@ -178,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('Error parsing message from unauthenticated client:', error);
           }
         });
-        
+
         ws.on('error', (error) => {
           console.error('WebSocket error:', error);
         });
@@ -214,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...data,
         customerId: user.id
       });
-      
+
       // We've removed the code that creates and sends the "Repair Request Created" notification
       // as per user request
 
@@ -319,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           relatedEntityId: requestId,
           read: false 
         });
-        
+
         // Send real-time notification via WebSocket if client is connected
         const userWs = clients.get(repairRequest.customerId);
         if (userWs?.readyState === WebSocket.OPEN) {
@@ -345,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const productType = req.query.productType as string;
     const useML = req.query.useML === 'true';
     console.log(`Generating estimate for product type: "${productType}", useML: ${useML}`);
-    
+
     // Check if we should use ML-based estimation
     if (useML) {
       try {
@@ -358,12 +362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           1,  // Default labor hours
           'medium'  // Default complexity
         );
-        
+
         // Get additional information
         const difficulty = getRepairDifficulty(prediction.predictedCost, 'medium');
         const timeEstimate = estimateRepairTime(prediction.predictedCost, 'medium');
         const { commonIssues, recommendations } = getIssuesAndRecommendations(productType);
-        
+
         const mlEstimate = {
           costRange: prediction.costRange,
           timeEstimate,
@@ -373,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           modelType: 'machine-learning',
           confidence: prediction.confidence
         };
-        
+
         console.log(`Generated ML estimate: ${JSON.stringify(mlEstimate)}`);
         return res.json(mlEstimate);
       } catch (error) {
@@ -381,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If ML fails, fall back to mock data silently
       }
     }
-    
+
     // Fallback to mock data or if useML is false
     const estimate = generateMockEstimate(productType);
     console.log(`Generated rule-based estimate: ${JSON.stringify(estimate)}`);
@@ -408,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         context, 
         currentStep 
       }, repairRequestId);
-      
+
       res.json(answer);
     } catch (error) {
       console.error("Error processing repair question:", error);
@@ -459,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity?: 'low' | 'medium' | 'high' | 'critical';
         version?: string;
       };
-      
+
       // Call getErrorStats with filters if provided
       const stats = await getErrorStats({
         timeRange,
@@ -468,14 +472,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity,
         version
       });
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Error fetching error statistics:", error);
       res.status(500).json({ error: "Failed to fetch error statistics" });
     }
   });
-  
+
   // Route to mark an error as resolved
   app.patch("/api/errors/:id/resolve", async (req, res) => {
     try {
@@ -483,13 +487,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(errorId)) {
         return res.status(400).json({ error: "Invalid error ID" });
       }
-      
+
       // Update error status to resolved
       await db
         .update(errors)
         .set({ resolved: true })
         .where(eq(errors.id, errorId));
-        
+
       res.json({ success: true, message: "Error marked as resolved" });
     } catch (error) {
       console.error("Error resolving error:", error);
@@ -499,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Route to get a specific error details
   app.get("/api/errors/:id", async (req, res) => {
     try {
@@ -507,17 +511,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(errorId)) {
         return res.status(400).json({ error: "Invalid error ID" });
       }
-      
+
       // Get error details
       const [errorDetails] = await db
         .select()
         .from(errors)
         .where(eq(errors.id, errorId));
-        
+
       if (!errorDetails) {
         return res.status(404).json({ error: "Error not found" });
       }
-        
+
       res.json(errorDetails);
     } catch (error) {
       console.error("Error fetching error details:", error);
@@ -552,13 +556,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // User ID is optional (anonymous interactions allowed)
       const userId = req.isAuthenticated() ? (req.user as Express.User).id : null;
-      
+
       // Validate the data with the schema
       const interactionData = insertUserInteractionSchema.parse({
         ...req.body,
         userId: userId || req.body.userId
       });
-      
+
       // Track the interaction in the database
       const interaction = await storage.trackUserInteraction(interactionData);
       console.log("Tracked user interaction:", {
@@ -567,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: interaction.userId,
         repairRequestId: interaction.repairRequestId
       });
-      
+
       res.status(201).json(interaction);
     } catch (error) {
       console.error("Error tracking user interaction:", error);
@@ -584,22 +588,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const user = req.user as Express.User;
       const targetUserId = parseInt(req.params.userId);
-      
+
       if (isNaN(targetUserId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       // Only allow users to see their own interactions (unless admin)
       if (user.id !== targetUserId && user.role !== "admin") {
         return res.status(403).json({ error: "Not authorized to view these interactions" });
       }
-      
+
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const interactions = await storage.getUserInteractions(targetUserId, limit);
-      
+
       res.json(interactions);
     } catch (error) {
       console.error("Error fetching user interactions:", error);
@@ -613,11 +617,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/interactions/repair/:repairRequestId", async (req, res) => {
     try {
       const repairRequestId = parseInt(req.params.repairRequestId);
-      
+
       if (isNaN(repairRequestId)) {
         return res.status(400).json({ error: "Invalid repair request ID" });
       }
-      
+
       const interactions = await storage.getRepairRequestInteractions(repairRequestId);
       res.json(interactions);
     } catch (error) {
@@ -635,17 +639,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const user = req.user as Express.User;
       if (user.role !== "admin") {
         return res.status(403).json({ error: "Not authorized to view interaction stats" });
       }
-      
+
       // Parse query parameters
       const type = req.query.type as string || undefined;
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
-      
+
       const stats = await storage.getInteractionStats(type, startDate, endDate);
       res.json(stats);
     } catch (error) {
