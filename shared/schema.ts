@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["customer"] }).notNull(), // Removed "repairer" role
+  role: text("role", { enum: ["customer", "admin"] }).notNull(), // Added "admin" role
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
@@ -49,7 +49,7 @@ export const insertUserSchema = createInsertSchema(users)
     confirmPassword: z.string(),
     email: baseUserSchema.shape.email,
     password: baseUserSchema.shape.password,
-    role: z.enum(["customer"]), // Removed "repairer" role
+    role: z.enum(["customer", "admin"]), // Added "admin" role
     tosAccepted: z.boolean()
       .refine((val) => val === true, "You must accept the Terms of Service"),
   })

@@ -15,7 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff, ShoppingCart } from "lucide-react";
+import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff, ShoppingCart, BarChart } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
@@ -150,6 +150,14 @@ export function NavBar() {
                     Error Dashboard
                   </Link>
                 </Button>
+                {user.role && user.role === "admin" && (
+                  <Button variant="ghost" asChild>
+                    <Link href="/analytics" className="flex items-center gap-2">
+                      <BarChart className="h-4 w-4" />
+                      Analytics
+                    </Link>
+                  </Button>
+                )}
               </>
             )}
           </div>

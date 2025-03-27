@@ -3,11 +3,14 @@ import {
   repairRequests, 
   notifications, 
   userInteractions,
+  repairAnalytics,
   type User, 
   type RepairRequest, 
   type Notification,
   type UserInteraction,
-  type InsertUserInteraction
+  type InsertUserInteraction,
+  type InsertRepairAnalytics,
+  type RepairAnalytics
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -51,6 +54,9 @@ export interface IStorage {
     topProductTypes?: {productType: string, count: number}[];
     interactionsByType?: {type: string, count: number}[];
   }>;
+  
+  // AI Repair Analytics
+  trackRepairAnalytics(data: InsertRepairAnalytics): Promise<RepairAnalytics>;
 
   // Session store
   sessionStore: session.Store;
@@ -496,6 +502,104 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error("Error in getInteractionStats:", error);
+      throw error;
+    }
+  }
+  
+  // AI Repair Analytics methods
+  async trackRepairAnalytics(data: InsertRepairAnalytics): Promise<RepairAnalytics> {
+    try {
+      // Create the repair_analytics table if it doesn't exist
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS repair_analytics (
+          id SERIAL PRIMARY KEY,
+          repair_request_id INTEGER NOT NULL,
+          product_type TEXT NOT NULL,
+          issue_description TEXT NOT NULL,
+          prompt_tokens INTEGER NOT NULL,
+          completion_tokens INTEGER NOT NULL,
+          response_time INTEGER NOT NULL,
+          consistency_score FLOAT NOT NULL,
+          ai_response_summary TEXT NOT NULL,
+          inconsistency_flags TEXT[],
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Insert the analytics data without trying to store array directly in SQL
+      // Create a simple table if doesn't exist
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS repair_analytics (
+          id SERIAL PRIMARY KEY,
+          repair_request_id INTEGER NOT NULL,
+          product_type TEXT NOT NULL,
+          issue_description TEXT NOT NULL,
+          prompt_tokens INTEGER NOT NULL,
+          completion_tokens INTEGER NOT NULL,
+          response_time INTEGER NOT NULL,
+          consistency_score DECIMAL NOT NULL,
+          ai_response_summary TEXT NOT NULL,
+          inconsistency_flags JSONB,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Convert inconsistency flags to JSON string
+      const inconsistencyFlagsJson = JSON.stringify(data.inconsistencyFlags || []);
+      
+      // Now perform the insert with the proper types
+      const result = await db.execute<{ 
+        id: number, 
+        repair_request_id: number,
+        product_type: string,
+        issue_description: string,
+        prompt_tokens: number,
+        completion_tokens: number,
+        response_time: number,
+        consistency_score: string,
+        ai_response_summary: string,
+        inconsistency_flags: string,
+        created_at: Date
+      }>(
+        sql`
+        INSERT INTO repair_analytics 
+          (repair_request_id, product_type, issue_description, prompt_tokens, 
+           completion_tokens, response_time, consistency_score, ai_response_summary, 
+           inconsistency_flags, created_at) 
+        VALUES 
+          (${data.repairRequestId}, ${data.productType}, ${data.issueDescription}, ${data.promptTokens}, 
+           ${data.completionTokens}, ${data.responseTime}, ${data.consistencyScore}, ${data.aiResponseSummary}, 
+           ${inconsistencyFlagsJson}::jsonb, CURRENT_TIMESTAMP)
+        RETURNING *
+        `
+      );
+      
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error("Failed to insert repair analytics data");
+      }
+      
+      // Return the created analytics record
+      const row = result.rows[0];
+      // Parse flags from JSON string
+      const inconsistencyFlags = row.inconsistency_flags ? 
+        JSON.parse(row.inconsistency_flags) as string[] : 
+        [];
+        
+      return {
+        id: row.id,
+        repairRequestId: row.repair_request_id,
+        productType: row.product_type,
+        issueDescription: row.issue_description,
+        promptTokens: row.prompt_tokens,
+        completionTokens: row.completion_tokens,
+        responseTime: row.response_time,
+        consistencyScore: Number(row.consistency_score),
+        aiResponseSummary: row.ai_response_summary,
+        inconsistencyFlags: inconsistencyFlags,
+        createdAt: row.created_at
+      };
+    } catch (error) {
+      console.error("Error in trackRepairAnalytics:", error);
       throw error;
     }
   }

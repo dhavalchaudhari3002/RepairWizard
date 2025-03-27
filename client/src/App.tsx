@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import ResetPassword from "@/pages/reset-password";
 import ErrorDashboard from "@/pages/error-dashboard";
 import ToolsPage from "@/pages/tools-page";
+import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import { AuthProvider } from "@/hooks/use-auth";
 import { DarkModeProvider } from "@/hooks/use-dark-mode";
 import { NavBar } from "@/components/navbar";
@@ -30,6 +31,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/error-dashboard" component={ErrorDashboard} />
           <Route path="/tools" component={ToolsPage} />
+          <Route path="/analytics" component={AnalyticsDashboard} />
           <Route component={NotFound} />
         </Switch>
       </main>
