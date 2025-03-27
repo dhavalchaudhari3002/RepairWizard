@@ -199,27 +199,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...data,
         customerId: user.id
       });
-
-      const notification = await storage.createNotification({
-        userId: user.id,
-        title: "Repair Request Created",
-        message: `Your repair request for ${data.productType} has been submitted successfully.`,
-        type: "repair_update",
-        read: false,
-        relatedEntityId: repairRequest.id
-      });
-
-      const userWs = clients.get(user.id);
-      if (userWs?.readyState === WebSocket.OPEN) {
-        console.log(`Sending WebSocket notification to user ${user.id}`);
-        userWs.send(JSON.stringify({
-          type: 'notification',
-          data: notification,
-          timestamp: new Date().toISOString()
-        }));
-      } else {
-        console.log(`User ${user.id} not connected via WebSocket`);
-      }
+      
+      // We've removed the code that creates and sends the "Repair Request Created" notification
+      // as per user request
 
       res.json(repairRequest);
     } catch (error) {
