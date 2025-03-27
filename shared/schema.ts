@@ -116,13 +116,24 @@ export const insertNotificationSchema = createInsertSchema(notifications)
     read: z.boolean().optional().default(false),
   });
 
-// Errors table for tracking application errors
+// Errors table for tracking application errors with enhanced context
 export const errors = pgTable("errors", {
   id: serial("id").primaryKey(),
   message: text("message").notNull(),
   stack: text("stack"),
   type: text("type").notNull(),
   userId: integer("user_id").references(() => users.id),
+  // Enhanced context data
+  path: text("path"), // URL path where the error occurred
+  requestId: text("request_id"), // Unique ID for the request (for correlation)
+  environment: text("environment"), // e.g., 'production', 'development', 'staging'
+  version: text("version"), // Application version
+  userAgent: text("user_agent"), // Browser/client info
+  severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).default("medium"), // Error severity
+  component: text("component"), // Component/module where error occurred
+  metadata: jsonb("metadata"), // Additional structured data about the error
+  resolved: boolean("resolved").default(false), // Whether the error has been resolved
+  // Maintain the original timestamp for error occurrence
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
@@ -155,7 +166,30 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 
 export type Error = typeof errors.$inferSelect;
-export type InsertError = typeof errors.$inferInsert;
+
+// Create an enhanced error insert schema with validation
+export const insertErrorSchema = createInsertSchema(errors)
+  .omit({
+    id: true,
+    timestamp: true,
+  })
+  .extend({
+    message: z.string().min(1, "Error message is required"),
+    type: z.string().min(1, "Error type is required"),
+    stack: z.string().optional(),
+    userId: z.number().optional(),
+    path: z.string().optional(),
+    requestId: z.string().optional(),
+    environment: z.enum(["development", "testing", "staging", "production"]).optional(),
+    version: z.string().optional(),
+    userAgent: z.string().optional(),
+    severity: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+    component: z.string().optional(),
+    metadata: z.record(z.any()).optional(),
+    resolved: z.boolean().default(false),
+  });
+
+export type InsertError = z.infer<typeof insertErrorSchema>;
 
 // Create insert schema for repair analytics
 export const insertRepairAnalyticsSchema = createInsertSchema(repairAnalytics)

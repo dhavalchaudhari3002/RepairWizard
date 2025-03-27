@@ -7,7 +7,8 @@ import {
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
   type User,
-  type InsertUserInteraction 
+  type InsertUserInteraction,
+  errors
 } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide } from "./services/openai";
@@ -25,6 +26,8 @@ import {
   estimateRepairTime, 
   getIssuesAndRecommendations 
 } from "./ml-services/repair-cost-model";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 declare module 'express-session' {
   interface SessionData {
@@ -442,11 +445,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/errors/stats", async (req, res) => {
     try {
-      const stats = await getErrorStats();
+      // Extract filter parameters from query string
+      const { 
+        timeRange, 
+        environment, 
+        component, 
+        severity, 
+        version 
+      } = req.query as {
+        timeRange?: 'hour' | 'day' | 'week' | 'month';
+        environment?: string;
+        component?: string;
+        severity?: 'low' | 'medium' | 'high' | 'critical';
+        version?: string;
+      };
+      
+      // Call getErrorStats with filters if provided
+      const stats = await getErrorStats({
+        timeRange,
+        environment,
+        component,
+        severity,
+        version
+      });
+      
       res.json(stats);
     } catch (error) {
       console.error("Error fetching error statistics:", error);
       res.status(500).json({ error: "Failed to fetch error statistics" });
+    }
+  });
+  
+  // Route to mark an error as resolved
+  app.patch("/api/errors/:id/resolve", async (req, res) => {
+    try {
+      const errorId = parseInt(req.params.id);
+      if (isNaN(errorId)) {
+        return res.status(400).json({ error: "Invalid error ID" });
+      }
+      
+      // Update error status to resolved
+      await db
+        .update(errors)
+        .set({ resolved: true })
+        .where(eq(errors.id, errorId));
+        
+      res.json({ success: true, message: "Error marked as resolved" });
+    } catch (error) {
+      console.error("Error resolving error:", error);
+      res.status(500).json({ 
+        error: "Failed to resolve error", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+  
+  // Route to get a specific error details
+  app.get("/api/errors/:id", async (req, res) => {
+    try {
+      const errorId = parseInt(req.params.id);
+      if (isNaN(errorId)) {
+        return res.status(400).json({ error: "Invalid error ID" });
+      }
+      
+      // Get error details
+      const [errorDetails] = await db
+        .select()
+        .from(errors)
+        .where(eq(errors.id, errorId));
+        
+      if (!errorDetails) {
+        return res.status(404).json({ error: "Error not found" });
+      }
+        
+      res.json(errorDetails);
+    } catch (error) {
+      console.error("Error fetching error details:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch error details", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
