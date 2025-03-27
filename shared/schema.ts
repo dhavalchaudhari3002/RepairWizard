@@ -126,6 +126,23 @@ export const errors = pgTable("errors", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+// Repair request analytics for monitoring request patterns and AI response quality
+export const repairAnalytics = pgTable("repair_analytics", {
+  id: serial("id").primaryKey(),
+  repairRequestId: integer("repair_request_id").references(() => repairRequests.id).notNull(),
+  productType: text("product_type").notNull(),
+  issueDescription: text("issue_description").notNull(),
+  promptTokens: integer("prompt_tokens").notNull(),
+  completionTokens: integer("completion_tokens").notNull(),
+  responseTime: integer("response_time_ms").notNull(), // in milliseconds
+  consistencyScore: decimal("consistency_score"), // calculated score for consistency analysis
+  userFeedback: integer("user_feedback"), // user rating of response quality (1-5)
+  feedbackNotes: text("feedback_notes"), // user comments on response quality
+  aiResponseSummary: text("ai_response_summary"), // summary of AI response for analysis
+  inconsistencyFlags: text("inconsistency_flags").array(), // flags for potential inconsistencies
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -139,6 +156,22 @@ export type Notification = typeof notifications.$inferSelect;
 
 export type Error = typeof errors.$inferSelect;
 export type InsertError = typeof errors.$inferInsert;
+
+// Create insert schema for repair analytics
+export const insertRepairAnalyticsSchema = createInsertSchema(repairAnalytics)
+  .omit({
+    id: true,
+    timestamp: true,
+  })
+  .extend({
+    consistencyScore: z.number().min(0).max(1).optional(),
+    userFeedback: z.number().min(1).max(5).optional(),
+    feedbackNotes: z.string().optional(),
+    inconsistencyFlags: z.array(z.string()).optional(),
+  });
+
+export type RepairAnalytics = typeof repairAnalytics.$inferSelect;
+export type InsertRepairAnalytics = z.infer<typeof insertRepairAnalyticsSchema>;
 
 
 // New tables for product recommendations

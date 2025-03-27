@@ -30,9 +30,10 @@ interface RepairGuide {
 interface RepairGuideProps {
   productType: string;
   issue: string;
+  repairRequestId?: number;
 }
 
-export function RepairGuide({ productType, issue }: RepairGuideProps) {
+export function RepairGuide({ productType, issue, repairRequestId }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -51,11 +52,11 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
 
     setLoading(true);
     try {
-      console.log("Attempting to generate guide for:", { productType, issue });
+      console.log("Attempting to generate guide for:", { productType, issue, repairRequestId });
       const response = await apiRequest(
         "POST",
         "/api/repair-guides",
-        { productType, issue }
+        { productType, issue, repairRequestId }
       );
 
       if (!response.ok) {
@@ -264,6 +265,7 @@ export function RepairGuide({ productType, issue }: RepairGuideProps) {
                     productType={productType} 
                     issueDescription={issue}
                     currentStep={currentStep}
+                    repairRequestId={repairRequestId}
                   />
                 </div>
               </div>

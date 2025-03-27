@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
+import { RepairGuide } from "./repair-guide";
 import { ImagePlus, X, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +38,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [useML, setUseML] = useState<boolean>(true);
+  const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const { toast } = useToast();
 
   const form = useForm<InsertRepairRequest>({
@@ -59,6 +61,9 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       if (!res.ok) throw new Error('Failed to submit repair request');
 
       const data = await res.json();
+      
+      // Store the repair request ID
+      setRepairRequestId(data.id);
 
       // Then, get the estimate
       const estimateUrl = `/api/repair-requests/${data.id}/estimate?productType=${encodeURIComponent(values.productType)}&useML=${useML}`;
@@ -120,15 +125,24 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   };
 
   if (step === 2) {
+    const productType = form.getValues('productType');
+    const issueDescription = form.getValues('issueDescription');
+    
     return (
       <div className="space-y-8">
         <CostEstimate data={estimateData} />
-        <RepairGuidance data={{ ...estimateData, productType: form.getValues('productType') }} />
+        <RepairGuidance data={{ ...estimateData, productType }} />
+        <RepairGuide 
+          productType={productType} 
+          issue={issueDescription} 
+          repairRequestId={repairRequestId || undefined}
+        />
         <Button 
           onClick={() => {
             setStep(1);
             form.reset();
             setImagePreview(null);
+            setRepairRequestId(null);
             // Call the onResetForm callback if it exists
             if (onResetForm) {
               onResetForm();

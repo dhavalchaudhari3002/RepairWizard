@@ -1,5 +1,10 @@
 import OpenAI from "openai";
 import { env } from "process";
+import { trackRepairAnalytics, calculateConsistencyScore, detectInconsistencies } from "./repair-analytics";
+import { InsertRepairAnalytics } from "@shared/schema";
+import { db } from "../db";
+import { repairRequests } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -34,9 +39,10 @@ interface RepairQuestionInput {
   currentStep?: number;
 }
 
-export async function generateRepairGuide(productType: string, issue: string): Promise<RepairGuide> {
+export async function generateRepairGuide(productType: string, issue: string, repairRequestId?: number): Promise<RepairGuide> {
   try {
     console.log("Starting guide generation for:", { productType, issue });
+    const startTime = Date.now();
 
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
 Generate comprehensive, step-by-step repair guides with a focus on safety and best practices.
@@ -79,6 +85,8 @@ Provide your response in this exact JSON format:
     }
 
     console.log("Received response from OpenAI:", content);
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
 
     let result: RepairGuide;
     try {
@@ -101,6 +109,60 @@ Provide your response in this exact JSON format:
       }
     });
 
+    // Track analytics if repairRequestId is provided
+    if (repairRequestId) {
+      // Create a summary of the AI response for analysis
+      const stepsSummary = result.steps.map(step => 
+        `Step ${step.step}: ${step.title}`
+      ).join('. ');
+      
+      const responseSummary = `${result.title}. Difficulty: ${result.difficulty}. Time: ${result.estimatedTime}. ${stepsSummary}`;
+      
+      try {
+        // Calculate tokens (approximate method - production would use exact counts)
+        const promptTokens = systemPrompt.length + productType.length + issue.length;
+        const completionTokens = content.length;
+        
+        // Get repair request details
+        const repairRequest = await db.query.repairRequests.findFirst({
+          where: eq(repairRequests.id, repairRequestId)
+        });
+        
+        if (repairRequest) {
+          // Calculate consistency score
+          const consistencyScore = await calculateConsistencyScore(
+            productType,
+            issue,
+            responseSummary
+          );
+          
+          // Check for potential inconsistencies
+          const inconsistencyFlags = await detectInconsistencies(
+            productType,
+            responseSummary
+          );
+          
+          // Track the analytics data
+          await trackRepairAnalytics({
+            repairRequestId,
+            productType,
+            issueDescription: issue,
+            promptTokens,
+            completionTokens,
+            responseTime,
+            consistencyScore,
+            aiResponseSummary: responseSummary,
+            inconsistencyFlags
+          });
+          
+          console.log("Tracked repair guide analytics with consistency score:", consistencyScore);
+        }
+      } catch (analyticsError) {
+        // Don't fail the main operation if analytics tracking fails
+        console.error("Failed to track analytics:", analyticsError);
+      }
+    }
+
     return result;
   } catch (error) {
     console.error("Error in generateRepairGuide:", error);
@@ -110,8 +172,10 @@ Provide your response in this exact JSON format:
   }
 }
 
-export async function getRepairAnswer(input: RepairQuestionInput): Promise<{ answer: string }> {
+export async function getRepairAnswer(input: RepairQuestionInput, repairRequestId?: number): Promise<{ answer: string }> {
   try {
+    const startTime = Date.now();
+    
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
 Provide helpful, accurate, and concise answers to repair-related questions.
 Focus on safety and practical solutions. When uncertain, recommend professional help.
@@ -162,17 +226,64 @@ Format your response as a JSON object with an "answer" field containing your res
       max_tokens: 800
     });
 
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error("Empty response from OpenAI");
     }
 
+    let answer: string;
     try {
-      return JSON.parse(content);
+      const result = JSON.parse(content);
+      answer = result.answer || content;
     } catch (error) {
-      // If parsing fails, wrap the response in a JSON structure
-      return { answer: content };
+      // If parsing fails, use the raw content
+      answer = content;
     }
+    
+    // Track analytics if repairRequestId is provided
+    if (repairRequestId) {
+      try {
+        // Calculate tokens (approximate method)
+        const promptTokens = systemPrompt.length + contextPrompt.length + input.question.length;
+        const completionTokens = content.length;
+        
+        // Calculate consistency score
+        const consistencyScore = await calculateConsistencyScore(
+          input.productType,
+          input.question,
+          answer
+        );
+        
+        // Check for potential inconsistencies
+        const inconsistencyFlags = await detectInconsistencies(
+          input.productType,
+          answer
+        );
+        
+        // Track the analytics data
+        await trackRepairAnalytics({
+          repairRequestId,
+          productType: input.productType,
+          issueDescription: input.question,
+          promptTokens,
+          completionTokens,
+          responseTime,
+          consistencyScore,
+          aiResponseSummary: answer,
+          inconsistencyFlags
+        });
+        
+        console.log("Tracked Q&A analytics with consistency score:", consistencyScore);
+      } catch (analyticsError) {
+        // Don't fail the main operation if analytics tracking fails
+        console.error("Failed to track Q&A analytics:", analyticsError);
+      }
+    }
+
+    return { answer };
   } catch (error) {
     console.error("Error getting repair answer:", error);
     throw new Error("Failed to get repair answer: " + 

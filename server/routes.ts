@@ -385,13 +385,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/repair-questions", async (req, res) => {
     try {
-      const { question, productType, issueDescription, imageUrl, context, currentStep } = req.body;
+      const { question, productType, issueDescription, imageUrl, context, currentStep, repairRequestId } = req.body;
       if (!question || !productType) {
         res.status(400).json({ error: "Question and product type are required" });
         return;
       }
 
-      // Get answer with conversation context
+      // Get answer with conversation context and track analytics if repairRequestId is provided
       const answer = await getRepairAnswer({ 
         question, 
         productType, 
@@ -399,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl, 
         context, 
         currentStep 
-      });
+      }, repairRequestId);
       
       res.json(answer);
     } catch (error) {
@@ -410,14 +410,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/repair-guides", async (req, res) => {
     try {
-      const { productType, issue } = req.body;
+      const { productType, issue, repairRequestId } = req.body;
       if (!productType || !issue) {
         res.status(400).json({ error: "Product type and issue are required" });
         return;
       }
 
-      console.log("Generating repair guide for:", { productType, issue });
-      const guide = await generateRepairGuide(productType, issue);
+      console.log("Generating repair guide for:", { productType, issue, repairRequestId });
+      const guide = await generateRepairGuide(productType, issue, repairRequestId);
 
       if (!guide || !guide.title || !Array.isArray(guide.steps)) {
         console.error("Invalid guide generated:", guide);

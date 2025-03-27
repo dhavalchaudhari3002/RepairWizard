@@ -8,6 +8,7 @@ interface RepairQuestionsProps {
   productType: string;
   issueDescription?: string;
   currentStep?: number;
+  repairRequestId?: number;
 }
 
 interface QuestionAnswer {
@@ -17,7 +18,7 @@ interface QuestionAnswer {
   role?: "user" | "assistant";
 }
 
-export function RepairQuestions({ productType, issueDescription, currentStep }: RepairQuestionsProps) {
+export function RepairQuestions({ productType, issueDescription, currentStep, repairRequestId }: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
   const [conversation, setConversation] = useState<QuestionAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +62,8 @@ export function RepairQuestions({ productType, issueDescription, currentStep }: 
           issueDescription,
           imageUrl: imagePreview,
           context,
-          currentStep 
+          currentStep,
+          repairRequestId
         }
       );
       const data = await response.json();
