@@ -339,6 +339,12 @@ export function NavBar() {
                             Tool Shop
                           </Link>
                         </Button>
+                        <Button variant="ghost" asChild>
+                          <Link href="/error-dashboard" className="flex items-center gap-2 justify-center">
+                            <AlertTriangle className="h-4 w-4" />
+                            Error Dashboard
+                          </Link>
+                        </Button>
                         <Button
                           variant="default"
                           onClick={() => setShowAuthDialog(true)}

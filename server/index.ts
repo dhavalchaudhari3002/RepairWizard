@@ -4,6 +4,8 @@ import { setupVite, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import path from "path";
+import fs from "fs";
 
 // Initialize Express app
 const app = express();
@@ -52,6 +54,28 @@ app.get('/ping', (_req, res) => {
     log("Registering routes...");
     const server = await registerRoutes(app);
     log("Routes registered successfully");
+
+    // Add catch-all route to handle client-side routing
+    // This needs to be after all API routes
+    app.get("*", (req, res, next) => {
+      // Skip API routes
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      
+      log(`Handling client-side route: ${req.path}`);
+      // In development, let Vite handle it
+      if (process.env.NODE_ENV !== "production") {
+        return next();
+      }
+      
+      // In production, serve the index.html
+      const indexPath = path.resolve(process.cwd(), 'dist', 'index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+      next();
+    });
 
     // Error handling middleware
     app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
