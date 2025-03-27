@@ -327,7 +327,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/repair-requests/:id/estimate", async (req, res) => {
-    const estimate = generateMockEstimate(req.query.productType as string);
+    const productType = req.query.productType as string;
+    console.log(`Generating estimate for product type: "${productType}"`);
+    const estimate = generateMockEstimate(productType);
+    console.log(`Generated estimate: ${JSON.stringify(estimate)}`);
     res.json(estimate);
   });
 

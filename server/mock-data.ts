@@ -11,6 +11,22 @@ export interface RepairEstimate {
 
 const mockEstimates: Record<string, RepairEstimate> = {
   // Low cost repairs
+  chair: {
+    costRange: { min: 25, max: 85 },
+    timeEstimate: "1-2 hours",
+    difficulty: "Easy",
+    commonIssues: [
+      "Wobbly legs",
+      "Broken armrests",
+      "Torn upholstery",
+      "Broken swivel mechanism"
+    ],
+    recommendations: [
+      "Most wooden chair repairs can be done DIY with wood glue and clamps",
+      "Office chair parts are often available online for replacement",
+      "Consider professional help for antique chairs"
+    ]
+  },
   headphones: {
     costRange: { min: 15, max: 75 },
     timeEstimate: "30-60 minutes",
@@ -138,19 +154,71 @@ const mockEstimates: Record<string, RepairEstimate> = {
 };
 
 export function generateMockEstimate(productType: string): RepairEstimate {
-  const normalizedType = productType.toLowerCase().trim();
+  if (!productType) {
+    console.log("WARNING: Empty product type received, using default estimate");
+    return {
+      costRange: { min: 75, max: 300 },
+      timeEstimate: "2-3 hours",
+      difficulty: "Moderate",
+      commonIssues: ["General wear and tear", "Power issues"],
+      recommendations: ["Professional assessment recommended"]
+    };
+  }
   
-  // Check for partial matches if no exact match
-  if (!mockEstimates[normalizedType]) {
-    for (const key of Object.keys(mockEstimates)) {
-      if (normalizedType.includes(key) || key.includes(normalizedType)) {
-        return mockEstimates[key];
-      }
+  const normalizedType = productType.toLowerCase().trim();
+  console.log(`Looking for estimates for normalized product type: "${normalizedType}"`);
+  
+  // 1. Try exact match first
+  if (mockEstimates[normalizedType]) {
+    console.log(`Found exact match for "${normalizedType}"`);
+    return mockEstimates[normalizedType];
+  }
+  
+  // 2. Try fuzzy matching - check if any key contains our product type or vice versa
+  for (const key of Object.keys(mockEstimates)) {
+    if (normalizedType.includes(key) || key.includes(normalizedType)) {
+      console.log(`Found fuzzy match: "${normalizedType}" matches with "${key}"`);
+      return mockEstimates[key];
     }
   }
   
-  // Return the exact match or default values
-  return mockEstimates[normalizedType] || {
+  // 3. If no matches found, check if it's a common device category
+  const deviceCategories = {
+    // Electronics
+    "tv": "television",
+    "fridge": "refrigerator",
+    "headset": "headphones",
+    "computer": "laptop",
+    "smartphone": "phone",
+    "ipod": "phone",
+    "iphone": "phone",
+    "android": "phone",
+    "ipad": "tablet",
+    "toast": "toaster",
+    
+    // Furniture
+    "desk chair": "chair",
+    "office chair": "chair",
+    "dining chair": "chair",
+    "armchair": "chair",
+    "stool": "chair",
+    "bench": "chair",
+    "rocking chair": "chair",
+    "wooden chair": "chair",
+    "folding chair": "chair",
+    "recliner": "chair"
+  };
+  
+  for (const [alias, category] of Object.entries(deviceCategories)) {
+    if (normalizedType.includes(alias)) {
+      console.log(`Found category match: "${normalizedType}" matches category "${category}"`);
+      return mockEstimates[category];
+    }
+  }
+  
+  // 4. Default fallback if no matches found
+  console.log(`No match found for "${normalizedType}", using default estimate`);
+  return {
     costRange: { min: 75, max: 300 },
     timeEstimate: "2-3 hours",
     difficulty: "Moderate",
