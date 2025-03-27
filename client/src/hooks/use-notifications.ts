@@ -34,6 +34,13 @@ export function useNotifications() {
   // Save preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('notificationPreferences', JSON.stringify(notificationPrefs));
+    // Play a test sound when sound preference is enabled
+    if (notificationPrefs.sound) {
+      notificationSound.volume = 0.5; // Lower volume for test sound
+      notificationSound.play().catch(error => {
+        console.error('Failed to play notification sound:', error);
+      });
+    }
   }, [notificationPrefs]);
 
   // Request notification permission on mount

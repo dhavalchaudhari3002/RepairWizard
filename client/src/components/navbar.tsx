@@ -19,7 +19,7 @@ import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff, ShoppingCar
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "../styles/theme-toggle";
 import { 
   Dialog, 
@@ -44,9 +44,20 @@ export function NavBar() {
   } = useNotifications();
   const unreadCount = notifications.filter((n: any) => !n.read).length;
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
+  // Derive notificationsEnabled state from notification preferences
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => 
     notificationPrefs.desktop || notificationPrefs.toast || notificationPrefs.sound || notificationPrefs.animateBell
   );
+  
+  // Update notificationsEnabled whenever preferences change
+  useEffect(() => {
+    setNotificationsEnabled(
+      notificationPrefs.desktop || 
+      notificationPrefs.toast || 
+      notificationPrefs.sound || 
+      notificationPrefs.animateBell
+    );
+  }, [notificationPrefs]);
 
   // Handler functions for notification preferences
   const handleDesktopToggle = (checked: boolean) => {

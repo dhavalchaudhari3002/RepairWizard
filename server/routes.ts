@@ -103,23 +103,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('New WebSocket connection attempt');
 
     try {
-      // Skip authentication for now to get the basic functionality working
-      console.log('Allowing connection without authentication temporarily');
+      const user = await getUserFromRequest(req);
+      
+      if (user) {
+        console.log(`Authenticated WebSocket connection for user ${user.id}`);
+        // Store the WebSocket connection for this user
+        clients.set(user.id, ws);
+        
+        ws.on('error', (error) => {
+          console.error(`WebSocket error for user ${user.id}:`, error);
+        });
 
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-      });
+        ws.on('close', () => {
+          console.log(`Client disconnected for user ${user.id}`);
+          clients.delete(user.id);
+        });
 
-      ws.on('close', () => {
-        console.log('Client disconnected');
-      });
+        // Send initial connection success message
+        ws.send(JSON.stringify({
+          type: 'connection',
+          status: 'connected',
+          userId: user.id
+        }));
+      } else {
+        // For development, allow unauthenticated connections
+        console.log('Allowing connection without authentication temporarily');
+        
+        ws.on('error', (error) => {
+          console.error('WebSocket error:', error);
+        });
 
-      // Send initial connection success message
-      ws.send(JSON.stringify({
-        type: 'connection',
-        status: 'connected'
-      }));
+        ws.on('close', () => {
+          console.log('Client disconnected');
+        });
 
+        // Send initial connection success message (without user ID)
+        ws.send(JSON.stringify({
+          type: 'connection',
+          status: 'connected'
+        }));
+      }
     } catch (error) {
       console.error('Error handling WebSocket connection:', error);
       ws.close(1011, 'Internal Server Error');
@@ -251,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const repairRequest = await storage.updateRepairRequestStatus(requestId, status);
 
       if (repairRequest.customerId) {
-        await storage.createNotification({
+        const notification = await storage.createNotification({
           userId: repairRequest.customerId,
           title: "Repair Status Updated",
           message: `Your repair request status has been updated to: ${status}`,
@@ -259,6 +282,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           relatedEntityId: requestId,
           read: false 
         });
+        
+        // Send real-time notification via WebSocket if client is connected
+        const userWs = clients.get(repairRequest.customerId);
+        if (userWs?.readyState === WebSocket.OPEN) {
+          console.log(`Sending WebSocket notification to user ${repairRequest.customerId}`);
+          userWs.send(JSON.stringify({
+            type: 'notification',
+            data: notification
+          }));
+        } else {
+          console.log(`User ${repairRequest.customerId} not connected via WebSocket`);
+        }
       }
 
       res.json(repairRequest);

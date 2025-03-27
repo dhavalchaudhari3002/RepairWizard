@@ -156,6 +156,21 @@ export function NotificationsPopover() {
   const { unreadCount, notificationPrefs, setNotificationPrefs } = useNotifications();
   const [isOpen, setIsOpen] = React.useState(false);
 
+  // Derive all-notifications-enabled state from preferences
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(() => 
+    notificationPrefs.desktop || notificationPrefs.toast || notificationPrefs.sound || notificationPrefs.animateBell
+  );
+  
+  // Update when preferences change
+  React.useEffect(() => {
+    setNotificationsEnabled(
+      notificationPrefs.desktop || 
+      notificationPrefs.toast || 
+      notificationPrefs.sound || 
+      notificationPrefs.animateBell
+    );
+  }, [notificationPrefs]);
+
   // Create these handler functions outside of the render
   const handleDesktopToggle = React.useCallback((checked: boolean) => {
     setNotificationPrefs({
@@ -188,6 +203,33 @@ export function NotificationsPopover() {
       animateBell: checked
     });
   }, [notificationPrefs, setNotificationPrefs]);
+  
+  // Toggle all notifications on/off
+  const handleAllNotificationsToggle = React.useCallback((checked: boolean) => {
+    setNotificationsEnabled(checked);
+    
+    if (checked) {
+      // Turn on defaults
+      setNotificationPrefs({
+        desktop: true,
+        toast: true,
+        sound: true,
+        animateBell: true
+      });
+      
+      if ("Notification" in window) {
+        Notification.requestPermission();
+      }
+    } else {
+      // Turn off all
+      setNotificationPrefs({
+        desktop: false,
+        toast: false,
+        sound: false,
+        animateBell: false
+      });
+    }
+  }, [setNotificationPrefs]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -214,6 +256,27 @@ export function NotificationsPopover() {
               Customize
             </Badge>
           </div>
+          <div className="mb-3 flex items-center justify-between space-y-0.5">
+            <div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="all-notifications" className="text-sm font-medium">
+                  All Notifications
+                </label>
+                <Badge variant={notificationsEnabled ? "default" : "destructive"} className="px-2 py-0.5 text-xs">
+                  {notificationsEnabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {notificationsEnabled ? "You will receive notifications" : "All notifications are turned off"}
+              </p>
+            </div>
+            <Switch 
+              id="all-notifications"
+              checked={notificationsEnabled}
+              onCheckedChange={handleAllNotificationsToggle}
+            />
+          </div>
+
           <div className="space-y-4 bg-muted/30 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -226,6 +289,7 @@ export function NotificationsPopover() {
                 id="desktop-notifications" 
                 checked={notificationPrefs.desktop}
                 onCheckedChange={handleDesktopToggle}
+                disabled={!notificationsEnabled}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -239,6 +303,7 @@ export function NotificationsPopover() {
                 id="toast-notifications" 
                 checked={notificationPrefs.toast}
                 onCheckedChange={handleToastToggle}
+                disabled={!notificationsEnabled}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -252,6 +317,7 @@ export function NotificationsPopover() {
                 id="sound-notifications" 
                 checked={notificationPrefs.sound}
                 onCheckedChange={handleSoundToggle}
+                disabled={!notificationsEnabled}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -265,6 +331,7 @@ export function NotificationsPopover() {
                 id="bell-animation" 
                 checked={notificationPrefs.animateBell}
                 onCheckedChange={handleBellAnimationToggle}
+                disabled={!notificationsEnabled}
               />
             </div>
           </div>
