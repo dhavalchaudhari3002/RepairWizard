@@ -60,7 +60,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       if (!res.ok) throw new Error('Failed to submit repair request');
 
       const data = await res.json();
-      
+
       // Store the repair request ID
       setRepairRequestId(data.id);
 
@@ -126,7 +126,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   if (step === 2) {
     const productType = form.getValues('productType');
     const issueDescription = form.getValues('issueDescription');
-    
+
     return (
       <div className="space-y-8">
         <CostEstimate data={estimateData} />
