@@ -50,36 +50,55 @@ export function useNotifications() {
     }
   }, [notificationPrefs.desktop]);
 
+  // Check if all notifications are disabled (master switch is off)
+  const areAllNotificationsDisabled = useCallback(() => {
+    // Read directly from localStorage to ensure we have the latest value
+    const savedPrefs = localStorage.getItem('notificationPreferences');
+    if (!savedPrefs) return false;
+
+    try {
+      const prefs = JSON.parse(savedPrefs);
+      // If all notification channels are off, consider notifications disabled
+      return !(prefs.desktop || prefs.toast || prefs.sound || prefs.animateBell);
+    } catch (error) {
+      console.error('Failed to parse notification preferences:', error);
+      return false;
+    }
+  }, []);
+
   const showNotification = useCallback((title: string, message: string) => {
-    // Check if any notifications are enabled at all - if all are off, don't show anything
-    const notificationsEnabled = notificationPrefs.desktop || 
-                                 notificationPrefs.toast || 
-                                 notificationPrefs.sound || 
-                                 notificationPrefs.animateBell;
-    
-    if (!notificationsEnabled) {
-      console.log('Notifications are disabled, skipping notification:', title);
+    // First check if notifications are completely disabled (master toggle)
+    if (areAllNotificationsDisabled()) {
+      console.log('All notifications are disabled via master toggle, notification suppressed:', title);
       return;
     }
+    
+    // Double-check the in-memory state as well
+    const notificationsEnabled = notificationPrefs.desktop || 
+                               notificationPrefs.toast || 
+                               notificationPrefs.sound || 
+                               notificationPrefs.animateBell;
+    
+    if (!notificationsEnabled) {
+      console.log('Notifications are disabled in memory, skipping notification:', title);
+      return;
+    }
+    
+    console.log('Processing notification with current preferences:', notificationPrefs);
     
     // Play notification sound only if enabled
     if (notificationPrefs.sound) {
       console.log('Playing notification sound for:', title);
       // Check if we need to reload the sound (prevents issues with sound not playing)
-      if (notificationSound.error || notificationSound.readyState === HTMLMediaElement.HAVE_NOTHING) {
-        // Create a new Audio instance for this notification
+      try {
+        // Create a new Audio instance for each notification to avoid issues
         const tempSound = new Audio("/notification.mp3");
         tempSound.volume = 0.5;
         tempSound.play().catch(error => {
           console.error('Failed to play notification sound:', error);
         });
-      } else {
-        // Use the existing audio instance
-        notificationSound.currentTime = 0; // Reset playback position
-        notificationSound.volume = 0.5;
-        notificationSound.play().catch(error => {
-          console.error('Failed to play notification sound:', error);
-        });
+      } catch (error) {
+        console.error('Error creating or playing notification sound:', error);
       }
     }
 
@@ -113,7 +132,7 @@ export function useNotifications() {
         duration: 5000,
       });
     }
-  }, [toast, notificationPrefs]);
+  }, [toast, notificationPrefs, areAllNotificationsDisabled]);
 
   const connectWebSocket = useCallback(() => {
     if (!user) return;
@@ -160,18 +179,31 @@ export function useNotifications() {
           
           if (data.type === 'notification') {
             console.log('Notification received:', data.data);
+            
+            // Always update the notification list in the UI
             queryClient.invalidateQueries({ queryKey });
             
-            // Check if notifications are enabled and should be displayed
+            // First check if all notifications are disabled via master toggle
+            if (areAllNotificationsDisabled()) {
+              console.log('Notification received but suppressed: master notification toggle is OFF');
+              return;
+            }
+            
+            // Check specific notification channels
             const notificationsEnabled = notificationPrefs.desktop || 
                                        notificationPrefs.toast || 
                                        notificationPrefs.sound || 
                                        notificationPrefs.animateBell;
                                        
             if (notificationsEnabled) {
+              console.log('Showing notification with preferences:', 
+                         {desktop: notificationPrefs.desktop, 
+                          toast: notificationPrefs.toast, 
+                          sound: notificationPrefs.sound, 
+                          animateBell: notificationPrefs.animateBell});
               showNotification(data.data.title, data.data.message);
             } else {
-              console.log('Notification received but not shown due to user preferences');
+              console.log('Notification received but not shown due to disabled notification channels');
             }
           }
         } catch (error) {

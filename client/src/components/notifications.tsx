@@ -180,64 +180,82 @@ export function NotificationsPopover() {
     );
   }, [notificationPrefs]);
 
-  // Create these handler functions outside of the render
-  const handleDesktopToggle = React.useCallback((checked: boolean) => {
-    setNotificationPrefs({
+  // Helper function to update and save notification preferences
+  const updateNotificationPreference = React.useCallback((key: string, value: boolean) => {
+    // Create new preferences object
+    const newPrefs = {
       ...notificationPrefs,
-      desktop: checked
-    });
+      [key]: value
+    };
     
+    // Update in-memory state
+    setNotificationPrefs(newPrefs);
+    
+    // Save directly to localStorage for immediate effect
+    localStorage.setItem('notificationPreferences', JSON.stringify(newPrefs));
+    
+    console.log(`Updated notification preference: ${key} = ${value}`, newPrefs);
+    
+    return newPrefs;
+  }, [notificationPrefs, setNotificationPrefs]);
+
+  // Individual preference toggle handlers
+  const handleDesktopToggle = React.useCallback((checked: boolean) => {
+    updateNotificationPreference('desktop', checked);
+    
+    // Request permission for desktop notifications if enabling
     if (checked && "Notification" in window) {
       Notification.requestPermission();
     }
-  }, [notificationPrefs, setNotificationPrefs]);
+  }, [updateNotificationPreference]);
 
   const handleToastToggle = React.useCallback((checked: boolean) => {
-    setNotificationPrefs({
-      ...notificationPrefs,
-      toast: checked
-    });
-  }, [notificationPrefs, setNotificationPrefs]);
+    updateNotificationPreference('toast', checked);
+  }, [updateNotificationPreference]);
 
   const handleSoundToggle = React.useCallback((checked: boolean) => {
-    setNotificationPrefs({
-      ...notificationPrefs,
-      sound: checked
-    });
-  }, [notificationPrefs, setNotificationPrefs]);
+    updateNotificationPreference('sound', checked);
+  }, [updateNotificationPreference]);
 
   const handleBellAnimationToggle = React.useCallback((checked: boolean) => {
-    setNotificationPrefs({
-      ...notificationPrefs,
-      animateBell: checked
-    });
-  }, [notificationPrefs, setNotificationPrefs]);
+    updateNotificationPreference('animateBell', checked);
+  }, [updateNotificationPreference]);
   
   // Toggle all notifications on/off
   const handleAllNotificationsToggle = React.useCallback((checked: boolean) => {
+    console.log(`Master notification toggle changed to: ${checked ? 'ON' : 'OFF'}`);
+    
     setNotificationsEnabled(checked);
     
-    if (checked) {
-      // Turn on defaults
-      setNotificationPrefs({
+    const newPrefs = checked ? 
+      // Turn on defaults with all channels enabled
+      {
         desktop: true,
         toast: true,
         sound: true,
         animateBell: true
-      });
-      
-      if ("Notification" in window) {
-        Notification.requestPermission();
-      }
-    } else {
-      // Turn off all
-      setNotificationPrefs({
+      } :
+      // Turn off all notification channels
+      {
         desktop: false,
         toast: false,
         sound: false,
         animateBell: false
-      });
+      };
+    
+    // Update in-memory state
+    setNotificationPrefs(newPrefs);
+    
+    // Save directly to localStorage to ensure we get immediate effect
+    localStorage.setItem('notificationPreferences', JSON.stringify(newPrefs));
+    
+    // Request permission for desktop notifications if enabled
+    if (checked && "Notification" in window) {
+      Notification.requestPermission();
     }
+    
+    // Log current state for debugging
+    console.log('Updated notification preferences:', newPrefs);
   }, [setNotificationPrefs]);
 
   return (
