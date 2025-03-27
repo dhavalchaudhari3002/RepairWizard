@@ -11,6 +11,7 @@ import ToolsPage from "@/pages/tools-page";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import { AuthProvider } from "@/hooks/use-auth";
 import { DarkModeProvider } from "@/hooks/use-dark-mode";
+import { NotificationsProvider } from "./hooks/use-notifications-context";
 import { NavBar } from "@/components/navbar";
 
 function Router() {
@@ -45,7 +46,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <DarkModeProvider>
-          <Router />
+          <NotificationsProvider>
+            <Router />
+          </NotificationsProvider>
         </DarkModeProvider>
       </AuthProvider>
     </QueryClientProvider>

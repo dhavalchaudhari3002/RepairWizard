@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Bell, BellRing } from "lucide-react";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useNotificationsContext as useNotifications } from "@/hooks/use-notifications-context";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
