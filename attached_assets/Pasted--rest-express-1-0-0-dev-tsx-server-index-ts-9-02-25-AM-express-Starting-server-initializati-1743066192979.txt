@@ -1,0 +1,39 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+9:02:25 AM [express] Starting server initialization...
+9:02:25 AM [express] Registering routes...
+Created HTTP server instance
+Authentication setup complete
+WebSocket server initialized
+Setting up ML-based repair cost estimation API...
+Initializing repair cost prediction model...
+Failed to initialize repair cost model: ReferenceError: __dirname is not defined
+    at loadDataset (/home/runner/workspace/server/ml-services/repair-cost-model.ts:40:30)
+    at initializeModel (/home/runner/workspace/server/ml-services/repair-cost-model.ts:189:24)
+    at setupRepairCostAPI (/home/runner/workspace/server/ml-services/repair-cost-api.ts:24:11)
+    at registerRoutes (/home/runner/workspace/server/routes.ts:584:11)
+    at <anonymous> (/home/runner/workspace/server/index.ts:53:26)
+    at <anonymous> (/home/runner/workspace/server/index.ts:111:1)
+Failed to setup repair cost API: ReferenceError: __dirname is not defined
+    at loadDataset (/home/runner/workspace/server/ml-services/repair-cost-model.ts:40:30)
+    at initializeModel (/home/runner/workspace/server/ml-services/repair-cost-model.ts:189:24)
+    at setupRepairCostAPI (/home/runner/workspace/server/ml-services/repair-cost-api.ts:24:11)
+    at registerRoutes (/home/runner/workspace/server/routes.ts:584:11)
+    at <anonymous> (/home/runner/workspace/server/index.ts:53:26)
+    at <anonymous> (/home/runner/workspace/server/index.ts:111:1)
+ML-based repair cost API initialized successfully
+All routes registered successfully
+9:02:25 AM [express] Routes registered successfully
+9:02:25 AM [express] Server is now listening on http://0.0.0.0:5000
+9:02:25 AM [express] Setting up Vite development server...
+9:02:26 AM [express] Vite setup complete
+9:02:26 AM [express] Server initialization complete - ready to handle requests
+9:02:26 AM [express] GET /ping
+9:02:26 AM [express] Health check endpoint hit
+9:02:26 AM [express] Health check response: pong
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.2.0
+npm notice To update run: npm install -g npm@11.2.0
+npm notice

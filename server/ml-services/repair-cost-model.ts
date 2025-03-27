@@ -2,6 +2,12 @@ import * as tf from '@tensorflow/tfjs';
 import csv from 'csvtojson';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get the directory name properly in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Define interfaces for our data
 interface RepairData {
