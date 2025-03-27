@@ -110,6 +110,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Store the WebSocket connection for this user
         clients.set(user.id, ws);
         
+        ws.on('message', (message) => {
+          try {
+            const data = JSON.parse(message.toString());
+            console.log(`Message from user ${user.id}:`, data);
+            
+            // Handle ping messages for connection health check
+            if (data.type === 'ping') {
+              ws.send(JSON.stringify({
+                type: 'ping',
+                timestamp: new Date().toISOString()
+              }));
+            }
+          } catch (error) {
+            console.error(`Error parsing message from user ${user.id}:`, error);
+          }
+        });
+        
         ws.on('error', (error) => {
           console.error(`WebSocket error for user ${user.id}:`, error);
         });
@@ -123,11 +140,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ws.send(JSON.stringify({
           type: 'connection',
           status: 'connected',
-          userId: user.id
+          userId: user.id,
+          timestamp: new Date().toISOString()
         }));
       } else {
-        // For development, allow unauthenticated connections
+        // For development, allow unauthenticated connections but with limited functionality
         console.log('Allowing connection without authentication temporarily');
+        
+        ws.on('message', (message) => {
+          try {
+            const data = JSON.parse(message.toString());
+            console.log('Message from unauthenticated client:', data);
+            
+            // Handle ping messages for connection health check
+            if (data.type === 'ping') {
+              ws.send(JSON.stringify({
+                type: 'ping',
+                timestamp: new Date().toISOString()
+              }));
+            }
+          } catch (error) {
+            console.error('Error parsing message from unauthenticated client:', error);
+          }
+        });
         
         ws.on('error', (error) => {
           console.error('WebSocket error:', error);
@@ -140,7 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send initial connection success message (without user ID)
         ws.send(JSON.stringify({
           type: 'connection',
-          status: 'connected'
+          status: 'connected',
+          timestamp: new Date().toISOString()
         }));
       }
     } catch (error) {
@@ -175,10 +211,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userWs = clients.get(user.id);
       if (userWs?.readyState === WebSocket.OPEN) {
+        console.log(`Sending WebSocket notification to user ${user.id}`);
         userWs.send(JSON.stringify({
           type: 'notification',
-          data: notification
+          data: notification,
+          timestamp: new Date().toISOString()
         }));
+      } else {
+        console.log(`User ${user.id} not connected via WebSocket`);
       }
 
       res.json(repairRequest);
@@ -289,7 +329,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Sending WebSocket notification to user ${repairRequest.customerId}`);
           userWs.send(JSON.stringify({
             type: 'notification',
-            data: notification
+            data: notification,
+            timestamp: new Date().toISOString()
           }));
         } else {
           console.log(`User ${repairRequest.customerId} not connected via WebSocket`);

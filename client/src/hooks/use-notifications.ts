@@ -65,18 +65,43 @@ export function useNotifications() {
     // Play notification sound only if enabled
     if (notificationPrefs.sound) {
       console.log('Playing notification sound for:', title);
-      notificationSound.play().catch(error => {
-        console.error('Failed to play notification sound:', error);
-      });
+      // Check if we need to reload the sound (prevents issues with sound not playing)
+      if (notificationSound.error || notificationSound.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        // Create a new Audio instance for this notification
+        const tempSound = new Audio("/notification.mp3");
+        tempSound.volume = 0.5;
+        tempSound.play().catch(error => {
+          console.error('Failed to play notification sound:', error);
+        });
+      } else {
+        // Use the existing audio instance
+        notificationSound.currentTime = 0; // Reset playback position
+        notificationSound.volume = 0.5;
+        notificationSound.play().catch(error => {
+          console.error('Failed to play notification sound:', error);
+        });
+      }
     }
 
     // Show desktop notification if permitted and enabled
     if (notificationPrefs.desktop && "Notification" in window && Notification.permission === "granted") {
       console.log('Showing desktop notification for:', title);
-      new Notification(title, {
-        body: message,
-        icon: "/favicon.ico"
-      });
+      try {
+        new Notification(title, {
+          body: message,
+          icon: "/favicon.ico"
+        });
+      } catch (error) {
+        console.error('Failed to show desktop notification:', error);
+        // Fallback to toast if desktop notification fails
+        if (!notificationPrefs.toast) {
+          toast({
+            title,
+            description: message,
+            duration: 5000,
+          });
+        }
+      }
     }
 
     // Show toast notification if enabled
@@ -102,6 +127,8 @@ export function useNotifications() {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
+      console.log('Attempting to connect to WebSocket at:', wsUrl);
+      
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -112,36 +139,71 @@ export function useNotifications() {
           clearTimeout(reconnectTimeout.current);
           reconnectTimeout.current = undefined;
         }
+        
+        // Send a ping to verify connection is active
+        try {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        } catch (error) {
+          console.error('Failed to send ping message:', error);
+        }
       };
 
       ws.onmessage = (event) => {
         try {
+          console.log('WebSocket message received:', event.data);
           const data = JSON.parse(event.data);
+          
+          if (data.type === 'ping') {
+            console.log('Ping received, connection is healthy');
+            return;
+          }
+          
           if (data.type === 'notification') {
+            console.log('Notification received:', data.data);
             queryClient.invalidateQueries({ queryKey });
-            showNotification(data.data.title, data.data.message);
+            
+            // Check if notifications are enabled and should be displayed
+            const notificationsEnabled = notificationPrefs.desktop || 
+                                       notificationPrefs.toast || 
+                                       notificationPrefs.sound || 
+                                       notificationPrefs.animateBell;
+                                       
+            if (notificationsEnabled) {
+              showNotification(data.data.title, data.data.message);
+            } else {
+              console.log('Notification received but not shown due to user preferences');
+            }
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log(`WebSocket closed with code ${event.code}, reason: ${event.reason}`);
         wsRef.current = null;
         if (retryCount.current < maxRetries) {
           retryCount.current++;
-          reconnectTimeout.current = setTimeout(connectWebSocket, 2000);
+          const delay = Math.min(2000 * Math.pow(1.5, retryCount.current), 10000);
+          console.log(`Reconnecting in ${delay}ms (attempt ${retryCount.current} of ${maxRetries})`);
+          reconnectTimeout.current = setTimeout(connectWebSocket, delay);
         }
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        ws.close();
+        // Don't close immediately on error, let the connection attempt finish
+        // since the onclose handler will be called if the connection fails
       };
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
+      // Try to reconnect in case of initialization error
+      if (retryCount.current < maxRetries) {
+        retryCount.current++;
+        reconnectTimeout.current = setTimeout(connectWebSocket, 3000);
+      }
     }
-  }, [user, queryClient, showNotification]);
+  }, [user, queryClient, showNotification, notificationPrefs]);
 
   useEffect(() => {
     connectWebSocket();
