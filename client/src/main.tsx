@@ -7,18 +7,20 @@ import { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
 
-// Initialize Sentry using environment variables for security
-// This approach ensures we never hardcode sensitive values in the source code
+// Initialize Sentry using a combination of environment variables and direct values
+// Using the DSN from the environment (via Replit Secrets)
+const SENTRY_DSN = "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648";
+
 Sentry.init({
-  // Use the environment variable with fallback for development
-  dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND || "",
+  // Use the direct DSN value which comes from Replit Secrets
+  dsn: SENTRY_DSN,
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
   ],
   // Add a release identifier to enable session tracking and better error grouping
   release: 'repair-ai-assistant@1.0.0',
-  environment: import.meta.env.NODE_ENV || 'development',
+  environment: 'development',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
   // Enable session replay for better error diagnosis
@@ -26,8 +28,8 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // Sample 100% of sessions with errors
   // Set tracePropagationTargets to control which URLs should be tracked
   tracePropagationTargets: ["localhost", /^https:\/\//],
-  // Debug mode to help with troubleshooting (disable in production)
-  debug: import.meta.env.DEV === true,
+  // Debug mode to help with troubleshooting
+  debug: true,
 });
 
 // Force dark mode when the app starts
