@@ -126,6 +126,12 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {diagnosisMutation.failureCount > 0 && (
+            <Alert variant="warning" className="mb-4">
+              <AlertTitle>Taking longer than usual...</AlertTitle>
+              <AlertDescription>Retrying analysis ({diagnosisMutation.failureCount}/3)</AlertDescription>
+            </Alert>
+          )}
           <Skeleton className="h-4 w-full mb-6" />
           <Skeleton className="h-20 w-full mb-2" />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

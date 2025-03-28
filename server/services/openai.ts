@@ -407,7 +407,8 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
 
     // Cache implementation for quick responses
 const diagnosticCache = new Map();
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes cache for faster responses
+const API_TIMEOUT = 8000; // 8 second timeout
 
 async function getCachedResponse(key: string) {
   const cached = diagnosticCache.get(key);
@@ -441,17 +442,22 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
   }
 
   // Optimized API call
-  const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo-0125",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
-    ],
-    temperature: 0.2,
-    max_tokens: 300,
-    presence_penalty: 0,
-    frequency_penalty: 0,
-  });
+  const response = await Promise.race([
+    openai.chat.completions.create({
+      model: "gpt-3.5-turbo-0125",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
+      ],
+      temperature: 0.2,
+      max_tokens: 150, // Reduced for faster response
+      presence_penalty: 0,
+      frequency_penalty: 0,
+    }),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("OpenAI API timeout")), API_TIMEOUT)
+    )
+  ]);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
