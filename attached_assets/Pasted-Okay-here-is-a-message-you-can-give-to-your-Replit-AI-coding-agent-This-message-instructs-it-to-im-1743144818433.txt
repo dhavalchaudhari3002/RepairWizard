@@ -1,0 +1,118 @@
+Okay, here is a message you can give to your Replit AI coding agent. This message instructs it to implement the backend logic for calling the OpenAI API with the diagnostic-focused prompt we discussed.
+
+You'll need to adapt file paths/function names based on your specific project structure in Replit.
+
+Message for Replit AI:
+
+Objective: Implement or modify the backend route/function that handles the "Get Repair Estimate" request for the "Smart Repair Partner" application. Instead of just providing a cost estimate, the AI call should now focus on detailed issue diagnosis and suggesting next steps, using a specific prompt structure.
+
+Task Details:
+
+Identify Backend Handler: Locate the backend code (e.g., in Python Flask/Django, Node.js Express) that receives the productType and issueDescription from the frontend when the user submits the repair request (likely triggered by the "Get Repair Estimate" button).
+
+Retrieve User Input: Ensure the handler correctly extracts productType and issueDescription from the incoming request data.
+
+Secure API Key: Make sure the OpenAI API key is loaded securely, preferably using Replit Secrets (os.environ['OPENAI_API_KEY'] or similar). Do not hardcode the key.
+
+Construct the Diagnostic Prompt: Create the prompt string that will be sent to the OpenAI API. Use the structure below, inserting the user's input dynamically:
+
+# Example in Python f-string
+product_type = request.json.get('productType') # Adjust based on how you get data
+issue_description = request.json.get('issueDescription') # Adjust based on how you get data
+
+prompt = f"""
+You are an AI assistant simulating a highly experienced diagnostic technician for electronic devices and other products. Your goal is to analyze the user's description, identify the most likely root cause(s) of the problem, and suggest logical next steps for diagnosis or repair, prioritizing safety and accuracy.
+
+Analyze the following repair request:
+
+Product Type: {product_type}
+Issue Description: {issue_description}
+
+Based on the Product Type and Issue Description, please perform the following analysis:
+1.  **Symptom Interpretation:** Re-state the key symptoms described by the user.
+2.  **Possible Causes:** List the potential root causes for these symptoms, starting with the most probable. Explain *why* each is a possibility.
+3.  **Information Gaps:** Identify any crucial information missing from the user's description that would help pinpoint the exact cause.
+4.  **Diagnostic Questions/Steps (If Safe & Simple):** Suggest simple, non-invasive diagnostic questions the user could answer or steps they could safely take (e.g., restarts, checking lights). Clearly state if a step requires caution.
+5.  **Likely Solution Path(s):** Outline the likely repair procedures or solutions involved based on the probable causes (e.g., 'Component replacement likely,' 'Software configuration needed,' 'Requires professional diagnostics').
+6.  **Safety Warnings & Disclaimers:** Include relevant safety precautions (e.g., electricity, static, batteries) and state clearly that this is an analysis based on limited information, not a guaranteed diagnosis, and professional help may be required. Emphasize NOT performing complex/dangerous steps without expertise.
+
+Provide the response as clearly formatted text covering points 1 through 6.
+"""
+
+
+Call OpenAI API:
+
+Use the OpenAI Python library (or fetch in Node.js) to make a request to the Completions or Chat Completions endpoint (e.g., using gpt-3.5-turbo or gpt-4).
+
+Pass the constructed prompt (or structure it as messages for the Chat API).
+
+Include parameters like temperature (e.g., 0.5 for more focused output) and max_tokens as needed.
+
+Handle API Response:
+
+Receive the text response from the OpenAI API.
+
+Implement basic error handling (e.g., if the API call fails or returns an error).
+
+Send Response to Frontend: Return the AI's generated text response (the diagnostic analysis) back to the frontend so it can be displayed to the user. Ensure it's sent in a suitable format (e.g., JSON).
+
+Example (Conceptual Python/Flask):
+
+# Assuming Flask and OpenAI library are set up
+import os
+import openai
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route('/get_diagnostic', methods=['POST'])
+def get_diagnostic():
+    try:
+        data = request.get_json()
+        product_type = data.get('productType')
+        issue_description = data.get('issueDescription')
+
+        if not product_type or not issue_description:
+            return jsonify({"error": "Missing product type or issue description"}), 400
+
+        prompt = f"""
+        [... Insert the full prompt from step 4 here, using {product_type} and {issue_description} ...]
+        """
+
+        # Using Chat Completions API (recommended)
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo", # Or gpt-4
+            messages=[
+                {"role": "system", "content": "You are an AI assistant simulating a highly experienced diagnostic technician... [rest of system role description]"},
+                {"role": "user", "content": prompt} # Pass the constructed user prompt
+            ],
+            temperature=0.5,
+            max_tokens=500 # Adjust as needed
+        )
+
+        ai_response_text = response.choices[0].message.content.strip()
+
+        return jsonify({"diagnostic_text": ai_response_text})
+
+    except openai.APIError as e:
+        # Handle API error here, e.g. log error and return server error
+        print(f"OpenAI API returned an API Error: {e}")
+        return jsonify({"error": "AI service error"}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return jsonify({"error": "An internal server error occurred"}), 500
+
+# Add other necessary Flask app setup if needed
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=81) # Example run config for Replit
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+Focus Files: Please modify the relevant backend route handler file(s) (e.g., main.py, app.py, routes.py or similar) to implement this logic.
+
+Give this to your Replit AI. It should understand the task of modifying the backend code to use the new diagnostic prompt when calling the OpenAI API. Remember to supervise and test the code it generates.

@@ -30,6 +30,15 @@ interface RepairGuide {
   videoKeywords: string[];
 }
 
+interface RepairDiagnostic {
+  symptomInterpretation: string;
+  possibleCauses: string[];
+  informationGaps: string[];
+  diagnosticSteps: string[];
+  likelySolutions: string[];
+  safetyWarnings: string[];
+}
+
 interface RepairQuestionInput {
   question: string;
   productType: string;
@@ -167,6 +176,148 @@ Provide your response in this exact JSON format:
   } catch (error) {
     console.error("Error in generateRepairGuide:", error);
     throw new Error("Failed to generate repair guide: " + 
+      (error instanceof Error ? error.message : String(error))
+    );
+  }
+}
+
+export async function generateRepairDiagnostic(productType: string, issueDescription: string, repairRequestId?: number): Promise<RepairDiagnostic> {
+  try {
+    console.log("Starting diagnostic generation for:", { productType, issueDescription });
+    const startTime = Date.now();
+
+    const systemPrompt = `You are an AI assistant simulating a highly experienced diagnostic technician for electronic devices and other products. 
+Your goal is to analyze the user's description, identify the most likely root cause(s) of the problem, and suggest logical next steps for diagnosis or repair, prioritizing safety and accuracy.
+
+Provide your response in this exact JSON format:
+{
+  "symptomInterpretation": "Re-state the key symptoms described by the user",
+  "possibleCauses": [
+    "First potential root cause (most probable) - explain why it's possible",
+    "Second potential root cause - explain why it's possible",
+    "Additional causes as needed"
+  ],
+  "informationGaps": [
+    "Crucial missing information #1",
+    "Crucial missing information #2",
+    "Additional information gaps as needed"
+  ],
+  "diagnosticSteps": [
+    "Simple, non-invasive diagnostic step #1 - indicate if caution is needed",
+    "Simple, non-invasive diagnostic step #2 - indicate if caution is needed",
+    "Additional diagnostic steps as needed"
+  ],
+  "likelySolutions": [
+    "Likely repair solution path #1 - component replacement, software configuration, etc.",
+    "Likely repair solution path #2",
+    "Additional solution paths as needed"
+  ],
+  "safetyWarnings": [
+    "Relevant safety precaution #1 (electricity, static, batteries, etc.)",
+    "Statement about limited analysis based on information provided",
+    "Disclaimer about professional help requirements",
+    "Warning NOT to perform complex/dangerous steps without expertise"
+  ]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Analyze the following repair request:
+
+Product Type: ${productType}
+Issue Description: ${issueDescription}
+
+Based on the Product Type and Issue Description, please perform a detailed analysis.`
+        }
+      ],
+      temperature: 0.5,
+      max_tokens: 1000
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    console.log("Received diagnostic response from OpenAI");
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+
+    let result: RepairDiagnostic;
+    try {
+      result = JSON.parse(content);
+    } catch (error) {
+      console.error("Failed to parse JSON response:", content);
+      throw new Error("Invalid JSON response from OpenAI");
+    }
+
+    // Validate diagnostic structure
+    if (!result.symptomInterpretation || !Array.isArray(result.possibleCauses) || !Array.isArray(result.diagnosticSteps)) {
+      console.error("Invalid diagnostic structure:", result);
+      throw new Error("Generated diagnostic does not match required format");
+    }
+
+    // Track analytics if repairRequestId is provided
+    if (repairRequestId) {
+      try {
+        // Create a summary of the AI response for analysis
+        const causesSummary = result.possibleCauses.join('. ');
+        const stepsSummary = result.diagnosticSteps.join('. ');
+        
+        const responseSummary = `Symptoms: ${result.symptomInterpretation}. Causes: ${causesSummary}. Steps: ${stepsSummary}`;
+        
+        // Calculate tokens (approximate method)
+        const promptTokens = systemPrompt.length + productType.length + issueDescription.length;
+        const completionTokens = content.length;
+        
+        // Get repair request details
+        const repairRequest = await db.query.repairRequests.findFirst({
+          where: eq(repairRequests.id, repairRequestId)
+        });
+        
+        if (repairRequest) {
+          // Calculate consistency score
+          const consistencyScore = await calculateConsistencyScore(
+            productType,
+            issueDescription,
+            responseSummary
+          );
+          
+          // Check for potential inconsistencies
+          const inconsistencyFlags = await detectInconsistencies(
+            productType,
+            responseSummary
+          );
+          
+          // Track the analytics data
+          await trackRepairAnalytics({
+            repairRequestId,
+            productType,
+            issueDescription,
+            promptTokens,
+            completionTokens,
+            responseTime,
+            consistencyScore,
+            aiResponseSummary: responseSummary,
+            inconsistencyFlags
+          });
+          
+          console.log("Tracked diagnostic analytics with consistency score:", consistencyScore);
+        }
+      } catch (analyticsError) {
+        // Don't fail the main operation if analytics tracking fails
+        console.error("Failed to track analytics:", analyticsError);
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error in generateRepairDiagnostic:", error);
+    throw new Error("Failed to generate repair diagnostic: " + 
       (error instanceof Error ? error.message : String(error))
     );
   }

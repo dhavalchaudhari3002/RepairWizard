@@ -10,7 +10,7 @@ import {
   type InsertUserInteraction
 } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
-import { getRepairAnswer, generateRepairGuide } from "./services/openai";
+import { getRepairAnswer, generateRepairGuide, generateRepairDiagnostic } from "./services/openai";
 import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
@@ -444,6 +444,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error generating repair guide:", error);
       res.status(500).json({
         error: "Failed to generate repair guide",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/repair-diagnostics", async (req, res) => {
+    try {
+      const { productType, issueDescription, repairRequestId } = req.body;
+      if (!productType || !issueDescription) {
+        res.status(400).json({ error: "Product type and issue description are required" });
+        return;
+      }
+
+      console.log("Generating repair diagnostic for:", { productType, issueDescription, repairRequestId });
+      const diagnostic = await generateRepairDiagnostic(productType, issueDescription, repairRequestId);
+
+      if (!diagnostic || !diagnostic.symptomInterpretation || !Array.isArray(diagnostic.possibleCauses)) {
+        console.error("Invalid diagnostic generated:", diagnostic);
+        res.status(500).json({ error: "Generated diagnostic is invalid" });
+        return;
+      }
+
+      res.json(diagnostic);
+    } catch (error) {
+      console.error("Error generating repair diagnostic:", error);
+      res.status(500).json({
+        error: "Failed to generate repair diagnostic",
         details: error instanceof Error ? error.message : String(error)
       });
     }
