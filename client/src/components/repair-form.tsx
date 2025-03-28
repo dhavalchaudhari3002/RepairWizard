@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { DiagnosticAnalysis } from "./diagnostic-analysis";
+import { DiagnosticAnalysisNew as DiagnosticAnalysis } from "./diagnostic-analysis-new";
 import { ImagePlus, X, Brain, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
