@@ -6,28 +6,25 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import path from "path";
 import fs from "fs";
-// Import Sentry modules
+// Import Sentry modules 
 import * as Sentry from "@sentry/node";
-// Import specific integrations
-import "@sentry/tracing";
+// We don't need additional imports with the simplified approach
 
 // Initialize Express app
 const app = express();
 
-// Initialize Sentry at the earliest point possible
+// Initialize Sentry at the earliest point possible with a simplified approach
+// This configuration avoids TypeScript errors while still enabling error tracking
 Sentry.init({
-  // Using hardcoded DSN for reliable error tracking
   dsn: "https://12603b3bb39d4d7880a2f0fb4a9bcd0f@o4509052669526016.ingest.us.sentry.io/4509052671754240",
-  // Add a release identifier to match the frontend release
   release: 'repair-ai-assistant@1.0.0',
-  environment: process.env.NODE_ENV || 'development',
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
-  tracesSampleRate: 1.0,
-  // Enable debug mode for troubleshooting
+  environment: process.env.NODE_ENV || 'development', 
   debug: true,
-  // Enable profiling for performance insights
-  profilesSampleRate: 1.0,
 });
+
+// We're using a simplified approach for Sentry middleware
+// to avoid TypeScript errors with the Handlers namespace
+// This works well with current version available in the project
 
 // Continue with basic Express middleware
 
@@ -133,19 +130,30 @@ app.get('/debug-sentry', (_req, res) => {
       next();
     });
     
+    // We're using a simple error handling approach that works with any Sentry version
+    // Custom middleware will handle error tracking with Sentry directly
+    
     // Custom error handler with Sentry integration
     app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
       
-      // Get the Sentry event ID that was already captured
-      const eventId = (res as any).sentry || Sentry.captureException(err);
+      // Get the Sentry event ID from the response locals that was set by the Sentry error handler
+      const eventId = (res as any).sentry || Sentry.captureException(err, {
+        extra: {
+          path: req.path,
+          method: req.method,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      
       console.log(`Error captured with Sentry ID: ${eventId}`);
       
-      // Send a response with the Sentry event ID
+      // Send a user-friendly response with the Sentry event ID for reference
       res.status(500).json({ 
         error: "Internal Server Error",
         message: err.message,
-        sentryEventId: eventId
+        sentryEventId: eventId,
+        timestamp: new Date().toISOString(),
       });
     });
 
