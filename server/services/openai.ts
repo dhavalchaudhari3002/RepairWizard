@@ -405,35 +405,53 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
   "safetyWarnings": ["Warning 1", "Warning 2"]
 }`;
 
-    // Use GPT-3.5 Turbo for faster responses with reduced token count and simplified prompt
-    
-    // To prevent redundant API calls, check for duplicate issue patterns
-    if (issueDescription.length < 10) {
-      // For very short descriptions, try to handle without API call
-      try {
-        const quickResponse = getPrewrittenResponse(productType, issueDescription);
-        if (quickResponse) {
-          console.log("Using pre-written response for common issue");
-          return quickResponse;
-        }
-      } catch (e) {
-        console.log("Fallback to API call after error in pre-written response logic");
+    // Cache implementation for quick responses
+const diagnosticCache = new Map();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache
+
+async function getCachedResponse(key: string) {
+  const cached = diagnosticCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log("Using cached response");
+    return cached.data;
+  }
+  return null;
+}
+
+// Use GPT-3.5 Turbo with optimized settings
+async function getDiagnosticResponse(productType: string, issueDescription: string) {
+  const cacheKey = `${productType}-${issueDescription}`;
+  
+  // Check cache first
+  const cachedResponse = await getCachedResponse(cacheKey);
+  if (cachedResponse) return cachedResponse;
+
+  // Quick response for common issues
+  if (issueDescription.length < 10) {
+    try {
+      const quickResponse = getPrewrittenResponse(productType, issueDescription);
+      if (quickResponse) {
+        diagnosticCache.set(cacheKey, { data: quickResponse, timestamp: Date.now() });
+        console.log("Using pre-written response");
+        return quickResponse;
       }
+    } catch (e) {
+      console.log("Quick response failed, using API");
     }
-    
-    // If no quick response available, use the API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125", // Use the latest optimized model
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Analyze: ${productType} with issue: ${issueDescription}`
-        }
-      ],
-      temperature: 0.3, // Lower temperature for more focused responses
-      max_tokens: 500,  // Reduced token limit to speed up response
-    });
+  }
+
+  // Optimized API call
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo-0125",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
+    ],
+    temperature: 0.2,
+    max_tokens: 300,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+  });
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

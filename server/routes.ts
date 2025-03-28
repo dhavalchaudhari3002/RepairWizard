@@ -450,15 +450,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/repair-diagnostics", async (req, res) => {
+    // Add request timeout
+    const timeout = setTimeout(() => {
+      res.status(504).json({ 
+        error: "Request timeout",
+        message: "Diagnostic analysis is taking too long" 
+      });
+    }, 15000); // 15 second timeout
+
     try {
       const { productType, issueDescription, repairRequestId } = req.body;
       if (!productType || !issueDescription) {
+        clearTimeout(timeout);
         res.status(400).json({ error: "Product type and issue description are required" });
         return;
       }
 
       console.log("Generating repair diagnostic for:", { productType, issueDescription, repairRequestId });
-      const diagnostic = await generateRepairDiagnostic(productType, issueDescription, repairRequestId);
+      const diagnostic = await Promise.race([
+        generateRepairDiagnostic(productType, issueDescription, repairRequestId),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Operation timeout")), 12000)
+        )
+      ]);
+      
+      clearTimeout(timeout);
 
       if (!diagnostic || !diagnostic.symptomInterpretation || !Array.isArray(diagnostic.possibleCauses)) {
         console.error("Invalid diagnostic generated:", diagnostic);
