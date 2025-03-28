@@ -6,6 +6,21 @@ import { db } from "../db";
 import { repairRequests } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: env.OPENAI_API_KEY
+});
+
+// Simple in-memory cache for diagnostic responses to improve performance
+interface CacheEntry {
+  timestamp: number;
+  data: any;
+}
+
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache TTL
+const diagnosticCache = new Map<string, CacheEntry>();
+const API_TIMEOUT = 8000; // 8 second timeout
+
 /**
  * Track diagnostic analytics in a consistent way
  * This helps avoid duplicate code and ensures all analytics are tracked properly
@@ -76,20 +91,6 @@ async function trackDiagnosticAnalytics(
   }
 }
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY
-});
-
-// Simple in-memory cache for diagnostic responses to improve performance
-interface CacheEntry {
-  timestamp: number;
-  data: any;
-}
-
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache TTL
-const diagnosticCache = new Map<string, CacheEntry>();
-
 /**
  * Generate a cache key based on input parameters
  */
@@ -98,6 +99,18 @@ function generateCacheKey(productType: string, issueDescription: string): string
   const normalizedProductType = productType.trim().toLowerCase();
   const normalizedIssueDescription = issueDescription.trim().toLowerCase();
   return `${normalizedProductType}:${normalizedIssueDescription}`;
+}
+
+/**
+ * Check if a response exists in the cache
+ */
+async function getCachedResponse(key: string) {
+  const cached = diagnosticCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log("Using cached response");
+    return cached.data;
+  }
+  return null;
 }
 
 interface RepairStep {
@@ -225,6 +238,78 @@ function getPrewrittenResponse(productType: string, issueDescription: string): R
   
   // Default - no pre-written response available
   return null;
+}
+
+/**
+ * Helper function to get diagnostic response with optimized settings
+ */
+async function getDiagnosticResponse(productType: string, issueDescription: string, systemPrompt: string): Promise<RepairDiagnostic> {
+  const cacheKey = `${productType}-${issueDescription}`;
+  
+  // Check cache first
+  const cachedResponse = await getCachedResponse(cacheKey);
+  if (cachedResponse) return cachedResponse;
+
+  // Quick response for common issues
+  if (issueDescription.length < 10) {
+    try {
+      const quickResponse = getPrewrittenResponse(productType, issueDescription);
+      if (quickResponse) {
+        diagnosticCache.set(cacheKey, { data: quickResponse, timestamp: Date.now() });
+        console.log("Using pre-written response");
+        return quickResponse;
+      }
+    } catch (e) {
+      console.log("Quick response failed, using API");
+    }
+  }
+
+  // Optimized API call
+  const response = await Promise.race([
+    openai.chat.completions.create({
+      model: "gpt-3.5-turbo-0125",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
+      ],
+      temperature: 0.2,
+      max_tokens: 150, // Reduced for faster response
+      presence_penalty: 0,
+      frequency_penalty: 0,
+    }),
+    new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error("OpenAI API timeout")), API_TIMEOUT)
+    )
+  ]) as OpenAI.Chat.Completions.ChatCompletion;
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("Empty response from OpenAI");
+  }
+
+  console.log("Received diagnostic response from OpenAI");
+
+  let result: RepairDiagnostic;
+  try {
+    result = JSON.parse(content);
+  } catch (error) {
+    console.error("Failed to parse JSON response:", content);
+    throw new Error("Invalid JSON response from OpenAI");
+  }
+
+  // Validate diagnostic structure
+  if (!result.symptomInterpretation || !Array.isArray(result.possibleCauses) || !Array.isArray(result.diagnosticSteps)) {
+    console.error("Invalid diagnostic structure:", result);
+    throw new Error("Generated diagnostic does not match required format");
+  }
+
+  // Cache the result for future use
+  diagnosticCache.set(cacheKey, {
+    timestamp: Date.now(),
+    data: result
+  });
+  
+  return result;
 }
 
 export async function generateRepairGuide(productType: string, issue: string, repairRequestId?: number): Promise<RepairGuide> {
@@ -405,89 +490,9 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
   "safetyWarnings": ["Warning 1", "Warning 2"]
 }`;
 
-    // Cache implementation for quick responses
-const diagnosticCache = new Map();
-const CACHE_TTL = 1000 * 60 * 5; // 5 minutes cache for faster responses
-const API_TIMEOUT = 8000; // 8 second timeout
-
-async function getCachedResponse(key: string) {
-  const cached = diagnosticCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log("Using cached response");
-    return cached.data;
-  }
-  return null;
-}
-
-// Use GPT-3.5 Turbo with optimized settings
-async function getDiagnosticResponse(productType: string, issueDescription: string) {
-  const cacheKey = `${productType}-${issueDescription}`;
+    // Get diagnostic response through helper function
+    const result = await getDiagnosticResponse(productType, issueDescription, systemPrompt);
   
-  // Check cache first
-  const cachedResponse = await getCachedResponse(cacheKey);
-  if (cachedResponse) return cachedResponse;
-
-  // Quick response for common issues
-  if (issueDescription.length < 10) {
-    try {
-      const quickResponse = getPrewrittenResponse(productType, issueDescription);
-      if (quickResponse) {
-        diagnosticCache.set(cacheKey, { data: quickResponse, timestamp: Date.now() });
-        console.log("Using pre-written response");
-        return quickResponse;
-      }
-    } catch (e) {
-      console.log("Quick response failed, using API");
-    }
-  }
-
-  // Optimized API call
-  const response = await Promise.race([
-    openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
-      ],
-      temperature: 0.2,
-      max_tokens: 150, // Reduced for faster response
-      presence_penalty: 0,
-      frequency_penalty: 0,
-    }),
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("OpenAI API timeout")), API_TIMEOUT)
-    )
-  ]);
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("Empty response from OpenAI");
-    }
-
-    console.log("Received diagnostic response from OpenAI");
-    const endTime = Date.now();
-    const responseTime = endTime - startTime;
-
-    let result: RepairDiagnostic;
-    try {
-      result = JSON.parse(content);
-    } catch (error) {
-      console.error("Failed to parse JSON response:", content);
-      throw new Error("Invalid JSON response from OpenAI");
-    }
-
-    // Validate diagnostic structure
-    if (!result.symptomInterpretation || !Array.isArray(result.possibleCauses) || !Array.isArray(result.diagnosticSteps)) {
-      console.error("Invalid diagnostic structure:", result);
-      throw new Error("Generated diagnostic does not match required format");
-    }
-
-    // Cache the result for future use
-    diagnosticCache.set(cacheKey, {
-      timestamp: Date.now(),
-      data: result
-    });
-    
     // Track analytics if repairRequestId is provided
     if (repairRequestId) {
       try {
@@ -497,7 +502,7 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
           issueDescription, 
           repairRequestId, 
           result, 
-          content, 
+          JSON.stringify(result), 
           systemPrompt
         );
       } catch (analyticsError) {
