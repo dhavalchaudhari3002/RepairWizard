@@ -6,10 +6,99 @@ import { db } from "../db";
 import { repairRequests } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * Track diagnostic analytics in a consistent way
+ * This helps avoid duplicate code and ensures all analytics are tracked properly
+ */
+async function trackDiagnosticAnalytics(
+  startTime: number,
+  productType: string,
+  issueDescription: string,
+  repairRequestId: number,
+  diagnostic: any,
+  rawContent?: string,
+  systemPrompt?: string
+): Promise<void> {
+  try {
+    // Create a summary of the AI response for analysis
+    const causesSummary = diagnostic.possibleCauses.join('. ');
+    const stepsSummary = diagnostic.diagnosticSteps.join('. ');
+    
+    const responseSummary = `Symptoms: ${diagnostic.symptomInterpretation}. Causes: ${causesSummary}. Steps: ${stepsSummary}`;
+    
+    // Calculate tokens (approximate method)
+    const promptTokens = (systemPrompt?.length || 0) + productType.length + issueDescription.length;
+    const completionTokens = rawContent?.length || responseSummary.length;
+    
+    // Get repair request details
+    const repairRequest = await db.query.repairRequests.findFirst({
+      where: eq(repairRequests.id, repairRequestId)
+    });
+    
+    if (repairRequest) {
+      // Calculate consistency score
+      const consistencyScore = await calculateConsistencyScore(
+        productType,
+        issueDescription,
+        responseSummary
+      );
+      
+      // Check for potential inconsistencies
+      const inconsistencyFlags = await detectInconsistencies(
+        productType,
+        responseSummary
+      );
+      
+      // Calculate response time
+      const responseTime = Date.now() - startTime;
+      
+      // Track the analytics data
+      await trackRepairAnalytics({
+        repairRequestId,
+        productType,
+        issueDescription,
+        promptTokens,
+        completionTokens,
+        responseTime,
+        consistencyScore,
+        aiResponseSummary: responseSummary,
+        inconsistencyFlags
+      });
+      
+      console.log("Tracked diagnostic analytics with consistency score:", consistencyScore);
+      return;
+    }
+    
+    throw new Error("Repair request not found");
+  } catch (error) {
+    console.error("Failed to track analytics:", error);
+    throw error;
+  }
+}
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY
 });
+
+// Simple in-memory cache for diagnostic responses to improve performance
+interface CacheEntry {
+  timestamp: number;
+  data: any;
+}
+
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache TTL
+const diagnosticCache = new Map<string, CacheEntry>();
+
+/**
+ * Generate a cache key based on input parameters
+ */
+function generateCacheKey(productType: string, issueDescription: string): string {
+  // Create a simple hash by combining product type and issue description
+  const normalizedProductType = productType.trim().toLowerCase();
+  const normalizedIssueDescription = issueDescription.trim().toLowerCase();
+  return `${normalizedProductType}:${normalizedIssueDescription}`;
+}
 
 interface RepairStep {
   step: number;
@@ -186,138 +275,79 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
     console.log("Starting diagnostic generation for:", { productType, issueDescription });
     const startTime = Date.now();
 
-    const systemPrompt = `You are an AI assistant simulating a highly experienced diagnostic technician for electronic devices and other products. 
-Your goal is to analyze the user's description, identify the most likely root cause(s) of the problem, and suggest logical next steps for diagnosis or repair, prioritizing safety and accuracy.
+    // Try to get from cache first
+    const cacheKey = generateCacheKey(productType, issueDescription);
+    const cachedResult = diagnosticCache.get(cacheKey);
+    
+    // If we have a valid cache entry, return it
+    if (cachedResult && (Date.now() - cachedResult.timestamp) < CACHE_TTL) {
+      console.log("Using cached diagnostic result");
+      
+      // Even when using cache, track analytics
+      if (repairRequestId) {
+        try {
+          // Don't wait for analytics tracking to complete
+          trackDiagnosticAnalytics(
+            startTime, 
+            productType, 
+            issueDescription, 
+            repairRequestId, 
+            cachedResult.data
+          ).catch(error => {
+            console.error("Error tracking cached analytics:", error);
+          });
+        } catch (error) {
+          console.error("Failed to track cached analytics:", error);
+        }
+      }
+      
+      return cachedResult.data;
+    }
+
+    // No valid cache entry, generate a new response
+    // Use a simplified prompt for faster response
+    const systemPrompt = `You are a diagnostic technician for electronic devices and products. 
+Analyze the problem description, identify likely causes, and suggest diagnostic steps.
 
 Provide your response in this exact JSON format:
 {
-  "symptomInterpretation": "Re-state the key symptoms described by the user",
+  "symptomInterpretation": "Re-state the key symptoms",
   "possibleCauses": [
-    "First potential root cause (most probable) - explain why it's possible",
-    "Second potential root cause - explain why it's possible",
-    "Additional causes as needed"
+    "First potential cause - with brief explanation",
+    "Second potential cause - with brief explanation"
   ],
   "informationGaps": [
-    "Crucial missing information #1",
-    "Crucial missing information #2",
-    "Additional information gaps as needed"
+    "Missing information #1",
+    "Missing information #2"
   ],
   "diagnosticSteps": [
-    "Simple, non-invasive diagnostic step #1 - indicate if caution is needed",
-    "Simple, non-invasive diagnostic step #2 - indicate if caution is needed",
-    "Additional diagnostic steps as needed"
+    "Diagnostic step #1",
+    "Diagnostic step #2"
   ],
   "likelySolutions": [
-    "Likely repair solution path #1 - component replacement, software configuration, etc.",
-    "Likely repair solution path #2",
-    "Additional solution paths as needed"
+    "Solution approach #1",
+    "Solution approach #2"
   ],
   "safetyWarnings": [
-    "Relevant safety precaution #1 (electricity, static, batteries, etc.)",
-    "Statement about limited analysis based on information provided",
-    "Disclaimer about professional help requirements",
-    "Warning NOT to perform complex/dangerous steps without expertise"
-  ]
-}
-
-Here are a few examples of good diagnostic analyses:
-
-Example 1:
-Product Type: Laptop
-Issue Description: The laptop screen turns on but shows only a black screen. I can hear the fan running and see power LEDs on.
-
-{
-  "symptomInterpretation": "The laptop powers on with fans running and LEDs lit, but the display remains completely black with no visible content.",
-  "possibleCauses": [
-    "Faulty display backlight - This is highly likely as the laptop shows signs of power (fans, LEDs) but no screen content. The LCD may be functioning but without the backlight, images appear black.",
-    "Display cable disconnection or damage - The cable connecting the display to the motherboard may be loose or damaged, preventing signal transmission while power systems function normally.",
-    "Graphics card/GPU failure - The GPU may be malfunctioning, which would prevent image generation while allowing other system components to function normally.",
-    "Software display settings issue - Incorrect display settings or a software glitch could cause output to be redirected away from the main screen."
-  ],
-  "informationGaps": [
-    "Whether any faint images are visible when shining a flashlight on the screen (would help confirm backlight issue)",
-    "If an external monitor works when connected to the laptop (would help isolate hardware vs. software issues)",
-    "Whether any unusual beeping sounds occur at startup (could indicate hardware failure codes)",
-    "Recent history of drops, spills, or other physical damage",
-    "Any recent software updates or changes before the issue appeared"
-  ],
-  "diagnosticSteps": [
-    "Connect an external monitor to the laptop's video output port. If the external display works, this confirms issues with the built-in display rather than the graphics system.",
-    "Shine a bright flashlight at an angle on the screen while it's on. Look carefully for faint images which would indicate a backlight problem.",
-    "Try booting into BIOS/UEFI (typically by pressing F2, F10, or Del during startup). If BIOS appears on screen, the issue is likely software-related.",
-    "Gently adjust the laptop's position/angle to see if the display flickers into view (could indicate loose connections).",
-    "Try a hard reset: Power off, remove battery (if possible), disconnect all peripherals, hold power button for 30 seconds, then reassemble and restart."
-  ],
-  "likelySolutions": [
-    "Backlight replacement - If diagnostic tests confirm a backlight failure, the display assembly or backlight inverter may need replacement.",
-    "Display cable reconnection or replacement - If caused by loose connections, reseating the cable may resolve it. If the cable is damaged, it will need replacement.",
-    "System board or GPU replacement - If the graphics processor has failed, either the discrete graphics card or the entire system board may need replacement.",
-    "Operating system repair or reinstallation - If software-related, system restoration or OS reinstallation may resolve display output issues."
-  ],
-  "safetyWarnings": [
-    "Never open a laptop display assembly unless qualified - LCD screens contain fragile components and potentially harmful substances.",
-    "Always disconnect power and remove the battery before attempting any internal hardware inspection or repair.",
-    "This diagnosis is based on limited information and may not identify the exact cause.",
-    "If uncomfortable with these steps, seek professional repair assistance as improper handling could cause additional damage.",
-    "Backup important data before performing any significant troubleshooting steps that might risk data loss."
-  ]
-}
-
-Example 2:
-Product Type: Smartphone
-Issue Description: Battery drains extremely quickly, losing about 50% charge in just one hour of light use.
-
-{
-  "symptomInterpretation": "The smartphone battery is depleting at an abnormally rapid rate, losing approximately 50% of its charge within one hour even with minimal usage.",
-  "possibleCauses": [
-    "Battery degradation - The battery may have deteriorated due to age or charging cycles, reducing its capacity to hold charge effectively.",
-    "Background app activity - One or more applications may be consuming excessive power by running processes in the background, even when not actively used.",
-    "Operating system bugs - System software issues can cause improper power management, leading to excessive battery consumption.",
-    "Hardware defect - A component like the screen, cellular modem, or processor may be drawing abnormal amounts of power due to malfunction.",
-    "Extreme temperatures - Exposure to high or low temperatures can temporarily reduce battery performance and accelerate discharge."
-  ],
-  "informationGaps": [
-    "Age of the phone and whether this is a recent or gradual problem",
-    "Recently installed apps or system updates before noticing the issue",
-    "Whether the phone feels unusually warm during use",
-    "Battery usage statistics from the phone's settings",
-    "Environmental conditions where the phone is typically used (temperature, signal strength)"
-  ],
-  "diagnosticSteps": [
-    "Check battery usage statistics in Settings to identify any apps consuming excessive power.",
-    "Restart the phone to clear temporary system states that might be causing high power consumption.",
-    "Enable battery saver mode and observe if battery drain significantly improves.",
-    "Close all background apps using the app switcher interface.",
-    "Check if the phone is searching for cellular signal in a poor coverage area (this consumes significant power).",
-    "Test in safe mode (power off, then press and hold the power button + volume down during restart on most Android phones) to determine if third-party apps are causing the drain."
-  ],
-  "likelySolutions": [
-    "Application management - Uninstall recently added apps or those showing high battery usage in settings.",
-    "System update or reset - Update to the latest OS version, or if already updated, consider resetting to factory settings (after backing up data).",
-    "Battery replacement - If the battery is degraded due to age or wear, replacing it should resolve rapid drainage issues.",
-    "Service center diagnosis - If hardware defects are suspected, professional diagnostic testing can identify faulty components."
-  ],
-  "safetyWarnings": [
-    "Never attempt to remove or replace a non-removable battery yourself as this could damage the device or cause fire hazards.",
-    "Back up all important data before performing factory resets or major software changes.",
-    "This diagnosis is based on the symptoms described and may not identify all possible causes.",
-    "If the phone becomes unusually hot, power it off immediately and allow it to cool before further use to prevent potential fire hazards.",
-    "Seek professional repair if troubleshooting steps don't resolve the issue, especially if the battery is swelling or the device casing is deformed."
+    "Safety precaution #1",
+    "Limited information disclaimer",
+    "Professional help recommendation"
   ]
 }`;
 
+    // Use GPT-3.5 Turbo for faster responses
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Analyze the following repair request:
+          content: `Analyze this repair request:
 
 Product Type: ${productType}
 Issue Description: ${issueDescription}
 
-Based on the Product Type and Issue Description, please perform a detailed analysis.`
+Provide a detailed diagnostic analysis.`
         }
       ],
       temperature: 0.5,
@@ -347,53 +377,24 @@ Based on the Product Type and Issue Description, please perform a detailed analy
       throw new Error("Generated diagnostic does not match required format");
     }
 
+    // Cache the result for future use
+    diagnosticCache.set(cacheKey, {
+      timestamp: Date.now(),
+      data: result
+    });
+    
     // Track analytics if repairRequestId is provided
     if (repairRequestId) {
       try {
-        // Create a summary of the AI response for analysis
-        const causesSummary = result.possibleCauses.join('. ');
-        const stepsSummary = result.diagnosticSteps.join('. ');
-        
-        const responseSummary = `Symptoms: ${result.symptomInterpretation}. Causes: ${causesSummary}. Steps: ${stepsSummary}`;
-        
-        // Calculate tokens (approximate method)
-        const promptTokens = systemPrompt.length + productType.length + issueDescription.length;
-        const completionTokens = content.length;
-        
-        // Get repair request details
-        const repairRequest = await db.query.repairRequests.findFirst({
-          where: eq(repairRequests.id, repairRequestId)
-        });
-        
-        if (repairRequest) {
-          // Calculate consistency score
-          const consistencyScore = await calculateConsistencyScore(
-            productType,
-            issueDescription,
-            responseSummary
-          );
-          
-          // Check for potential inconsistencies
-          const inconsistencyFlags = await detectInconsistencies(
-            productType,
-            responseSummary
-          );
-          
-          // Track the analytics data
-          await trackRepairAnalytics({
-            repairRequestId,
-            productType,
-            issueDescription,
-            promptTokens,
-            completionTokens,
-            responseTime,
-            consistencyScore,
-            aiResponseSummary: responseSummary,
-            inconsistencyFlags
-          });
-          
-          console.log("Tracked diagnostic analytics with consistency score:", consistencyScore);
-        }
+        await trackDiagnosticAnalytics(
+          startTime, 
+          productType, 
+          issueDescription, 
+          repairRequestId, 
+          result, 
+          content, 
+          systemPrompt
+        );
       } catch (analyticsError) {
         // Don't fail the main operation if analytics tracking fails
         console.error("Failed to track analytics:", analyticsError);
