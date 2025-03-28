@@ -208,7 +208,7 @@ export default function ErrorDashboard() {
             onValueChange={(value: any) => setSeverity(value === "all" ? undefined : value)}
           >
             <SelectTrigger className="w-[150px]">
-              <AlertCircle className="h-4 w-4 mr-2" />
+              <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
             <SelectContent>
@@ -234,7 +234,7 @@ export default function ErrorDashboard() {
               <Progress 
                 value={errorStats.errorRate || 0} 
                 max={100} 
-                className={`h-3 ${errorStats.errorRate > 50 ? 'bg-destructive/20' : 'bg-primary/20'}`}
+                className={`h-3 ${errorStats.errorRate > 50 ? 'bg-destructive/30' : 'bg-primary/40'}`}
               />
               <div className="flex justify-between">
                 <span className="text-3xl font-bold">
@@ -364,7 +364,7 @@ export default function ErrorDashboard() {
                     {errorStats.timeline.map((point, index) => (
                       <div
                         key={index}
-                        className="bg-primary/10 hover:bg-primary/20 transition-colors w-[3%] relative group"
+                        className="bg-primary/40 hover:bg-primary/60 transition-colors w-[3%] relative group"
                         style={{ 
                           height: `${Math.max((point.count / errorStats.maxCount) * 100, 2)}%`,
                           minWidth: '8px' 
