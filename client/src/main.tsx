@@ -11,6 +11,8 @@ Sentry.init({
   // we'll use a hardcoded DSN that matches the environment variable
   dsn: "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648",
   environment: import.meta.env.MODE || 'development',
+  // Add a release identifier to enable session tracking and better error grouping
+  release: 'repair-ai-assistant@1.0.0',
   // Adjust this value in production
   tracesSampleRate: 1.0,
   // Enable console debugging for Sentry

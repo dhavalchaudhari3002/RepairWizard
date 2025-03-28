@@ -18,6 +18,8 @@ const app = express();
 Sentry.init({
   dsn: process.env.SENTRY_DSN_BACKEND,
   environment: process.env.NODE_ENV || 'development',
+  // Add a release identifier to match the frontend release
+  release: 'repair-ai-assistant@1.0.0',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
   // Enable debugging to help troubleshoot
