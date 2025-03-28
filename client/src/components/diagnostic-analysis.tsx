@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -125,8 +125,23 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
 
   // Generate diagnosis when component mounts if not already fetched
   if (!diagnostic && !diagnosisMutation.isPending && !diagnosisMutation.isError) {
+    console.log("Initiating diagnostic API request");
     diagnosisMutation.mutate();
   }
+
+  // Force refresh after 500ms if we have data but UI isn't updating
+  useEffect(() => {
+    if (diagnostic) {
+      console.log("Diagnostic data is available, ensuring UI updates");
+      const timer = setTimeout(() => {
+        if (diagnostic) {
+          // This will cause a re-render if the UI hasn't updated
+          setActiveTab(prevTab => prevTab === "analysis" ? prevTab : "analysis");
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [diagnostic]);
 
   // Loading state
   if (diagnosisMutation.isPending) {

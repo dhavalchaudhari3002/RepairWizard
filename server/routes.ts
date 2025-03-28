@@ -10,7 +10,7 @@ import {
   type InsertUserInteraction
 } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
-import { getRepairAnswer, generateRepairGuide, generateRepairDiagnostic } from "./services/openai";
+import { getRepairAnswer, generateRepairGuide, generateRepairDiagnostic, type RepairDiagnostic } from "./services/openai";
 import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
@@ -485,20 +485,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Validate diagnostic properties
-        if (!diagnostic.symptomInterpretation || !Array.isArray(diagnostic.possibleCauses)) {
-          console.error("Invalid diagnostic structure:", diagnostic);
+        if (!diagnostic || typeof diagnostic !== 'object') {
+          console.error("Invalid diagnostic structure, not an object:", diagnostic);
           res.status(500).json({ error: "Generated diagnostic is invalid" });
           return;
         }
 
+        // Type assertion to ensure TypeScript knows the structure
+        const typedDiagnostic = diagnostic as RepairDiagnostic;
+
+        // Ensure all required properties exist
+        if (!typedDiagnostic.symptomInterpretation || !Array.isArray(typedDiagnostic.possibleCauses)) {
+          console.error("Invalid diagnostic structure, missing required properties:", diagnostic);
+          res.status(500).json({ error: "Generated diagnostic is missing required fields" });
+          return;
+        }
+
         // Ensure all arrays are present and valid
-        const validatedDiagnostic = {
-          symptomInterpretation: diagnostic.symptomInterpretation || "",
-          possibleCauses: Array.isArray(diagnostic.possibleCauses) ? diagnostic.possibleCauses : [],
-          informationGaps: Array.isArray(diagnostic.informationGaps) ? diagnostic.informationGaps : [],
-          diagnosticSteps: Array.isArray(diagnostic.diagnosticSteps) ? diagnostic.diagnosticSteps : [],
-          likelySolutions: Array.isArray(diagnostic.likelySolutions) ? diagnostic.likelySolutions : [],
-          safetyWarnings: Array.isArray(diagnostic.safetyWarnings) ? diagnostic.safetyWarnings : []
+        const validatedDiagnostic: RepairDiagnostic = {
+          symptomInterpretation: typedDiagnostic.symptomInterpretation || "",
+          possibleCauses: Array.isArray(typedDiagnostic.possibleCauses) ? typedDiagnostic.possibleCauses : [],
+          informationGaps: Array.isArray(typedDiagnostic.informationGaps) ? typedDiagnostic.informationGaps : [],
+          diagnosticSteps: Array.isArray(typedDiagnostic.diagnosticSteps) ? typedDiagnostic.diagnosticSteps : [],
+          likelySolutions: Array.isArray(typedDiagnostic.likelySolutions) ? typedDiagnostic.likelySolutions : [],
+          safetyWarnings: Array.isArray(typedDiagnostic.safetyWarnings) ? typedDiagnostic.safetyWarnings : []
         };
 
         console.log("Sending validated diagnostic response to client");

@@ -132,7 +132,7 @@ interface RepairGuide {
   videoKeywords: string[];
 }
 
-interface RepairDiagnostic {
+export interface RepairDiagnostic {
   symptomInterpretation: string;
   possibleCauses: string[];
   informationGaps: string[];
