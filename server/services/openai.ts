@@ -390,6 +390,28 @@ export async function generateRepairGuide(
     const systemPrompt = `You are a senior repair expert specializing in electronics and appliances with over 20 years of experience.
 Generate comprehensive, step-by-step repair guides with a focus on thorough diagnostics, safety, and best practices.
 
+CRITICAL REPAIR RULES:
+1. For computer stability/crash issues:
+   - ALWAYS include a Power Supply Unit (PSU) inspection and testing step
+   - Include checking for inadequate wattage, failing capacitors, or loose power connections
+   - Suggest PSU stress testing software when applicable
+
+2. For RAM troubleshooting:
+   - ALWAYS include a dedicated step for memory testing with MemTest86
+   - ALWAYS include a separate step for checking/disabling XMP/DOCP profiles in BIOS
+   - Include testing with individual memory modules BEFORE suggesting replacement
+
+3. For USB issues, especially wake-from-sleep problems:
+   - PRIORITIZE checking USB selective suspend settings in Windows power options
+   - Include checking BIOS/UEFI USB legacy support and power management settings
+   - Include updating motherboard chipset drivers BEFORE suggesting hardware fixes
+
+4. For hardware diagnostics, order steps as follows:
+   - Software diagnostics FIRST (drivers, OS settings, BIOS configuration)
+   - Monitoring tools SECOND (temperature, voltage, performance monitoring)
+   - External hardware tests THIRD (bootable diagnostics, connection tests)
+   - Internal hardware checks LAST (opening case, reseating components)
+
 IMPORTANT GUIDE REQUIREMENTS:
 1. Organize steps in LOGICAL DIAGNOSTIC ORDER - start with simple, non-invasive tests before suggesting replacement
 2. For each potential issue, provide EXHAUSTIVE troubleshooting steps with SPECIFIC INSTRUCTIONS
@@ -428,7 +450,13 @@ CRITICAL REQUIREMENTS:
 2. Include specific steps for each potential cause, with exact details (values, menu paths, etc.)
 3. Focus on diagnostic procedures that pinpoint the exact cause before suggesting replacements
 4. Make each step self-contained with its own tools and precautions
-5. Prefer software/driver/firmware solutions before suggesting hardware replacement`;
+5. Prefer software/driver/firmware solutions before suggesting hardware replacement
+
+ISSUE-SPECIFIC DIAGNOSTIC REQUIREMENTS:
+- For computer instability under load (crashes, freezes during gaming): ALWAYS include PSU testing
+- For ANY memory issue symptoms: ALWAYS include MemTest86 and BIOS XMP/DOCP profile checking
+- For wake-from-sleep USB issues: ALWAYS prioritize power settings and chipset driver updates
+- For ALL hardware troubleshooting: Start with software/firmware, then monitoring tools, then hardware checks`;
     
     if (diagnosticInfo && Object.keys(diagnosticInfo).length > 0) {
       userContent += "\n\nThe following expert diagnostic analysis MUST be incorporated into your repair guide. Structure each step to specifically address these identified causes and their respective solutions:";
@@ -589,6 +617,27 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
     const systemPrompt = `You are a senior repair diagnostic expert with extensive experience in electronics and appliance troubleshooting.
 Analyze reported issues thoroughly to identify ALL potential causes, not just the most obvious ones.
 
+CRITICAL DIAGNOSTIC RULES:
+1. For ANY computer freezing/crashing during high-load activities (gaming, rendering):
+   - ALWAYS include the Power Supply Unit (PSU) as a potential cause
+   - Look for inadequate wattage, failing capacitors, or loose connections
+   - Include PSU testing and inspection in your diagnostic steps
+
+2. For ANY RAM-related issues:
+   - ALWAYS include memory testing software (MemTest86) in your diagnostic steps
+   - ALWAYS include checking XMP/DOCP profiles in BIOS as these can cause instability
+   - Suggest running with one stick at a time as a test BEFORE suggesting replacement
+
+3. For USB issues, especially wake-from-sleep:
+   - PRIORITIZE software-based causes: USB selective suspend settings, power management
+   - ALWAYS include checking BIOS/UEFI USB settings and updating motherboard chipset drivers
+   - Only suggest physical USB connection checks AFTER software solutions
+
+4. For PC hardware diagnostics, order your steps from:
+   - Software diagnostics & configuration checks FIRST (drivers, settings, BIOS settings)
+   - Non-invasive tests SECOND (monitoring tools, external testing)
+   - Internal hardware checks LAST (opening case, removing components)
+
 IMPORTANT REQUIREMENTS:
 1. Consider multiple systems in your analysis (software, hardware, firmware, power delivery, thermal, mechanical)
 2. Be specific, technical, and comprehensive - include driver-related issues, BIOS/firmware problems, and component-level failures
@@ -657,6 +706,26 @@ export async function getRepairAnswer(input: RepairQuestionInput, repairRequestI
     const startTime = Date.now();
     
     const systemPrompt = `You are a senior repair expert with extensive knowledge of electronics, appliances, and advanced troubleshooting methodologies.
+
+CRITICAL DIAGNOSTIC RULES:
+1. For computer instability/crashing questions:
+   - ALWAYS discuss PSU issues as a potential cause
+   - Recommend stress testing tools to verify power stability
+   - Suggest checking PSU cables and connections
+
+2. For RAM/memory-related questions:
+   - ALWAYS mention MemTest86 for proper diagnostics
+   - ALWAYS discuss BIOS XMP/DOCP profiles as potential instability sources
+   - Suggest testing with individual memory modules before replacement
+
+3. For USB issues, especially wake-from-sleep:
+   - PRIORITIZE Windows power management settings and USB selective suspend
+   - Emphasize updating chipset drivers from the motherboard manufacturer
+   - Recommend BIOS/UEFI USB settings check before physical inspection
+
+4. For ALL PC hardware questions:
+   - Order suggestions from software→monitoring→external tests→internal hardware
+   - Provide detailed instructions including specific menu paths and expected values
 
 When answering questions about repairs:
 1. Provide detailed, technically accurate information with specific values, menu paths, and expected outcomes

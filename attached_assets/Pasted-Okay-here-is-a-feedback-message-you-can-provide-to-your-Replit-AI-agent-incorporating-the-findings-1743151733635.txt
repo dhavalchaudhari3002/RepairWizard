@@ -1,0 +1,61 @@
+Okay, here is a feedback message you can provide to your Replit AI agent, incorporating the findings from the latest test run:
+
+Message for Replit AI:
+
+Subject: Feedback & Refinements for Diagnostic Generation (Round 2)
+
+Overall: Good progress! The latest changes have noticeably improved the symptom summary, the detail in the GPU monitoring, driver update, and BIOS update steps, and the relevance of the tool lists for those steps. The structure is better.
+
+Objective: We need to further refine the diagnostic generation to be more comprehensive and accurate, especially for complex issues involving multiple potential causes. The system still misses critical diagnostic paths.
+
+Specific Issues Found & Required Actions:
+
+CRITICAL OMISSION - Power Supply Unit (PSU):
+
+Issue: The PSU was completely ignored in both the "Possible Causes" and "Troubleshooting Steps", despite symptoms (instability under heavy gaming load, issues waking from sleep) strongly pointing towards it as a primary suspect.
+
+Action: Modify the prompt/logic. When symptoms include instability under load (gaming crashes/freezes), graphical artifacts combined with crashes, or unexpected behavior during power state changes (sleep/wake), the AI MUST consider the PSU as a significant possible cause. Add troubleshooting steps related to the PSU, such as:
+
+Checking all PSU cable connections (motherboard, GPU, peripherals).
+
+Suggesting visual inspection for damage/capacitor issues (with safety warnings).
+
+Mentioning professional PSU testing if instability persists.
+
+INCOMPLETE RAM DIAGNOSTICS:
+
+Issue: Troubleshooting Step 4 only covers physical reseating. It completely misses standard RAM stability testing and configuration checks.
+
+Action: Enhance the RAM troubleshooting. It MUST include:
+
+Running a dedicated memory diagnostic tool like MemTest86 (bootable USB) for several passes to detect errors.
+
+Checking the XMP profile status in the BIOS/UEFI and suggesting disabling it temporarily as a test for stability issues.
+
+MISDIRECTED USB TROUBLESHOOTING (for Wake Issue):
+
+Issue: Step 5 focused only on internal physical connectors, which is unlikely for the specific wake-from-sleep symptom affecting only rear ports. It missed common software/firmware causes.
+
+Action: For wake-from-sleep USB issues, the troubleshooting steps MUST prioritize and include:
+
+Checking Windows Power Settings (specifically "USB selective suspend setting").
+
+Updating motherboard chipset drivers from the manufacturer's website.
+
+Checking BIOS/UEFI settings related to USB power management, legacy support, and wake states. Physical inspection should be a much lower priority step for this specific symptom.
+
+Logical Flow:
+
+Issue: While improved, the flow could still be optimized. Checking physical RAM connections (Step 4) involves opening the case, which might be premature.
+
+Action: Review the prompt logic to encourage a flow that generally prioritizes less invasive software/firmware/configuration checks (like driver reinstalls, BIOS checks/updates, XMP disabling, Windows power settings) before hardware disassembly, where logical for the symptoms.
+
+Implementation Focus:
+
+Refine the main prompt sent to the OpenAI API to include these specific diagnostic rules and considerations (especially regarding PSU symptoms, MemTest86/XMP for RAM, and wake-from-sleep USB causes).
+
+Ensure the logic that structures the troubleshooting steps correctly incorporates these required checks in a sensible order.
+
+Please implement these changes to make the diagnostic process significantly more robust and likely to identify the root cause of complex issues.
+
+This provides clear, actionable feedback referencing the specific test case and outlining the necessary additions and changes in priority.
