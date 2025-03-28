@@ -512,10 +512,8 @@ export class DatabaseStorage implements IStorage {
       // Don't need to create the table as it's already defined in the schema
       // and should have been created with the correct column names via drizzle
       
-      // Convert inconsistency flags to JSON string
-      const inconsistencyFlagsJson = JSON.stringify(data.inconsistencyFlags || []);
-      
       // Now perform the insert with the proper types and column names
+      // Use the actual array directly for inconsistencyFlags which is a text[] type
       const result = await db.execute<{ 
         id: number, 
         repair_request_id: number,
@@ -526,8 +524,8 @@ export class DatabaseStorage implements IStorage {
         response_time_ms: number, // Fixed column name to match schema
         consistency_score: string,
         ai_response_summary: string,
-        inconsistency_flags: string,
-        created_at: Date
+        inconsistency_flags: string[],
+        timestamp: Date
       }>(
         sql`
         INSERT INTO repair_analytics 
@@ -537,7 +535,7 @@ export class DatabaseStorage implements IStorage {
         VALUES 
           (${data.repairRequestId}, ${data.productType}, ${data.issueDescription}, ${data.promptTokens}, 
            ${data.completionTokens}, ${data.responseTime}, ${data.consistencyScore}, ${data.aiResponseSummary}, 
-           ${inconsistencyFlagsJson}::jsonb, CURRENT_TIMESTAMP)
+           ${data.inconsistencyFlags || []}, CURRENT_TIMESTAMP)
         RETURNING *
         `
       );
@@ -548,10 +546,8 @@ export class DatabaseStorage implements IStorage {
       
       // Return the created analytics record
       const row = result.rows[0];
-      // Parse flags from JSON string
-      const inconsistencyFlags = row.inconsistency_flags ? 
-        JSON.parse(row.inconsistency_flags) as string[] : 
-        [];
+      // The inconsistency_flags is already a string array in PostgreSQL
+      const inconsistencyFlags = row.inconsistency_flags || [];
         
       // Convert to the expected RepairAnalytics format
       const analytics: RepairAnalytics = {
