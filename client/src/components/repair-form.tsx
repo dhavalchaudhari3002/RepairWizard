@@ -239,7 +239,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
                         </Button>
                       </div>
                     </CommandEmpty>
-                    <CommandGroup heading="Suggested Product Types">
+                    <CommandGroup>
                       {productTypes.map((type) => (
                         <CommandItem
                           key={type.value}
