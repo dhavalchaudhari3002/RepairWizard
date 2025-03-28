@@ -8,14 +8,13 @@ import path from "path";
 import fs from "fs";
 // Import Sentry modules
 import * as Sentry from "@sentry/node";
-import * as Tracing from "@sentry/tracing";
 
 // Initialize Express app
 const app = express();
 
 // Initialize Sentry with a basic configuration
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
+  dsn: process.env.SENTRY_DSN_BACKEND,
   environment: process.env.NODE_ENV || 'development',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,

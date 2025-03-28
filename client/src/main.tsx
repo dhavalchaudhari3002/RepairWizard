@@ -7,10 +7,10 @@ import * as Sentry from "@sentry/react";
 
 // Initialize Sentry
 Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN as string,
+  dsn: import.meta.env.SENTRY_DSN_FRONTEND as string,
   environment: import.meta.env.MODE || 'development',
   // Adjust this value in production
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1.0
 });
 
 // Force dark mode when the app starts
