@@ -3,26 +3,27 @@ import * as Sentry from "@sentry/react";
 
 // Import React and other dependencies after Sentry is initialized
 import { createRoot } from "react-dom/client";
-import { StrictMode, useEffect } from "react";
+import { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
 
-// Initialize Sentry
+// Initialize Sentry using the recommended approach
 Sentry.init({
-  // Since we can't access the environment variable directly in Vite without the VITE_ prefix,
-  // we'll use a hardcoded DSN that matches the environment variable
-  dsn: "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648",
-  environment: import.meta.env.MODE || 'development',
+  dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
   // Add a release identifier to enable session tracking and better error grouping
   release: 'repair-ai-assistant@1.0.0',
-  // Adjust this value in production
+  environment: import.meta.env.MODE || 'development',
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
-  // Enable console debugging for Sentry
-  debug: true,
-  beforeSend(event) {
-    console.log('Sending event to Sentry:', event);
-    return event;
-  }
+  // Enable session replay for better error diagnosis
+  replaysSessionSampleRate: 0.1, // Sample 10% of sessions
+  replaysOnErrorSampleRate: 1.0, // Sample 100% of sessions with errors
+  // Set tracePropagationTargets to control which URLs should be tracked
+  tracePropagationTargets: ["localhost", /^https:\/\//],
 });
 
 // Force dark mode when the app starts
