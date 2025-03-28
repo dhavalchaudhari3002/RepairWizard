@@ -144,12 +144,7 @@ export function NavBar() {
                 <Button variant="ghost" asChild>
                   <Link href="/">Dashboard</Link>
                 </Button>
-                <Button variant="ghost" asChild>
-                  <Link href="/sentry-test" className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Sentry Test
-                  </Link>
-                </Button>
+
                 {user.role && user.role === "admin" && (
                   <Button variant="ghost" asChild>
                     <Link href="/analytics" className="flex items-center gap-2">
@@ -339,12 +334,7 @@ export function NavBar() {
                             Tool Shop
                           </Link>
                         </Button>
-                        <Button variant="ghost" asChild>
-                          <Link href="/sentry-test" className="flex items-center gap-2 justify-center">
-                            <AlertTriangle className="h-4 w-4 text-orange-500" />
-                            Sentry Test
-                          </Link>
-                        </Button>
+
                         <Button
                           variant="default"
                           onClick={() => setShowAuthDialog(true)}
