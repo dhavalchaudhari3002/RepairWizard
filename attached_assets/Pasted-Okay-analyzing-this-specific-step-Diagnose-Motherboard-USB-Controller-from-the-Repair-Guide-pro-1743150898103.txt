@@ -1,0 +1,61 @@
+Okay, analyzing this specific step ("Diagnose Motherboard USB Controller") from the Repair Guide provides more insight into how the system is structured.
+
+Evaluation of this Repair Guide Step:
+
+Strengths:
+
+Structure: The guide has a good structure: Difficulty, Time estimate, Safety Warnings, Tools Required (with links!), Step-by-step instructions, Step-specific safety, Visual Guide placeholder, and a Question feature. This is excellent for user experience.
+
+Relevance: This step directly addresses one of the possible causes identified in the earlier AI analysis (Motherboard USB controller malfunction).
+
+Safety: Includes both general and step-specific safety notes, which is crucial.
+
+Interactivity: The "Ask a question" feature is a great addition for user support.
+
+Tool Linking: Linking tools to Amazon (or any supplier) is helpful.
+
+Weaknesses:
+
+Instruction Content - VERY Simplistic: The instruction Try connecting different devices... If the issue persists, consider replacing the motherboard is a massive leap. It misses numerous intermediate diagnostic steps for USB controller issues:
+
+Checking BIOS/UEFI settings related to USB ports, power management, and wake states.
+
+Checking Windows Power Plan settings (specifically "USB selective suspend setting").
+
+Updating motherboard chipset drivers from the manufacturer's website.
+
+Checking Windows Device Manager for errors related to USB controllers or hubs, and trying to update/reinstall drivers there.
+
+Testing the ports with a bootable USB drive running a different OS (like Linux Mint) to rule out Windows-specific issues.
+
+Physically inspecting the USB ports and motherboard connections for damage (if comfortable).
+
+Jumping straight from "try different devices" to "replace motherboard" is poor diagnostic practice.
+
+Tool List Relevance: The listed tools (Compressed air, Thermal paste, New RAM stick, HWMonitor) seem entirely irrelevant to diagnosing a motherboard USB controller. This suggests the tool list might be generic for the entire guide rather than step-specific, which could be confusing. For this step, no special tools are really needed beyond known-good USB devices.
+
+Step Placement (5 of 5?): Placing USB diagnosis as the last step seems potentially odd, especially given the more critical gaming stability issues. Without seeing Steps 1-4, it's hard to judge the flow, but typically, major stability diagnostics might come first.
+
+Context Missing: The step doesn't reference the specific symptom it relates to (USB ports not working after waking from sleep). This context is important.
+
+Overall Integration Thoughts:
+
+It shows you can link a potential cause from the AI analysis to a specific repair/diagnostic step.
+
+However, the quality bottleneck remains:
+
+The initial AI diagnosis was incomplete (missed PSU, RAM XMP etc.).
+
+This specific repair guide step, while addressing one identified cause, is itself diagnostically weak and incomplete.
+
+Recommendations:
+
+Improve Repair Guide Step Content: Significantly enhance the instructions for diagnosing USB issues, adding the intermediate steps mentioned above before suggesting motherboard replacement.
+
+Make Tool Lists Step-Specific: If possible, tailor the "Tools Required" list to only what's needed for that specific step, or clearly label the list as "Tools potentially needed for the entire repair process".
+
+Review Guide Flow: Ensure the order of steps (1 through 5) makes logical sense for diagnosing the user's combined problems.
+
+Enhance the Diagnostic AI Prompt (Still Key): The core issue remains that the initial AI diagnosis needs to be more comprehensive to cover all likely causes (PSU!) and suggest more thorough initial troubleshooting steps, which can then link to these more detailed (and improved) repair guide steps.
+
+This guide structure has great potential, but the actual diagnostic content in both the initial AI analysis and this specific guide step needs significant improvement to be truly helpful for complex issues.

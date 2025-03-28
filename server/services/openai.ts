@@ -387,8 +387,18 @@ export async function generateRepairGuide(
     });
     const startTime = Date.now();
 
-    const systemPrompt = `You are a repair expert specializing in electronics and appliances.
-Generate comprehensive, step-by-step repair guides with a focus on safety and best practices.
+    const systemPrompt = `You are a senior repair expert specializing in electronics and appliances with over 20 years of experience.
+Generate comprehensive, step-by-step repair guides with a focus on thorough diagnostics, safety, and best practices.
+
+IMPORTANT GUIDE REQUIREMENTS:
+1. Organize steps in LOGICAL DIAGNOSTIC ORDER - start with simple, non-invasive tests before suggesting replacement
+2. For each potential issue, provide EXHAUSTIVE troubleshooting steps with SPECIFIC INSTRUCTIONS
+3. Include detailed explanations of WHY each test helps identify the root cause
+4. NEVER jump directly from basic tests to "replace the component" - always include intermediate diagnostic steps
+5. Each step's tool list should ONLY include items actually needed for that specific step
+6. When a step addresses a USB/hardware issue, include driver updates, BIOS checks, and software troubleshooting BEFORE hardware replacement
+7. Each step must directly connect to a specific symptom or cause identified in the diagnostics
+
 Provide your response in this exact JSON format:
 {
   "title": "Guide title",
@@ -398,36 +408,44 @@ Provide your response in this exact JSON format:
     {
       "step": 1,
       "title": "Step title",
-      "description": "Detailed step description",
+      "description": "Detailed step description with specifics about HOW to perform each test, what to look for, and what the results mean. Include signal values, menu locations, etc. where applicable.",
       "imageDescription": "Description of what image would be helpful here",
       "safetyWarnings": ["List of safety warnings specific to this step"],
-      "tools": ["Tools needed for this step"]
+      "tools": ["ONLY tools needed for THIS specific step"]
     }
   ],
   "warnings": ["General safety warnings"],
-  "tools": ["All required tools"],
+  "tools": ["All required tools across ALL steps"],
   "videoKeywords": ["Keywords for finding relevant video tutorials"]
 }`;
 
     // Prepare the user message with diagnostic information if available
-    let userContent = `Generate a repair guide for ${productType}. Issue: ${issue}`;
+    let userContent = `Generate a detailed, comprehensive repair guide for ${productType}. 
+Issue: ${issue}
+
+CRITICAL REQUIREMENTS:
+1. Create a logical troubleshooting flow from software to hardware, simple to complex
+2. Include specific steps for each potential cause, with exact details (values, menu paths, etc.)
+3. Focus on diagnostic procedures that pinpoint the exact cause before suggesting replacements
+4. Make each step self-contained with its own tools and precautions
+5. Prefer software/driver/firmware solutions before suggesting hardware replacement`;
     
     if (diagnosticInfo && Object.keys(diagnosticInfo).length > 0) {
-      userContent += "\n\nPlease incorporate the following diagnostic information into your guide:";
+      userContent += "\n\nThe following expert diagnostic analysis MUST be incorporated into your repair guide. Structure each step to specifically address these identified causes and their respective solutions:";
       
       if (diagnosticInfo.possibleCauses && diagnosticInfo.possibleCauses.length > 0) {
-        userContent += `\n\nPossible causes:\n${diagnosticInfo.possibleCauses.map(cause => `- ${cause}`).join('\n')}`;
+        userContent += `\n\nIDENTIFIED POSSIBLE CAUSES (each must be addressed with thorough diagnostic steps):\n${diagnosticInfo.possibleCauses.map((cause, index) => `${index + 1}. ${cause}`).join('\n')}`;
       }
       
       if (diagnosticInfo.likelySolutions && diagnosticInfo.likelySolutions.length > 0) {
-        userContent += `\n\nRecommended solutions:\n${diagnosticInfo.likelySolutions.map(solution => `- ${solution}`).join('\n')}`;
+        userContent += `\n\nRECOMMENDED SOLUTIONS (implement these in logical order after proper diagnosis):\n${diagnosticInfo.likelySolutions.map((solution, index) => `${index + 1}. ${solution}`).join('\n')}`;
       }
       
       if (diagnosticInfo.safetyWarnings && diagnosticInfo.safetyWarnings.length > 0) {
-        userContent += `\n\nSafety warnings to address:\n${diagnosticInfo.safetyWarnings.map(warning => `- ${warning}`).join('\n')}`;
+        userContent += `\n\nCRITICAL SAFETY WARNINGS (must be included where appropriate):\n${diagnosticInfo.safetyWarnings.map((warning, index) => `${index + 1}. ${warning}`).join('\n')}`;
       }
       
-      userContent += "\n\nEnsure your repair guide directly addresses these specific diagnostic findings.";
+      userContent += "\n\nIMPORTANT: Your guide must explicitly address EACH of the causes/solutions above with detailed steps. For any step suggesting a hardware replacement, you MUST first include MULTIPLE software, driver, and diagnostic steps to confirm the hardware is truly at fault.";
     }
 
     const response = await openai.chat.completions.create({
@@ -567,15 +585,41 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
       return cachedResult.data;
     }
 
-    // Generate quick diagnostic with minimal prompt
-    const systemPrompt = `You are a repair diagnostic expert. Return all analysis in this JSON format:
+    // Generate comprehensive diagnostic analysis
+    const systemPrompt = `You are a senior repair diagnostic expert with extensive experience in electronics and appliance troubleshooting.
+Analyze reported issues thoroughly to identify ALL potential causes, not just the most obvious ones.
+
+IMPORTANT REQUIREMENTS:
+1. Consider multiple systems in your analysis (software, hardware, firmware, power delivery, thermal, mechanical)
+2. Be specific, technical, and comprehensive - include driver-related issues, BIOS/firmware problems, and component-level failures
+3. Consider non-obvious connections between symptoms (e.g., power issues causing USB problems)
+4. Prioritize non-destructive tests and software-based solutions before hardware replacement
+5. Include environment factors like power quality, ambient temperature, and usage patterns
+6. When listing solutions, progress from simple to complex, from software to hardware
+
+Return your analysis in this EXACT JSON format:
 {
-  "symptomInterpretation": "Brief symptom summary",
-  "possibleCauses": ["Cause 1", "Cause 2"],
-  "informationGaps": ["Gap 1", "Gap 2"],
-  "diagnosticSteps": ["Step 1", "Step 2"],
-  "likelySolutions": ["Solution 1", "Solution 2"],
-  "safetyWarnings": ["Warning 1", "Warning 2"]
+  "symptomInterpretation": "Detailed symptom analysis including potential relationships between reported issues",
+  "possibleCauses": [
+    "Specific description of cause 1 with technical details",
+    "Specific description of cause 2 with technical details"
+  ],
+  "informationGaps": [
+    "Specific information needed to better diagnose issue 1",
+    "Specific information needed to better diagnose issue 2"
+  ],
+  "diagnosticSteps": [
+    "Specific, detailed diagnostic step 1 with expected outcomes",
+    "Specific, detailed diagnostic step 2 with expected outcomes"
+  ],
+  "likelySolutions": [
+    "Specific, actionable solution 1 starting with software/settings",
+    "Specific, actionable solution 2 for hardware if needed"
+  ],
+  "safetyWarnings": [
+    "Specific safety warning 1 relevant to this specific device/repair",
+    "Specific safety warning 2 relevant to this specific device/repair"
+  ]
 }`;
 
     // Get diagnostic response through helper function
@@ -612,10 +656,18 @@ export async function getRepairAnswer(input: RepairQuestionInput, repairRequestI
   try {
     const startTime = Date.now();
     
-    const systemPrompt = `You are a repair expert specializing in electronics and appliances.
-Provide helpful, accurate, and concise answers to repair-related questions.
-Focus on safety and practical solutions. When uncertain, recommend professional help.
-Format your response as a JSON object with an "answer" field containing your response.`;
+    const systemPrompt = `You are a senior repair expert with extensive knowledge of electronics, appliances, and advanced troubleshooting methodologies.
+
+When answering questions about repairs:
+1. Provide detailed, technically accurate information with specific values, menu paths, and expected outcomes
+2. Emphasize DIAGNOSTIC approaches rather than jumping to conclusions about hardware failure
+3. Suggest multiple potential solutions in order from simplest/software-based to more complex/hardware-based
+4. Include safety warnings specific to the repair situation
+5. Highlight when the user should check documentation or seek professional help for dangerous procedures
+6. Provide context for WHY a solution works, not just what to do
+
+Format your response as a JSON object with an "answer" field containing your thorough response.
+Ensure your answers avoid oversimplified suggestions like "just replace the component" without proper diagnostic confirmation.`;
 
     const contextPrompt = `Product Type: ${input.productType}${
       input.issueDescription ? `\nReported Issue: ${input.issueDescription}` : ''
