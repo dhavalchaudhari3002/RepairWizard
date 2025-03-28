@@ -80,8 +80,14 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
       }
     },
     onSuccess: (data) => {
-      console.log("Setting diagnostic data in component state:", data);
-      setDiagnostic(data);
+      console.log("Received diagnostic data:", data);
+      
+      // Set data with a small delay to allow loading animation to complete
+      // This helps prevent any jank during the transition
+      setTimeout(() => {
+        console.log("Setting diagnostic data in component state:", data);
+        setDiagnostic(data);
+      }, 200);
       
       // Track the successful diagnosis event if tracking is available
       trackInteraction({
@@ -208,7 +214,9 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
   // No data yet
   if (!diagnostic) {
     console.log("No diagnostic data available yet");
-    return null;
+    // Return a placeholder with zero height instead of null
+    // This prevents the component from disappearing and reappearing
+    return <div className="h-0 overflow-hidden" id="diagnostic-placeholder" />;
   }
   
   // Ensure diagnostic has all required properties to prevent rendering errors
