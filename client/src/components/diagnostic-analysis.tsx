@@ -51,6 +51,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
       console.log("Starting diagnostic API request for:", { productType, issueDescription, repairRequestId });
       
       try {
+        // Direct fetch instead of apiRequest for more control
         const res = await fetch('/api/repair-diagnostics', {
           method: 'POST',
           headers: {
@@ -73,6 +74,13 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
         
         const data = await res.json();
         console.log("Received diagnostic data:", data);
+        
+        // Verify the data structure here before returning
+        if (!data || !data.symptomInterpretation || !Array.isArray(data.possibleCauses)) {
+          console.error("Invalid diagnostic data structure:", data);
+          throw new Error("Received invalid diagnostic data");
+        }
+        
         return data;
       } catch (error) {
         console.error("Fetch error:", error);
@@ -80,14 +88,26 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
       }
     },
     onSuccess: (data) => {
-      console.log("Received diagnostic data:", data);
+      console.log("Successful diagnostic completion with data:", data);
       
-      // Set data with a small delay to allow loading animation to complete
-      // This helps prevent any jank during the transition
+      // Create a properly structured and complete diagnostic object
+      const completeData: RepairDiagnostic = {
+        symptomInterpretation: data.symptomInterpretation || "Analysis unavailable",
+        possibleCauses: Array.isArray(data.possibleCauses) ? data.possibleCauses : [],
+        informationGaps: Array.isArray(data.informationGaps) ? data.informationGaps : [],
+        diagnosticSteps: Array.isArray(data.diagnosticSteps) ? data.diagnosticSteps : [],
+        likelySolutions: Array.isArray(data.likelySolutions) ? data.likelySolutions : [],
+        safetyWarnings: Array.isArray(data.safetyWarnings) ? data.safetyWarnings : []
+      };
+      
+      // Force a longer delay to ensure component can properly update
       setTimeout(() => {
-        console.log("Setting diagnostic data in component state:", data);
-        setDiagnostic(data);
-      }, 200);
+        console.log("Setting diagnostic data in component state:", completeData);
+        setDiagnostic(completeData);
+        
+        // Force a rerender after setting the data
+        setActiveTab("analysis");
+      }, 500);
       
       // Track the successful diagnosis event if tracking is available
       trackInteraction({
@@ -211,12 +231,40 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
     );
   }
 
-  // No data yet
+  // No data yet - but show visual feedback in development to aid debugging
   if (!diagnostic) {
     console.log("No diagnostic data available yet");
-    // Return a placeholder with zero height instead of null
-    // This prevents the component from disappearing and reappearing
-    return <div className="h-0 overflow-hidden" id="diagnostic-placeholder" />;
+    
+    // In production we'd use a zero-height placeholder
+    // But during development, let's show a visible indicator
+    return (
+      <Card className="mb-6 border-dashed border-yellow-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-yellow-500" />
+            Waiting for Diagnostic Data
+          </CardTitle>
+          <CardDescription>
+            Data has been requested but not yet set in component state
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            This placeholder card shows that the diagnostic data has been 
+            requested but isn't available yet for rendering. If you see this
+            for more than a few seconds, there might be an issue with the 
+            state update process.
+          </p>
+          <Button 
+            onClick={() => diagnosisMutation.mutate()} 
+            className="mt-4 w-full"
+            variant="outline"
+          >
+            Retry Fetching Diagnostics
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
   
   // Ensure diagnostic has all required properties to prevent rendering errors
