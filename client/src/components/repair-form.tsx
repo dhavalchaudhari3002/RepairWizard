@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { DiagnosticAnalysisNew as DiagnosticAnalysis } from "./diagnostic-analysis-new";
+import { DiagnosticAnalysisNew as DiagnosticAnalysis, RepairDiagnostic } from "./diagnostic-analysis-new";
 import { ImagePlus, X, Brain, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -39,6 +39,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [useML, setUseML] = useState<boolean>(true);
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
+  const [diagnosticData, setDiagnosticData] = useState<RepairDiagnostic | null>(null);
   const { toast } = useToast();
 
   const form = useForm<InsertRepairRequest>({
@@ -124,6 +125,12 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
     mutation.mutate(values);
   };
 
+  // Handler for diagnostic data
+  const handleDiagnosticComplete = (data: RepairDiagnostic) => {
+    console.log("Diagnostic data received in parent:", data);
+    setDiagnosticData(data);
+  };
+
   if (step === 2) {
     const productType = form.getValues('productType');
     const issueDescription = form.getValues('issueDescription');
@@ -135,12 +142,15 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
           productType={productType}
           issueDescription={issueDescription}
           repairRequestId={repairRequestId || undefined}
+          onDiagnosticComplete={handleDiagnosticComplete}
         />
         <RepairGuidance data={{ 
           ...estimateData, 
           productType,
           issueDescription,
-          repairRequestId: repairRequestId || undefined
+          repairRequestId: repairRequestId || undefined,
+          // Pass diagnostic data to repair guidance for contextual repair guide generation
+          diagnosticData: diagnosticData
         }} />
         <Button 
           onClick={() => {

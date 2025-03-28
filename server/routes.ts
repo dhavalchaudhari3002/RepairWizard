@@ -424,14 +424,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/repair-guides", async (req, res) => {
     try {
-      const { productType, issue, repairRequestId } = req.body;
+      const { productType, issue, repairRequestId, diagnosticInfo } = req.body;
       if (!productType || !issue) {
         res.status(400).json({ error: "Product type and issue are required" });
         return;
       }
 
-      console.log("Generating repair guide for:", { productType, issue, repairRequestId });
-      const guide = await generateRepairGuide(productType, issue, repairRequestId);
+      console.log("Generating repair guide for:", { 
+        productType, 
+        issue, 
+        repairRequestId,
+        hasDiagnosticInfo: !!diagnosticInfo 
+      });
+      
+      // Pass the diagnostic info to the guide generation function
+      const guide = await generateRepairGuide(productType, issue, repairRequestId, diagnosticInfo);
 
       if (!guide || !guide.title || !Array.isArray(guide.steps)) {
         console.error("Invalid guide generated:", guide);

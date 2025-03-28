@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { RepairQuestions } from "./repair-questions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
+import { RepairDiagnostic } from "./diagnostic-analysis-new";
 
 interface RepairGuideStep {
   step: number;
@@ -32,9 +33,10 @@ interface RepairGuideProps {
   productType: string;
   issue: string;
   repairRequestId?: number;
+  diagnosticData?: RepairDiagnostic | null;
 }
 
-export function RepairGuide({ productType, issue, repairRequestId }: RepairGuideProps) {
+export function RepairGuide({ productType, issue, repairRequestId, diagnosticData }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -103,11 +105,29 @@ export function RepairGuide({ productType, issue, repairRequestId }: RepairGuide
 
     setLoading(true);
     try {
-      console.log("Attempting to generate guide for:", { productType, issue, repairRequestId });
+      // Include diagnostic data in the request if available
+      const diagnosticInfo = diagnosticData ? {
+        possibleCauses: diagnosticData.possibleCauses,
+        likelySolutions: diagnosticData.likelySolutions,
+        safetyWarnings: diagnosticData.safetyWarnings
+      } : null;
+      
+      console.log("Attempting to generate guide for:", { 
+        productType, 
+        issue, 
+        repairRequestId,
+        hasDiagnosticData: !!diagnosticData
+      });
+      
       const response = await apiRequest(
         "POST",
         "/api/repair-guides",
-        { productType, issue, repairRequestId }
+        { 
+          productType, 
+          issue, 
+          repairRequestId,
+          diagnosticInfo
+        }
       );
 
       if (!response.ok) {

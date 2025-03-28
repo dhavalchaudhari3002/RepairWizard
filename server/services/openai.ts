@@ -356,9 +356,35 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
   return result;
 }
 
-export async function generateRepairGuide(productType: string, issue: string, repairRequestId?: number): Promise<RepairGuide> {
+/**
+ * Type definition for diagnostic information that can be passed to guide generation
+ */
+export interface DiagnosticInfo {
+  possibleCauses?: string[];
+  likelySolutions?: string[];
+  safetyWarnings?: string[];
+}
+
+/**
+ * Generate a repair guide for a specific product and issue
+ * @param productType The type of product (e.g., "smartphone", "refrigerator")
+ * @param issue The issue description
+ * @param repairRequestId Optional ID of the repair request for analytics tracking
+ * @param diagnosticInfo Optional diagnostic information to enhance guide relevance
+ * @returns A structured repair guide
+ */
+export async function generateRepairGuide(
+  productType: string, 
+  issue: string, 
+  repairRequestId?: number, 
+  diagnosticInfo?: DiagnosticInfo | null
+): Promise<RepairGuide> {
   try {
-    console.log("Starting guide generation for:", { productType, issue });
+    console.log("Starting guide generation for:", { 
+      productType, 
+      issue, 
+      hasDiagnosticInfo: !!diagnosticInfo 
+    });
     const startTime = Date.now();
 
     const systemPrompt = `You are a repair expert specializing in electronics and appliances.
@@ -383,14 +409,32 @@ Provide your response in this exact JSON format:
   "videoKeywords": ["Keywords for finding relevant video tutorials"]
 }`;
 
+    // Prepare the user message with diagnostic information if available
+    let userContent = `Generate a repair guide for ${productType}. Issue: ${issue}`;
+    
+    if (diagnosticInfo && Object.keys(diagnosticInfo).length > 0) {
+      userContent += "\n\nPlease incorporate the following diagnostic information into your guide:";
+      
+      if (diagnosticInfo.possibleCauses && diagnosticInfo.possibleCauses.length > 0) {
+        userContent += `\n\nPossible causes:\n${diagnosticInfo.possibleCauses.map(cause => `- ${cause}`).join('\n')}`;
+      }
+      
+      if (diagnosticInfo.likelySolutions && diagnosticInfo.likelySolutions.length > 0) {
+        userContent += `\n\nRecommended solutions:\n${diagnosticInfo.likelySolutions.map(solution => `- ${solution}`).join('\n')}`;
+      }
+      
+      if (diagnosticInfo.safetyWarnings && diagnosticInfo.safetyWarnings.length > 0) {
+        userContent += `\n\nSafety warnings to address:\n${diagnosticInfo.safetyWarnings.map(warning => `- ${warning}`).join('\n')}`;
+      }
+      
+      userContent += "\n\nEnsure your repair guide directly addresses these specific diagnostic findings.";
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Generate a repair guide for ${productType}. Issue: ${issue}`
-        }
+        { role: "user", content: userContent }
       ],
       temperature: 0.3, // Set to 0.3 for balanced consistency and slight variability
       max_tokens: 2000

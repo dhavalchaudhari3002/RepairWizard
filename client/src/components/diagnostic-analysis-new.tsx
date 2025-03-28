@@ -33,9 +33,15 @@ interface DiagnosticAnalysisProps {
   productType: string;
   issueDescription: string;
   repairRequestId?: number;
+  onDiagnosticComplete?: (data: RepairDiagnostic) => void;
 }
 
-export function DiagnosticAnalysisNew({ productType, issueDescription, repairRequestId }: DiagnosticAnalysisProps) {
+export function DiagnosticAnalysisNew({ 
+  productType, 
+  issueDescription, 
+  repairRequestId, 
+  onDiagnosticComplete 
+}: DiagnosticAnalysisProps) {
   // Simple state management
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +80,11 @@ export function DiagnosticAnalysisNew({ productType, issueDescription, repairReq
         setDiagnostic(data);
         setLoading(false);
         
+        // Call the callback function to pass diagnostic data to parent component
+        if (onDiagnosticComplete) {
+          onDiagnosticComplete(data);
+        }
+        
         // Track the successful diagnosis event
         trackInteraction({
           interactionType: "diagnostic_generated",
@@ -91,7 +102,7 @@ export function DiagnosticAnalysisNew({ productType, issueDescription, repairReq
     }
 
     fetchDiagnosticData();
-  }, [productType, issueDescription, repairRequestId, loading, trackInteraction]);
+  }, [productType, issueDescription, repairRequestId, loading, trackInteraction, onDiagnosticComplete]);
 
   // Handle feedback submission
   const handleFeedback = (helpful: boolean) => {

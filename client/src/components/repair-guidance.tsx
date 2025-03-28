@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { RepairGuide } from "./repair-guide";
+import { RepairDiagnostic } from "./diagnostic-analysis-new";
 
 interface RepairGuidanceData {
   productType: string;
@@ -14,6 +15,7 @@ interface RepairGuidanceData {
   commonIssues: string[];
   recommendations: string[];
   repairRequestId?: number;
+  diagnosticData?: RepairDiagnostic | null;
 }
 
 export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
@@ -65,6 +67,7 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
             productType={data.productType} 
             issue={data.issueDescription || 'General repair guidance needed'}
             repairRequestId={data.repairRequestId}
+            diagnosticData={data.diagnosticData}
           />
         </CardContent>
       </Card>
