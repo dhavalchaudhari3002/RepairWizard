@@ -48,24 +48,39 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
   // Use TanStack Query's useMutation for handling the API request
   const diagnosisMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest(
-        "POST",
-        "/api/repair-diagnostics",
-        {
-          productType,
-          issueDescription,
-          repairRequestId
+      console.log("Starting diagnostic API request for:", { productType, issueDescription, repairRequestId });
+      
+      try {
+        const res = await fetch('/api/repair-diagnostics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            productType,
+            issueDescription,
+            repairRequestId
+          }),
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("Diagnostic API error:", errorData);
+          throw new Error(errorData.error || 'Failed to generate diagnostic analysis');
         }
-      );
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate diagnostic analysis');
+        
+        const data = await res.json();
+        console.log("Received diagnostic data:", data);
+        return data;
+      } catch (error) {
+        console.error("Fetch error:", error);
+        throw error;
       }
-      
-      return await res.json();
     },
     onSuccess: (data) => {
+      console.log("Setting diagnostic data in component state:", data);
       setDiagnostic(data);
       
       // Track the successful diagnosis event if tracking is available
@@ -79,6 +94,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
       });
     },
     onError: (error: Error) => {
+      console.error("Diagnostic mutation error:", error);
       toast({
         title: "Failed to generate diagnostic analysis",
         description: error.message || "Please try again later",
@@ -127,7 +143,8 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
         </CardHeader>
         <CardContent className="space-y-4">
           {diagnosisMutation.failureCount > 0 && (
-            <Alert variant="warning" className="mb-4">
+            <Alert className="mb-4 border-amber-500 bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               <AlertTitle>Taking longer than usual...</AlertTitle>
               <AlertDescription>Retrying analysis ({diagnosisMutation.failureCount}/3)</AlertDescription>
             </Alert>
@@ -175,8 +192,19 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
 
   // No data yet
   if (!diagnostic) {
+    console.log("No diagnostic data available yet");
     return null;
   }
+  
+  // Ensure diagnostic has all required properties to prevent rendering errors
+  const validDiagnostic = {
+    symptomInterpretation: diagnostic.symptomInterpretation || "No symptom interpretation available",
+    possibleCauses: Array.isArray(diagnostic.possibleCauses) ? diagnostic.possibleCauses : [],
+    informationGaps: Array.isArray(diagnostic.informationGaps) ? diagnostic.informationGaps : [],
+    diagnosticSteps: Array.isArray(diagnostic.diagnosticSteps) ? diagnostic.diagnosticSteps : [],
+    likelySolutions: Array.isArray(diagnostic.likelySolutions) ? diagnostic.likelySolutions : [],
+    safetyWarnings: Array.isArray(diagnostic.safetyWarnings) ? diagnostic.safetyWarnings : []
+  };
 
   return (
     <Card className="mb-6">
@@ -204,7 +232,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
           <TabsContent value="analysis" className="space-y-4 pt-4">
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Symptoms</h3>
-              <p className="text-muted-foreground">{diagnostic.symptomInterpretation}</p>
+              <p className="text-muted-foreground">{validDiagnostic.symptomInterpretation}</p>
             </div>
             
             <Accordion type="single" collapsible className="w-full">
@@ -217,7 +245,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 ml-6 list-disc">
-                    {diagnostic.possibleCauses.map((cause, i) => (
+                    {validDiagnostic.possibleCauses.map((cause, i) => (
                       <li key={i} className="text-muted-foreground">{cause}</li>
                     ))}
                   </ul>
@@ -233,7 +261,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 ml-6 list-disc">
-                    {diagnostic.informationGaps.map((gap, i) => (
+                    {validDiagnostic.informationGaps.map((gap, i) => (
                       <li key={i} className="text-muted-foreground">{gap}</li>
                     ))}
                   </ul>
@@ -249,7 +277,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 ml-6 list-disc">
-                    {diagnostic.likelySolutions.map((solution, i) => (
+                    {validDiagnostic.likelySolutions.map((solution, i) => (
                       <li key={i} className="text-muted-foreground">{solution}</li>
                     ))}
                   </ul>
@@ -265,7 +293,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 ml-6 list-disc">
-                    {diagnostic.safetyWarnings.map((warning, i) => (
+                    {validDiagnostic.safetyWarnings.map((warning, i) => (
                       <li key={i} className="text-muted-foreground">{warning}</li>
                     ))}
                   </ul>
@@ -278,7 +306,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Diagnostic Steps</h3>
               <div className="space-y-3">
-                {diagnostic.diagnosticSteps.map((step, i) => (
+                {validDiagnostic.diagnosticSteps.map((step, i) => (
                   <div key={i} className="flex gap-3 p-3 rounded-md border">
                     <div className="bg-primary/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-primary text-sm font-medium">
                       {i + 1}

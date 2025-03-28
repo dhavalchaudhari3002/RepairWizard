@@ -467,26 +467,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Generating repair diagnostic for:", { productType, issueDescription, repairRequestId });
-      const diagnostic = await Promise.race([
-        generateRepairDiagnostic(productType, issueDescription, repairRequestId),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Operation timeout")), 12000)
-        )
-      ]);
       
-      clearTimeout(timeout);
+      try {
+        const diagnostic = await Promise.race([
+          generateRepairDiagnostic(productType, issueDescription, repairRequestId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Operation timeout")), 12000)
+          )
+        ]);
+        
+        clearTimeout(timeout);
 
-      if (!diagnostic || !diagnostic.symptomInterpretation || !Array.isArray(diagnostic.possibleCauses)) {
-        console.error("Invalid diagnostic generated:", diagnostic);
-        res.status(500).json({ error: "Generated diagnostic is invalid" });
-        return;
+        if (!diagnostic) {
+          console.error("Empty diagnostic returned");
+          res.status(500).json({ error: "No diagnostic information was generated" });
+          return;
+        }
+
+        // Validate diagnostic properties
+        if (!diagnostic.symptomInterpretation || !Array.isArray(diagnostic.possibleCauses)) {
+          console.error("Invalid diagnostic structure:", diagnostic);
+          res.status(500).json({ error: "Generated diagnostic is invalid" });
+          return;
+        }
+
+        // Ensure all arrays are present and valid
+        const validatedDiagnostic = {
+          symptomInterpretation: diagnostic.symptomInterpretation || "",
+          possibleCauses: Array.isArray(diagnostic.possibleCauses) ? diagnostic.possibleCauses : [],
+          informationGaps: Array.isArray(diagnostic.informationGaps) ? diagnostic.informationGaps : [],
+          diagnosticSteps: Array.isArray(diagnostic.diagnosticSteps) ? diagnostic.diagnosticSteps : [],
+          likelySolutions: Array.isArray(diagnostic.likelySolutions) ? diagnostic.likelySolutions : [],
+          safetyWarnings: Array.isArray(diagnostic.safetyWarnings) ? diagnostic.safetyWarnings : []
+        };
+
+        console.log("Sending validated diagnostic response to client");
+        res.json(validatedDiagnostic);
+      } catch (innerError) {
+        clearTimeout(timeout);
+        console.error("Error in diagnostic generation:", innerError);
+        res.status(500).json({
+          error: "Failed to generate repair diagnostic",
+          details: innerError instanceof Error ? innerError.message : String(innerError)
+        });
       }
-
-      res.json(diagnostic);
     } catch (error) {
-      console.error("Error generating repair diagnostic:", error);
+      clearTimeout(timeout);
+      console.error("Error in repair diagnostic route:", error);
       res.status(500).json({
-        error: "Failed to generate repair diagnostic",
+        error: "Failed to process diagnostic request",
         details: error instanceof Error ? error.message : String(error)
       });
     }
