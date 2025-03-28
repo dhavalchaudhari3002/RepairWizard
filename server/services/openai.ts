@@ -137,6 +137,96 @@ interface RepairQuestionInput {
   currentStep?: number;
 }
 
+/**
+ * Provides pre-written responses for very common issues to avoid unnecessary API calls
+ */
+function getPrewrittenResponse(productType: string, issueDescription: string): RepairDiagnostic | null {
+  // Convert to lowercase for case-insensitive matching
+  const type = productType.toLowerCase();
+  const issue = issueDescription.toLowerCase();
+  
+  // Common laptop issues
+  if (type === 'laptop' && (issue.includes('overheat') || issue.includes('hot'))) {
+    return {
+      symptomInterpretation: "Laptop overheating (too hot to touch, shutdowns, or fans running loudly)",
+      possibleCauses: [
+        "Dust buildup in cooling system",
+        "Blocked air vents",
+        "Failing cooling fan",
+        "Poor thermal paste application",
+        "High ambient temperature",
+        "Resource-intensive software"
+      ],
+      informationGaps: [
+        "Laptop age and model",
+        "When overheating occurs",
+        "Any recent changes to the system"
+      ],
+      diagnosticSteps: [
+        "Check for dust in vents and fans",
+        "Monitor CPU temperature with software tools",
+        "Test fan operation",
+        "Run diagnostics in safe mode to rule out software causes",
+        "Check for airflow blockage (using on soft surfaces)"
+      ],
+      likelySolutions: [
+        "Clean dust from vents and internal components",
+        "Replace thermal paste on CPU/GPU",
+        "Use a cooling pad",
+        "Replace faulty cooling fan",
+        "Close resource-intensive applications"
+      ],
+      safetyWarnings: [
+        "Never use water to clean electronics",
+        "Disconnect power before opening laptop",
+        "Seek professional help if uncomfortable with internal components"
+      ]
+    };
+  }
+  
+  // Common smartphone issues
+  if (type === 'phone' && (issue.includes('battery') || issue.includes('charge'))) {
+    return {
+      symptomInterpretation: "Phone battery drains quickly or doesn't hold charge",
+      possibleCauses: [
+        "Battery age/wear",
+        "Power-hungry apps running in background",
+        "Screen brightness too high",
+        "Poor cellular signal causing increased power use",
+        "Outdated system software",
+        "Hardware defect"
+      ],
+      informationGaps: [
+        "Phone age and model",
+        "When battery problems started",
+        "Recent app installations"
+      ],
+      diagnosticSteps: [
+        "Check battery usage statistics in settings",
+        "Test with brightness reduced",
+        "Check for system updates",
+        "Test in airplane mode to eliminate signal issues",
+        "Close all background apps"
+      ],
+      likelySolutions: [
+        "Uninstall power-hungry apps",
+        "Enable battery saving mode",
+        "Replace battery (if possible)",
+        "Factory reset if software issue suspected",
+        "Reduce screen brightness and timeout"
+      ],
+      safetyWarnings: [
+        "Only use manufacturer-approved batteries and chargers",
+        "Never puncture or expose batteries to heat",
+        "Seek professional repair for built-in batteries"
+      ]
+    };
+  }
+  
+  // Default - no pre-written response available
+  return null;
+}
+
 export async function generateRepairGuide(productType: string, issue: string, repairRequestId?: number): Promise<RepairGuide> {
   try {
     console.log("Starting guide generation for:", { productType, issue });
@@ -304,54 +394,45 @@ export async function generateRepairDiagnostic(productType: string, issueDescrip
       return cachedResult.data;
     }
 
-    // No valid cache entry, generate a new response
-    // Use a simplified prompt for faster response
-    const systemPrompt = `You are a diagnostic technician for electronic devices and products. 
-Analyze the problem description, identify likely causes, and suggest diagnostic steps.
-
-Provide your response in this exact JSON format:
+    // Generate quick diagnostic with minimal prompt
+    const systemPrompt = `You are a repair diagnostic expert. Return all analysis in this JSON format:
 {
-  "symptomInterpretation": "Re-state the key symptoms",
-  "possibleCauses": [
-    "First potential cause - with brief explanation",
-    "Second potential cause - with brief explanation"
-  ],
-  "informationGaps": [
-    "Missing information #1",
-    "Missing information #2"
-  ],
-  "diagnosticSteps": [
-    "Diagnostic step #1",
-    "Diagnostic step #2"
-  ],
-  "likelySolutions": [
-    "Solution approach #1",
-    "Solution approach #2"
-  ],
-  "safetyWarnings": [
-    "Safety precaution #1",
-    "Limited information disclaimer",
-    "Professional help recommendation"
-  ]
+  "symptomInterpretation": "Brief symptom summary",
+  "possibleCauses": ["Cause 1", "Cause 2"],
+  "informationGaps": ["Gap 1", "Gap 2"],
+  "diagnosticSteps": ["Step 1", "Step 2"],
+  "likelySolutions": ["Solution 1", "Solution 2"],
+  "safetyWarnings": ["Warning 1", "Warning 2"]
 }`;
 
-    // Use GPT-3.5 Turbo for faster responses
+    // Use GPT-3.5 Turbo for faster responses with reduced token count and simplified prompt
+    
+    // To prevent redundant API calls, check for duplicate issue patterns
+    if (issueDescription.length < 10) {
+      // For very short descriptions, try to handle without API call
+      try {
+        const quickResponse = getPrewrittenResponse(productType, issueDescription);
+        if (quickResponse) {
+          console.log("Using pre-written response for common issue");
+          return quickResponse;
+        }
+      } catch (e) {
+        console.log("Fallback to API call after error in pre-written response logic");
+      }
+    }
+    
+    // If no quick response available, use the API
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-0125", // Use the latest optimized model
       messages: [
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Analyze this repair request:
-
-Product Type: ${productType}
-Issue Description: ${issueDescription}
-
-Provide a detailed diagnostic analysis.`
+          content: `Analyze: ${productType} with issue: ${issueDescription}`
         }
       ],
-      temperature: 0.5,
-      max_tokens: 1000
+      temperature: 0.3, // Lower temperature for more focused responses
+      max_tokens: 500,  // Reduced token limit to speed up response
     });
 
     const content = response.choices[0]?.message?.content;
