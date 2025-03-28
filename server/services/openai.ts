@@ -269,13 +269,20 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
     openai.chat.completions.create({
       model: "gpt-3.5-turbo-0125",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyze: ${productType} with issue: ${issueDescription}` }
+        { 
+          role: "system", 
+          content: systemPrompt + "\n\nIMPORTANT: Ensure your entire response is valid JSON. Keep your analysis brief and concise. Always include closing brackets for all objects and arrays." 
+        },
+        { 
+          role: "user", 
+          content: `Analyze: ${productType} with issue: ${issueDescription}. Be brief and ensure valid JSON format.` 
+        }
       ],
       temperature: 0.2,
-      max_tokens: 150, // Reduced for faster response
+      max_tokens: 500, // Increased for complete responses
       presence_penalty: 0,
       frequency_penalty: 0,
+      response_format: { type: "json_object" } // Ensure JSON formatting
     }),
     new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error("OpenAI API timeout")), API_TIMEOUT)
@@ -291,9 +298,46 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
 
   let result: RepairDiagnostic;
   try {
-    result = JSON.parse(content);
+    // First attempt to parse JSON directly
+    try {
+      result = JSON.parse(content);
+    } catch (parseError) {
+      // If parsing fails, try to fix common JSON issues
+      console.log("Initial JSON parsing failed, attempting to fix JSON:", content);
+      
+      // Sometimes the JSON response gets cut off in the middle of a string
+      // Let's try to fix it by closing any unclosed elements
+      let fixedContent = content;
+      
+      // Check if content ends with a quote without closing the string
+      if (fixedContent.trim().endsWith('"')) {
+        fixedContent = fixedContent + '"}';
+      }
+      
+      // Check if the safety warnings array is incomplete
+      if (fixedContent.includes('"safetyWarnings": [') && !fixedContent.includes(']}')) {
+        // Add closing brackets for array and object
+        fixedContent = fixedContent + '"]}';
+      }
+      
+      try {
+        result = JSON.parse(fixedContent);
+        console.log("Successfully parsed fixed JSON");
+      } catch (secondError) {
+        // If still failing, create a minimal valid diagnostic structure
+        console.error("Could not fix JSON response, using fallback structure");
+        result = {
+          symptomInterpretation: "Analysis incomplete due to technical issues.",
+          possibleCauses: ["Unable to determine - please try again"],
+          informationGaps: ["Complete diagnostic information"],
+          diagnosticSteps: ["Retry the diagnostic analysis", "Provide more detailed information about the issue"],
+          likelySolutions: ["Try again with more specific information"],
+          safetyWarnings: ["Always consult a professional for safety-critical repairs"]
+        };
+      }
+    }
   } catch (error) {
-    console.error("Failed to parse JSON response:", content);
+    console.error("Failed to parse or fix JSON response:", content);
     throw new Error("Invalid JSON response from OpenAI");
   }
 
