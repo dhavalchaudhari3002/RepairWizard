@@ -6,9 +6,20 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import path from "path";
 import fs from "fs";
+// Import Sentry modules
+import * as Sentry from "@sentry/node";
+import * as Tracing from "@sentry/tracing";
 
 // Initialize Express app
 const app = express();
+
+// Initialize Sentry with a basic configuration
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV || 'development',
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
+  tracesSampleRate: 1.0,
+});
 
 // Basic middleware
 app.use(express.json());
@@ -45,6 +56,23 @@ app.get('/ping', (_req, res) => {
   res.send('pong');
 });
 
+// Test endpoint for Sentry error tracking
+app.get('/debug-sentry', (_req, res) => {
+  log("Testing Sentry error tracking");
+  try {
+    // Intentionally throw an error to test Sentry
+    throw new Error('Test error for Sentry tracking');
+  } catch (error) {
+    // Capture and send to Sentry
+    const eventId = Sentry.captureException(error);
+    // Respond with the Sentry event ID
+    res.status(200).json({ 
+      message: 'Error successfully captured by Sentry',
+      sentryEventId: eventId,
+    });
+  }
+});
+
 // Initialize server
 (async () => {
   try {
@@ -76,13 +104,27 @@ app.get('/ping', (_req, res) => {
       }
       next();
     });
+    
+    // Add a simple middleware to capture errors for Sentry before other error handlers
+    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      // Capture the error in Sentry and get the eventId
+      const eventId = Sentry.captureException(err);
+      // Add the Sentry event ID to the response for reference
+      (res as any).sentry = eventId;
+      next(err);
+    });
 
     // Error handling middleware
-    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
+      
+      // Include the Sentry event ID for reference
+      const eventId = (res as any).sentry || 'Unknown';
+      
       res.status(500).json({ 
         error: "Internal Server Error",
-        message: err.message 
+        message: err.message,
+        sentryEventId: eventId
       });
     });
 
