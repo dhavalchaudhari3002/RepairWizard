@@ -17,6 +17,7 @@ const app = express();
 // This configuration avoids TypeScript errors while still enabling error tracking
 Sentry.init({
   // Use environment variable for DSN to avoid hardcoding sensitive values
+  // The DSN is configured in Replit Secrets
   dsn: process.env.SENTRY_DSN_BACKEND || "",
   release: 'repair-ai-assistant@1.0.0',
   environment: process.env.NODE_ENV || 'development', 

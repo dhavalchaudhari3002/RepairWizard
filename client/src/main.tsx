@@ -7,13 +7,13 @@ import { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
 
-// Initialize Sentry using a combination of environment variables and direct values
-// Using the DSN from the environment (via Replit Secrets)
-const SENTRY_DSN = "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648";
+// Initialize Sentry using the DSN from environment variables
+// The VITE_SENTRY_DSN_FRONTEND is configured in Replit Secrets
 
 Sentry.init({
-  // Use the direct DSN value which comes from Replit Secrets
-  dsn: SENTRY_DSN,
+  // Use the DSN value from environment variables via Replit Secrets
+  // Note: Vite requires the VITE_ prefix for client-side environment variables
+  dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND || "",
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),

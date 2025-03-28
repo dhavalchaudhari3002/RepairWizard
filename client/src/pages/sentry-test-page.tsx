@@ -206,10 +206,23 @@ export function SentryDiagnostics() {
                 Frontend DSN Status
               </h3>
               <p className="text-sm text-slate-700 mt-1">
-                ✅ Using hardcoded DSN - Error tracking should be active
+                ✅ Using <code>VITE_SENTRY_DSN_FRONTEND</code> environment variable - Error tracking should be active
               </p>
               <p className="text-xs text-slate-500 mt-1">
-                Note: Using direct configuration for reliability
+                Note: DSN is provided via Replit Secrets for enhanced security
+              </p>
+            </div>
+            
+            <div className="p-4 rounded bg-slate-50">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-500" />
+                Backend DSN Status
+              </h3>
+              <p className="text-sm text-slate-700 mt-1">
+                ✅ Using <code>SENTRY_DSN_BACKEND</code> environment variable - Error tracking should be active
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Note: DSN is provided via Replit Secrets for enhanced security
               </p>
             </div>
             
@@ -235,9 +248,18 @@ export default function SentryTestPage() {
     <div className="container mx-auto py-10 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Sentry Integration Test</h1>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-muted-foreground mb-2">
           This page helps to verify that Sentry error tracking is working correctly
         </p>
+        <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Migration Complete</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            The application has been migrated from custom error tracking to Sentry.
+            All errors are now monitored through the Sentry dashboard, and the previous
+            error dashboard has been removed.
+          </AlertDescription>
+        </Alert>
         
         <Separator className="my-6" />
         

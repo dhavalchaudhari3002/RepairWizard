@@ -6,7 +6,6 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
 import ResetPassword from "@/pages/reset-password";
-import ErrorDashboard from "@/pages/error-dashboard";
 import ToolsPage from "@/pages/tools-page";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import SentryTestPage from "@/pages/sentry-test-page";
@@ -31,7 +30,6 @@ function Router() {
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPassword} />
           <Route path="/" component={Home} />
-          <Route path="/error-dashboard" component={ErrorDashboard} />
           <Route path="/tools" component={ToolsPage} />
           <Route path="/analytics" component={AnalyticsDashboard} />
           <Route path="/sentry-test" component={SentryTestPage} />
