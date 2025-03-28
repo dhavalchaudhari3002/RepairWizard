@@ -1,9 +1,11 @@
+// Initialize Sentry for frontend error tracking - must be imported first
+import * as Sentry from "@sentry/react";
+
+// Import React and other dependencies after Sentry is initialized
 import { createRoot } from "react-dom/client";
 import { StrictMode, useEffect } from "react";
 import App from "./App";
 import "./index.css";
-// Initialize Sentry for frontend error tracking
-import * as Sentry from "@sentry/react";
 
 // Initialize Sentry
 Sentry.init({
