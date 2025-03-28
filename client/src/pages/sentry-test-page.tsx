@@ -13,42 +13,6 @@ export function SentryDiagnostics() {
   const [eventId, setEventId] = useState<string | null>(null);
   const [backendEventId, setBackendEventId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [autoTestComplete, setAutoTestComplete] = useState<boolean>(false);
-  
-  // Automatically trigger a test error when the component mounts to verify Sentry is working
-  useEffect(() => {
-    // Only run this once
-    if (!autoTestComplete) {
-      // Add a slight delay to ensure Sentry is fully initialized
-      const timer = setTimeout(() => {
-        try {
-          console.log("Auto-generating test error for Sentry verification...");
-          
-          // Create an automatic test error with a distinctive message
-          const autoError = new Error(`Automatic Sentry Test Error - ${new Date().toISOString()}`);
-          
-          // Add a custom fingerprint to group these automatic errors differently
-          const eventId = Sentry.captureException(autoError, {
-            tags: {
-              test_type: "automatic_error",
-              test_source: "component_mount"
-            },
-            extra: {
-              component: "SentryDiagnostics",
-              method: "useEffect"
-            }
-          });
-          
-          console.log("Automatic test error sent to Sentry with ID:", eventId);
-          setAutoTestComplete(true);
-        } catch (err) {
-          console.error("Failed to auto-generate test error:", err);
-        }
-      }, 1500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [autoTestComplete]);
 
   // Function to test frontend error reporting with more reliable approach
   const testFrontendError = () => {

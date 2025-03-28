@@ -6,7 +6,6 @@ import { ProductRecommendations } from "@/components/product-recommendations";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { SentryTestButton } from "@/components/sentry-test";
 
 export default function Home() {
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
@@ -57,11 +56,6 @@ export default function Home() {
                   />
                 </CardContent>
               </Card>
-              
-              {/* Add Sentry test component for testing */}
-              <div className="mt-8">
-                <SentryTestButton />
-              </div>
             </div>
           </div>
         ) : (
@@ -123,11 +117,6 @@ export default function Home() {
                   Accurate repair cost predictions and comparisons
                 </CardContent>
               </Card>
-            </div>
-            
-            {/* Add Sentry test for unauthenticated users as well */}
-            <div className="max-w-md mx-auto mb-8">
-              <SentryTestButton />
             </div>
           </>
         )}
