@@ -7,16 +7,17 @@ import { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
 
-// Initialize Sentry using the recommended approach
+// Initialize Sentry using the recommended approach with direct DSN
+// IMPORTANT: We're using the direct DSN value here to ensure proper connection
 Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND,
+  dsn: "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648",
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
   ],
   // Add a release identifier to enable session tracking and better error grouping
   release: 'repair-ai-assistant@1.0.0',
-  environment: import.meta.env.MODE || 'development',
+  environment: 'development',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
   // Enable session replay for better error diagnosis
@@ -24,6 +25,8 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // Sample 100% of sessions with errors
   // Set tracePropagationTargets to control which URLs should be tracked
   tracePropagationTargets: ["localhost", /^https:\/\//],
+  // Debug mode to help with troubleshooting
+  debug: true,
 });
 
 // Force dark mode when the app starts

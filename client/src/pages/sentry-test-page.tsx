@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, Info, XCircle } from "lucide-react";
@@ -13,8 +13,44 @@ export function SentryDiagnostics() {
   const [eventId, setEventId] = useState<string | null>(null);
   const [backendEventId, setBackendEventId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [autoTestComplete, setAutoTestComplete] = useState<boolean>(false);
+  
+  // Automatically trigger a test error when the component mounts to verify Sentry is working
+  useEffect(() => {
+    // Only run this once
+    if (!autoTestComplete) {
+      // Add a slight delay to ensure Sentry is fully initialized
+      const timer = setTimeout(() => {
+        try {
+          console.log("Auto-generating test error for Sentry verification...");
+          
+          // Create an automatic test error with a distinctive message
+          const autoError = new Error(`Automatic Sentry Test Error - ${new Date().toISOString()}`);
+          
+          // Add a custom fingerprint to group these automatic errors differently
+          const eventId = Sentry.captureException(autoError, {
+            tags: {
+              test_type: "automatic_error",
+              test_source: "component_mount"
+            },
+            extra: {
+              component: "SentryDiagnostics",
+              method: "useEffect"
+            }
+          });
+          
+          console.log("Automatic test error sent to Sentry with ID:", eventId);
+          setAutoTestComplete(true);
+        } catch (err) {
+          console.error("Failed to auto-generate test error:", err);
+        }
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [autoTestComplete]);
 
-  // Function to test frontend error reporting
+  // Function to test frontend error reporting with more reliable approach
   const testFrontendError = () => {
     try {
       // Clear previous status
@@ -22,15 +58,34 @@ export function SentryDiagnostics() {
       setEventId(null);
       setErrorMessage(null);
       
+      // Create a unique error message with timestamp for easier tracking
+      const timestamp = new Date().toISOString();
+      const errorMessage = `Sentry Frontend Test Error - ${timestamp}`;
+      
       // Intentionally throw an error to test Sentry
-      throw new Error("Test error from frontend for Sentry tracking");
+      console.error("About to throw test error for Sentry:", errorMessage);
+      throw new Error(errorMessage);
     } catch (error) {
       if (error instanceof Error) {
-        // Capture the error and get the event ID
-        const id = Sentry.captureException(error);
+        // Explicitly capture the exception with extra context
+        const id = Sentry.captureException(error, {
+          tags: {
+            test_type: "manual_error",
+            test_timestamp: new Date().toISOString()
+          },
+          extra: {
+            component: "SentryTestPage",
+            method: "testFrontendError"
+          }
+        });
+        
+        console.log("Error captured with Sentry ID:", id);
         setEventId(id);
         setErrorMessage(error.message);
         setFrontendStatus("success");
+        
+        // Report to console for debugging
+        console.error("Test error successfully thrown:", error);
       } else {
         setErrorMessage("Unknown error occurred");
         setFrontendStatus("error");
@@ -151,9 +206,10 @@ export function SentryDiagnostics() {
                 Frontend DSN Status
               </h3>
               <p className="text-sm text-slate-700 mt-1">
-                {import.meta.env.VITE_SENTRY_DSN_FRONTEND ? 
-                  "✅ Configured" : 
-                  "❌ Not configured - VITE_SENTRY_DSN_FRONTEND is missing"}
+                ✅ Using hardcoded DSN - Error tracking should be active
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Note: Using direct configuration for reliability
               </p>
             </div>
             

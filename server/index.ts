@@ -7,7 +7,7 @@ import { setupAuth } from "./auth";
 import path from "path";
 import fs from "fs";
 // Import Sentry modules
-import * as Sentry from "@sentry/node"; 
+import * as Sentry from "@sentry/node";
 // Import specific integrations
 import "@sentry/tracing";
 
@@ -16,13 +16,20 @@ const app = express();
 
 // Initialize Sentry at the earliest point possible
 Sentry.init({
-  dsn: process.env.SENTRY_DSN_BACKEND,
+  // Using hardcoded DSN for reliable error tracking
+  dsn: "https://12603b3bb39d4d7880a2f0fb4a9bcd0f@o4509052669526016.ingest.us.sentry.io/4509052671754240",
   // Add a release identifier to match the frontend release
   release: 'repair-ai-assistant@1.0.0',
   environment: process.env.NODE_ENV || 'development',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
+  // Enable debug mode for troubleshooting
+  debug: true,
+  // Enable profiling for performance insights
+  profilesSampleRate: 1.0,
 });
+
+// Continue with basic Express middleware
 
 // Basic middleware
 app.use(express.json());
@@ -63,15 +70,33 @@ app.get('/ping', (_req, res) => {
 app.get('/debug-sentry', (_req, res) => {
   log("Testing Sentry error tracking");
   try {
+    // Create a unique test error with timestamp for better tracking
+    const timestamp = new Date().toISOString();
+    const errorMessage = `Backend Test Error for Sentry - ${timestamp}`;
+    
+    // Log before throwing for easier debugging
+    console.log(`About to throw test error for Sentry: ${errorMessage}`);
+    
     // Intentionally throw an error to test Sentry
-    throw new Error('Test error for Sentry tracking');
+    throw new Error(errorMessage);
   } catch (error) {
-    // Capture and send to Sentry
-    const eventId = Sentry.captureException(error);
+    // Capture and send to Sentry with extra context
+    const eventId = Sentry.captureException(error, {
+      extra: {
+        source: 'debug-sentry-endpoint',
+        timestamp: new Date().toISOString(),
+        testing: true
+      }
+    });
+    
+    console.log(`Backend test error captured with Sentry ID: ${eventId}`);
+    
     // Respond with the Sentry event ID
     res.status(200).json({ 
-      message: 'Error successfully captured by Sentry',
+      message: 'Backend error successfully captured by Sentry',
       sentryEventId: eventId,
+      timestamp: new Date().toISOString(),
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -108,12 +133,12 @@ app.get('/debug-sentry', (_req, res) => {
       next();
     });
     
-    // Our custom error handler with manual Sentry integration
+    // Custom error handler with Sentry integration
     app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
       
-      // Manually capture the exception and get the event ID
-      const eventId = Sentry.captureException(err);
+      // Get the Sentry event ID that was already captured
+      const eventId = (res as any).sentry || Sentry.captureException(err);
       console.log(`Error captured with Sentry ID: ${eventId}`);
       
       // Send a response with the Sentry event ID
