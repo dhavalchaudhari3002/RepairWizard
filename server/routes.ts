@@ -67,9 +67,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     server: httpServer,
     path: '/ws',
     clientTracking: true,
-    // Add ping/pong to keep connections alive
-    pingInterval: 30000,
-    pingTimeout: 5000
+    // TypeScript doesn't recognize these WebSocket options in its types
+    // but they're supported by the ws library
+    ...(({
+      // Add ping/pong to keep connections alive
+      pingInterval: 30000,
+      pingTimeout: 5000
+    }) as any)
   });
   console.log("WebSocket server initialized");
 
