@@ -16,10 +16,12 @@ const app = express();
 // Initialize Sentry at the earliest point possible with a simplified approach
 // This configuration avoids TypeScript errors while still enabling error tracking
 Sentry.init({
-  dsn: "https://12603b3bb39d4d7880a2f0fb4a9bcd0f@o4509052669526016.ingest.us.sentry.io/4509052671754240",
+  // Use environment variable for DSN to avoid hardcoding sensitive values
+  dsn: process.env.SENTRY_DSN_BACKEND || "",
   release: 'repair-ai-assistant@1.0.0',
   environment: process.env.NODE_ENV || 'development', 
-  debug: true,
+  // Only enable debug mode in development
+  debug: process.env.NODE_ENV !== 'production',
 });
 
 // We're using a simplified approach for Sentry middleware
