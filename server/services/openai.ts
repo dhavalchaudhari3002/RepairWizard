@@ -218,6 +218,92 @@ Provide your response in this exact JSON format:
     "Disclaimer about professional help requirements",
     "Warning NOT to perform complex/dangerous steps without expertise"
   ]
+}
+
+Here are a few examples of good diagnostic analyses:
+
+Example 1:
+Product Type: Laptop
+Issue Description: The laptop screen turns on but shows only a black screen. I can hear the fan running and see power LEDs on.
+
+{
+  "symptomInterpretation": "The laptop powers on with fans running and LEDs lit, but the display remains completely black with no visible content.",
+  "possibleCauses": [
+    "Faulty display backlight - This is highly likely as the laptop shows signs of power (fans, LEDs) but no screen content. The LCD may be functioning but without the backlight, images appear black.",
+    "Display cable disconnection or damage - The cable connecting the display to the motherboard may be loose or damaged, preventing signal transmission while power systems function normally.",
+    "Graphics card/GPU failure - The GPU may be malfunctioning, which would prevent image generation while allowing other system components to function normally.",
+    "Software display settings issue - Incorrect display settings or a software glitch could cause output to be redirected away from the main screen."
+  ],
+  "informationGaps": [
+    "Whether any faint images are visible when shining a flashlight on the screen (would help confirm backlight issue)",
+    "If an external monitor works when connected to the laptop (would help isolate hardware vs. software issues)",
+    "Whether any unusual beeping sounds occur at startup (could indicate hardware failure codes)",
+    "Recent history of drops, spills, or other physical damage",
+    "Any recent software updates or changes before the issue appeared"
+  ],
+  "diagnosticSteps": [
+    "Connect an external monitor to the laptop's video output port. If the external display works, this confirms issues with the built-in display rather than the graphics system.",
+    "Shine a bright flashlight at an angle on the screen while it's on. Look carefully for faint images which would indicate a backlight problem.",
+    "Try booting into BIOS/UEFI (typically by pressing F2, F10, or Del during startup). If BIOS appears on screen, the issue is likely software-related.",
+    "Gently adjust the laptop's position/angle to see if the display flickers into view (could indicate loose connections).",
+    "Try a hard reset: Power off, remove battery (if possible), disconnect all peripherals, hold power button for 30 seconds, then reassemble and restart."
+  ],
+  "likelySolutions": [
+    "Backlight replacement - If diagnostic tests confirm a backlight failure, the display assembly or backlight inverter may need replacement.",
+    "Display cable reconnection or replacement - If caused by loose connections, reseating the cable may resolve it. If the cable is damaged, it will need replacement.",
+    "System board or GPU replacement - If the graphics processor has failed, either the discrete graphics card or the entire system board may need replacement.",
+    "Operating system repair or reinstallation - If software-related, system restoration or OS reinstallation may resolve display output issues."
+  ],
+  "safetyWarnings": [
+    "Never open a laptop display assembly unless qualified - LCD screens contain fragile components and potentially harmful substances.",
+    "Always disconnect power and remove the battery before attempting any internal hardware inspection or repair.",
+    "This diagnosis is based on limited information and may not identify the exact cause.",
+    "If uncomfortable with these steps, seek professional repair assistance as improper handling could cause additional damage.",
+    "Backup important data before performing any significant troubleshooting steps that might risk data loss."
+  ]
+}
+
+Example 2:
+Product Type: Smartphone
+Issue Description: Battery drains extremely quickly, losing about 50% charge in just one hour of light use.
+
+{
+  "symptomInterpretation": "The smartphone battery is depleting at an abnormally rapid rate, losing approximately 50% of its charge within one hour even with minimal usage.",
+  "possibleCauses": [
+    "Battery degradation - The battery may have deteriorated due to age or charging cycles, reducing its capacity to hold charge effectively.",
+    "Background app activity - One or more applications may be consuming excessive power by running processes in the background, even when not actively used.",
+    "Operating system bugs - System software issues can cause improper power management, leading to excessive battery consumption.",
+    "Hardware defect - A component like the screen, cellular modem, or processor may be drawing abnormal amounts of power due to malfunction.",
+    "Extreme temperatures - Exposure to high or low temperatures can temporarily reduce battery performance and accelerate discharge."
+  ],
+  "informationGaps": [
+    "Age of the phone and whether this is a recent or gradual problem",
+    "Recently installed apps or system updates before noticing the issue",
+    "Whether the phone feels unusually warm during use",
+    "Battery usage statistics from the phone's settings",
+    "Environmental conditions where the phone is typically used (temperature, signal strength)"
+  ],
+  "diagnosticSteps": [
+    "Check battery usage statistics in Settings to identify any apps consuming excessive power.",
+    "Restart the phone to clear temporary system states that might be causing high power consumption.",
+    "Enable battery saver mode and observe if battery drain significantly improves.",
+    "Close all background apps using the app switcher interface.",
+    "Check if the phone is searching for cellular signal in a poor coverage area (this consumes significant power).",
+    "Test in safe mode (power off, then press and hold the power button + volume down during restart on most Android phones) to determine if third-party apps are causing the drain."
+  ],
+  "likelySolutions": [
+    "Application management - Uninstall recently added apps or those showing high battery usage in settings.",
+    "System update or reset - Update to the latest OS version, or if already updated, consider resetting to factory settings (after backing up data).",
+    "Battery replacement - If the battery is degraded due to age or wear, replacing it should resolve rapid drainage issues.",
+    "Service center diagnosis - If hardware defects are suspected, professional diagnostic testing can identify faulty components."
+  ],
+  "safetyWarnings": [
+    "Never attempt to remove or replace a non-removable battery yourself as this could damage the device or cause fire hazards.",
+    "Back up all important data before performing factory resets or major software changes.",
+    "This diagnosis is based on the symptoms described and may not identify all possible causes.",
+    "If the phone becomes unusually hot, power it off immediately and allow it to cool before further use to prevent potential fire hazards.",
+    "Seek professional repair if troubleshooting steps don't resolve the issue, especially if the battery is swelling or the device casing is deformed."
+  ]
 }`;
 
     const response = await openai.chat.completions.create({

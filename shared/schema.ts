@@ -326,7 +326,7 @@ export const userInteractions = pgTable("user_interactions", {
   userId: integer("user_id").references(() => users.id),
   repairRequestId: integer("repair_request_id").references(() => repairRequests.id),
   interactionType: text("interaction_type", { 
-    enum: ["view_guide", "view_step", "ask_question", "skip_step", "complete_guide", "abandon_guide", "click_product", "search_video"]
+    enum: ["view_guide", "view_step", "ask_question", "skip_step", "complete_guide", "abandon_guide", "click_product", "search_video", "diagnostic_generated", "diagnostic_feedback"]
   }).notNull(),
   guideStep: integer("guide_step"), // For step-specific interactions
   guideTitle: text("guide_title"), // Store the guide title for easier reporting

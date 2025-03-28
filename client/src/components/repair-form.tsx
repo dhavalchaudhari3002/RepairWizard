@@ -17,7 +17,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { ImagePlus, X, Brain } from "lucide-react";
+import { DiagnosticAnalysis } from "./diagnostic-analysis";
+import { ImagePlus, X, Brain, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { 
@@ -130,6 +131,11 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
     return (
       <div className="space-y-8">
         <CostEstimate data={estimateData} />
+        <DiagnosticAnalysis 
+          productType={productType}
+          issueDescription={issueDescription}
+          repairRequestId={repairRequestId || undefined}
+        />
         <RepairGuidance data={{ 
           ...estimateData, 
           productType,
