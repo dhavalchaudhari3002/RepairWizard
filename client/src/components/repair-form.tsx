@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
-import { ImagePlus, X, Brain } from "lucide-react";
+import { Check, ChevronsUpDown, ImagePlus, X, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { 
@@ -26,6 +26,29 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
+// Common product types that can be repaired
+const productTypes = [
+  { value: "Phone", label: "Phone" },
+  { value: "Laptop", label: "Laptop" },
+  { value: "Car", label: "Car" },
+  { value: "Chair", label: "Chair" },
+  { value: "Website", label: "Website" },
+  { value: "Pipe", label: "Pipe" },
+];
 
 interface RepairFormProps {
   onSubmit?: (data: any) => void;
@@ -38,6 +61,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [useML, setUseML] = useState<boolean>(true);
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
+  const [openProductTypeDropdown, setOpenProductTypeDropdown] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<InsertRepairRequest>({
@@ -163,11 +187,81 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
           control={form.control}
           name="productType"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Product Type</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter product type (e.g., Phone, Laptop)" {...field} />
-              </FormControl>
+              <Popover open={openProductTypeDropdown} onOpenChange={setOpenProductTypeDropdown}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openProductTypeDropdown}
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? productTypes.find(
+                            (type) => type.value === field.value
+                          )?.label || field.value
+                        : "Select product type..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search product type..."
+                      onValueChange={(value) => {
+                        if (value && !productTypes.some(type => type.value.toLowerCase() === value.toLowerCase())) {
+                          form.setValue("productType", value, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                    <CommandEmpty>
+                      <div className="py-2 px-4 text-sm">
+                        <p>No match found. Press Enter to use this custom type.</p>
+                        <Button 
+                          variant="ghost" 
+                          className="mt-2 w-full justify-start text-left" 
+                          onClick={() => {
+                            const inputValue = document.querySelector("[cmdk-input]") as HTMLInputElement;
+                            if (inputValue?.value) {
+                              form.setValue("productType", inputValue.value, { shouldValidate: true });
+                              setOpenProductTypeDropdown(false);
+                            }
+                          }}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Use custom type
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandGroup heading="Suggested Product Types">
+                      {productTypes.map((type) => (
+                        <CommandItem
+                          key={type.value}
+                          value={type.value}
+                          onSelect={(value) => {
+                            form.setValue("productType", value, { shouldValidate: true });
+                            setOpenProductTypeDropdown(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              field.value === type.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {type.label}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
