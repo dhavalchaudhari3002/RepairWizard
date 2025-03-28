@@ -513,7 +513,7 @@ export class DatabaseStorage implements IStorage {
       // and should have been created with the correct column names via drizzle
       
       // Now perform the insert with the proper types and column names
-      // Use the actual array directly for inconsistencyFlags which is a text[] type
+      // For PostgreSQL array types, we need to use the array constructor syntax
       const result = await db.execute<{ 
         id: number, 
         repair_request_id: number,
@@ -533,9 +533,18 @@ export class DatabaseStorage implements IStorage {
            completion_tokens, response_time_ms, consistency_score, ai_response_summary, 
            inconsistency_flags, timestamp) 
         VALUES 
-          (${data.repairRequestId}, ${data.productType}, ${data.issueDescription}, ${data.promptTokens}, 
-           ${data.completionTokens}, ${data.responseTime}, ${data.consistencyScore}, ${data.aiResponseSummary}, 
-           ${data.inconsistencyFlags || []}, CURRENT_TIMESTAMP)
+          (
+            ${data.repairRequestId}, 
+            ${data.productType}, 
+            ${data.issueDescription}, 
+            ${data.promptTokens}, 
+            ${data.completionTokens}, 
+            ${data.responseTime}, 
+            ${data.consistencyScore}, 
+            ${data.aiResponseSummary}, 
+            ARRAY[${data.inconsistencyFlags ? data.inconsistencyFlags.map(flag => sql`${flag}`).join(sql`, `) : sql``}]::text[], 
+            CURRENT_TIMESTAMP
+          )
         RETURNING *
         `
       );
