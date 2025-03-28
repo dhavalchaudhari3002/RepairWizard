@@ -28,7 +28,8 @@ Sentry.init({
   }
 });
 
-// We'll rely on the captureException approach instead of using middleware handlers
+// We'll rely on the captureException approach instead of middleware handlers
+// This is simpler and already working
 
 // Basic middleware
 app.use(express.json());
@@ -114,8 +115,6 @@ app.get('/debug-sentry', (_req, res) => {
       next();
     });
     
-    // Using our own error middleware that manually sends errors to Sentry
-
     // Our custom error handler with manual Sentry integration
     app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
