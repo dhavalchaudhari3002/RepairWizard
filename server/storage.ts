@@ -509,45 +509,13 @@ export class DatabaseStorage implements IStorage {
   // AI Repair Analytics methods
   async trackRepairAnalytics(data: InsertRepairAnalytics): Promise<RepairAnalytics> {
     try {
-      // Create the repair_analytics table if it doesn't exist
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS repair_analytics (
-          id SERIAL PRIMARY KEY,
-          repair_request_id INTEGER NOT NULL,
-          product_type TEXT NOT NULL,
-          issue_description TEXT NOT NULL,
-          prompt_tokens INTEGER NOT NULL,
-          completion_tokens INTEGER NOT NULL,
-          response_time INTEGER NOT NULL,
-          consistency_score FLOAT NOT NULL,
-          ai_response_summary TEXT NOT NULL,
-          inconsistency_flags TEXT[],
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-      
-      // Insert the analytics data without trying to store array directly in SQL
-      // Create a simple table if doesn't exist
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS repair_analytics (
-          id SERIAL PRIMARY KEY,
-          repair_request_id INTEGER NOT NULL,
-          product_type TEXT NOT NULL,
-          issue_description TEXT NOT NULL,
-          prompt_tokens INTEGER NOT NULL,
-          completion_tokens INTEGER NOT NULL,
-          response_time INTEGER NOT NULL,
-          consistency_score DECIMAL NOT NULL,
-          ai_response_summary TEXT NOT NULL,
-          inconsistency_flags JSONB,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+      // Don't need to create the table as it's already defined in the schema
+      // and should have been created with the correct column names via drizzle
       
       // Convert inconsistency flags to JSON string
       const inconsistencyFlagsJson = JSON.stringify(data.inconsistencyFlags || []);
       
-      // Now perform the insert with the proper types
+      // Now perform the insert with the proper types and column names
       const result = await db.execute<{ 
         id: number, 
         repair_request_id: number,
@@ -555,7 +523,7 @@ export class DatabaseStorage implements IStorage {
         issue_description: string,
         prompt_tokens: number,
         completion_tokens: number,
-        response_time: number,
+        response_time_ms: number, // Fixed column name to match schema
         consistency_score: string,
         ai_response_summary: string,
         inconsistency_flags: string,
@@ -564,8 +532,8 @@ export class DatabaseStorage implements IStorage {
         sql`
         INSERT INTO repair_analytics 
           (repair_request_id, product_type, issue_description, prompt_tokens, 
-           completion_tokens, response_time, consistency_score, ai_response_summary, 
-           inconsistency_flags, created_at) 
+           completion_tokens, response_time_ms, consistency_score, ai_response_summary, 
+           inconsistency_flags, timestamp) 
         VALUES 
           (${data.repairRequestId}, ${data.productType}, ${data.issueDescription}, ${data.promptTokens}, 
            ${data.completionTokens}, ${data.responseTime}, ${data.consistencyScore}, ${data.aiResponseSummary}, 
@@ -585,19 +553,23 @@ export class DatabaseStorage implements IStorage {
         JSON.parse(row.inconsistency_flags) as string[] : 
         [];
         
-      return {
+      // Convert to the expected RepairAnalytics format
+      const analytics: RepairAnalytics = {
         id: row.id,
         repairRequestId: row.repair_request_id,
         productType: row.product_type,
         issueDescription: row.issue_description,
         promptTokens: row.prompt_tokens,
         completionTokens: row.completion_tokens,
-        responseTime: row.response_time,
+        responseTime: row.response_time_ms, // Fixed to match schema column name
         consistencyScore: Number(row.consistency_score),
         aiResponseSummary: row.ai_response_summary,
         inconsistencyFlags: inconsistencyFlags,
-        createdAt: row.created_at
+        // Use timestamp for the database column
+        timestamp: row.timestamp || new Date()
       };
+      
+      return analytics;
     } catch (error) {
       console.error("Error in trackRepairAnalytics:", error);
       throw error;

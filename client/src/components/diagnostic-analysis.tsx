@@ -71,7 +71,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
       // Track the successful diagnosis event if tracking is available
       trackInteraction({
         interactionType: "diagnostic_generated",
-        details: {
+        metadata: {
           productType,
           issueDescription: issueDescription.substring(0, 100), // Truncate to reasonable length
         },
@@ -91,7 +91,7 @@ export function DiagnosticAnalysis({ productType, issueDescription, repairReques
   const handleFeedback = (helpful: boolean) => {
     trackInteraction({
       interactionType: "diagnostic_feedback",
-      details: {
+      metadata: {
         helpful,
         productType,
         issueDescription: issueDescription.substring(0, 100),
