@@ -8,17 +8,27 @@ import path from "path";
 import fs from "fs";
 // Import Sentry modules
 import * as Sentry from "@sentry/node";
+// Import specific integrations
+import "@sentry/tracing";
 
 // Initialize Express app
 const app = express();
 
-// Initialize Sentry with a basic configuration
+// Initialize Sentry with a detailed configuration
 Sentry.init({
   dsn: process.env.SENTRY_DSN_BACKEND,
   environment: process.env.NODE_ENV || 'development',
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
   tracesSampleRate: 1.0,
+  // Enable debugging to help troubleshoot
+  debug: true,
+  beforeSend(event) {
+    console.log('Sending event to Sentry:', JSON.stringify(event, null, 2));
+    return event;
+  }
 });
+
+// We'll rely on the captureException approach instead of using middleware handlers
 
 // Basic middleware
 app.use(express.json());
@@ -104,22 +114,17 @@ app.get('/debug-sentry', (_req, res) => {
       next();
     });
     
-    // Add a simple middleware to capture errors for Sentry before other error handlers
-    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      // Capture the error in Sentry and get the eventId
-      const eventId = Sentry.captureException(err);
-      // Add the Sentry event ID to the response for reference
-      (res as any).sentry = eventId;
-      next(err);
-    });
+    // Using our own error middleware that manually sends errors to Sentry
 
-    // Error handling middleware
+    // Our custom error handler with manual Sentry integration
     app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
       
-      // Include the Sentry event ID for reference
-      const eventId = (res as any).sentry || 'Unknown';
+      // Manually capture the exception and get the event ID
+      const eventId = Sentry.captureException(err);
+      console.log(`Error captured with Sentry ID: ${eventId}`);
       
+      // Send a response with the Sentry event ID
       res.status(500).json({ 
         error: "Internal Server Error",
         message: err.message,

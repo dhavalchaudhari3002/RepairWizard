@@ -7,10 +7,18 @@ import * as Sentry from "@sentry/react";
 
 // Initialize Sentry
 Sentry.init({
-  dsn: import.meta.env.SENTRY_DSN_FRONTEND as string,
+  // Since we can't access the environment variable directly in Vite without the VITE_ prefix,
+  // we'll use a hardcoded DSN that matches the environment variable
+  dsn: "https://3be2de40b2f980009217bd7b2891cfc0@o4509052669526016.ingest.us.sentry.io/4509052740763648",
   environment: import.meta.env.MODE || 'development',
   // Adjust this value in production
-  tracesSampleRate: 1.0
+  tracesSampleRate: 1.0,
+  // Enable console debugging for Sentry
+  debug: true,
+  beforeSend(event) {
+    console.log('Sending event to Sentry:', event);
+    return event;
+  }
 });
 
 // Force dark mode when the app starts
