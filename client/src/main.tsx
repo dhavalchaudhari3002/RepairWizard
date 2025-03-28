@@ -12,7 +12,7 @@ import "./index.css";
 
 Sentry.init({
   // Use the DSN value from environment variables via Replit Secrets
-  // Note: Vite requires the VITE_ prefix for client-side environment variables
+  // Vite requires the VITE_ prefix for client-side environment variables
   dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND || "",
   integrations: [
     Sentry.browserTracingIntegration(),
