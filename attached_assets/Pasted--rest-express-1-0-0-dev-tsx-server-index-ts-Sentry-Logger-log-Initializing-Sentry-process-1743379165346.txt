@@ -1,0 +1,65 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Sentry Logger [log]: Initializing Sentry: process: 267, thread: main.
+Sentry Logger [log]: Integration installed: InboundFilters
+Sentry Logger [log]: Integration installed: FunctionToString
+Sentry Logger [log]: Integration installed: LinkedErrors
+Sentry Logger [log]: Integration installed: RequestData
+Sentry Logger [log]: Integration installed: Console
+Sentry Logger [log]: Integration installed: Http
+Sentry Logger [log]: Integration installed: NodeFetch
+Sentry Logger [log]: Integration installed: OnUncaughtException
+Sentry Logger [log]: Integration installed: OnUnhandledRejection
+Sentry Logger [log]: Integration installed: ContextLines
+Sentry Logger [log]: Integration installed: LocalVariablesAsync
+Sentry Logger [log]: Integration installed: Context
+Sentry Logger [log]: Integration installed: ChildProcess
+Sentry Logger [log]: Integration installed: ProcessSession
+Sentry Logger [log]: Running in ESM mode.
+Sentry Logger [debug]: @opentelemetry/api: Registered a global for diag v1.9.0.
+Sentry Logger [debug]: @opentelemetry/api: Registered a global for trace v1.9.0.
+Sentry Logger [debug]: @opentelemetry/api: Registered a global for propagation v1.9.0.
+Sentry Logger [debug]: @opentelemetry/api: Registered a global for context v1.9.0.
+11:58:33 PM [express] Starting server initialization...
+11:58:33 PM [express] Registering routes...
+Created HTTP server instance
+Authentication setup complete
+WebSocket server initialized
+Setting up ML-based repair cost estimation API...
+Initializing repair cost prediction model...
+Loading dataset from: /home/runner/workspace/server/ml-services/data/repair_dataset.csv
+
+============================
+Hi, looks like you are running TensorFlow.js in Node.js. To speed things up dramatically, install our node backend, visit https://github.com/tensorflow/tfjs-node for more details. 
+============================
+Training repair cost model...
+Epoch 0: loss = 44077.871, mse = 44077.871
+Epoch 10: loss = 43393.348, mse = 43393.348
+Epoch 20: loss = 42384.945, mse = 42384.945
+Epoch 30: loss = 40875.551, mse = 40875.551
+Epoch 40: loss = 38456.742, mse = 38456.742
+Epoch 50: loss = 35169.492, mse = 35169.492
+Epoch 60: loss = 32077.117, mse = 32077.117
+Epoch 70: loss = 30089.094, mse = 30089.094
+Epoch 80: loss = 28930.316, mse = 28930.316
+Epoch 90: loss = 27985.301, mse = 27985.301
+Model training complete!
+Repair cost prediction model initialized
+ML-based repair cost estimation API is ready
+ML-based repair cost API initialized successfully
+All routes registered successfully
+11:58:34 PM [express] Routes registered successfully
+11:58:34 PM [express] Server is now listening on http://0.0.0.0:5000
+11:58:34 PM [express] Setting up Vite development server...
+11:58:35 PM [express] Vite setup complete
+11:58:35 PM [express] Server initialization complete - ready to handle requests
+Sentry Logger [debug]: Recording is off, propagating context in a non-recording span
+11:58:35 PM [express] GET /ping
+11:58:35 PM [express] Health check endpoint hit
+11:58:35 PM [express] Health check response: pong
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.2.0
+npm notice To update run: npm install -g npm@11.2.0
+npm notice
