@@ -39,7 +39,21 @@ async function trackDiagnosticAnalytics(
     const causesSummary = diagnostic.possibleCauses.join('. ');
     const stepsSummary = diagnostic.diagnosticSteps.join('. ');
     
-    const responseSummary = `Symptoms: ${diagnostic.symptomInterpretation}. Causes: ${causesSummary}. Steps: ${stepsSummary}`;
+    const responseSummary = {
+  symptoms: diagnostic.symptomInterpretation,
+  causes: diagnostic.possibleCauses,
+  steps: diagnostic.diagnosticSteps,
+  success_rate: calculateSuccessRate(diagnostic),
+  diagnostic_confidence: assessDiagnosticConfidence(diagnostic)
+};
+
+// Track detailed analytics
+const analyticsData = {
+  ...responseSummary,
+  response_time: Date.now() - startTime,
+  product_category: productType,
+  issue_complexity: assessIssueComplexity(issueDescription)
+};
     
     // Calculate tokens (approximate method)
     const promptTokens = (systemPrompt?.length || 0) + productType.length + issueDescription.length;
@@ -246,9 +260,16 @@ function getPrewrittenResponse(productType: string, issueDescription: string): R
 async function getDiagnosticResponse(productType: string, issueDescription: string, systemPrompt: string): Promise<RepairDiagnostic> {
   const cacheKey = `${productType}-${issueDescription}`;
   
-  // Check cache first
+  // Check cache first with product category matching
   const cachedResponse = await getCachedResponse(cacheKey);
-  if (cachedResponse) return cachedResponse;
+  if (cachedResponse) {
+    // Verify the cached response is still relevant
+    const isRelevant = await validateCachedResponse(cachedResponse, productType);
+    if (isRelevant) {
+      console.log("Using validated cached response");
+      return cachedResponse;
+    }
+  }
 
   // Quick response for common issues
   if (issueDescription.length < 10) {
@@ -723,7 +744,17 @@ CRITICAL DIAGNOSTIC RULES:
    - Emphasize updating chipset drivers from the motherboard manufacturer
    - Recommend BIOS/UEFI USB settings check before physical inspection
 
-4. For ALL PC hardware questions:
+4. For display/monitor issues:
+   - ALWAYS check cable connections and monitor input settings first
+   - Suggest testing with different cables/ports before hardware diagnosis
+   - Include steps to verify graphics driver versions and settings
+
+5. For storage device problems:
+   - PRIORITIZE SMART data checks and disk health analysis
+   - Recommend data backup before any physical interventions
+   - Include file system verification steps
+
+6. For ALL PC hardware questions:
    - Order suggestions from software→monitoring→external tests→internal hardware
    - Provide detailed instructions including specific menu paths and expected values
 
