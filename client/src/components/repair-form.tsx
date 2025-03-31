@@ -585,14 +585,6 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
                   {!imagePreview && (
                     <div className="text-sm text-muted-foreground space-y-2">
                       <p>Uploading an image helps us better diagnose your issue</p>
-                      <Button 
-                        type="button" 
-                        variant="link" 
-                        className="flex items-center gap-1 p-0 h-auto font-normal text-primary text-sm"
-                        onClick={() => navigate('/upload-image')}
-                      >
-                        Try our enhanced upload verification process <ExternalLink className="h-3 w-3" />
-                      </Button>
                     </div>
                   )}
                 </div>
