@@ -153,6 +153,7 @@ export interface RepairDiagnostic {
   diagnosticSteps: string[];
   likelySolutions: string[];
   safetyWarnings: string[];
+  specificQuestions?: string[]; // Specific questions to ask to determine root cause
 }
 
 interface RepairQuestionInput {
@@ -667,6 +668,14 @@ IMPORTANT REQUIREMENTS:
 5. Include environment factors like power quality, ambient temperature, and usage patterns
 6. When listing solutions, progress from simple to complex, from software to hardware
 
+SPECIFIC QUESTIONS GUIDELINES:
+1. Create 3-5 precise, targeted questions that would help pinpoint the exact root cause
+2. Frame questions to distinguish between similar symptoms with different causes (e.g., "Does the freezing occur only during high GPU usage or during any activity?")
+3. Include questions about timing, frequency, and specific conditions when the issue occurs
+4. Ask about secondary symptoms that may not seem related but could help differentiate between causes
+5. Format questions to be direct and answerable with specific technical details, not just yes/no
+6. Include at least one question focused on environmental factors (e.g., "Does the issue correlate with high ambient temperature or after the device has been running for hours?")
+
 Return your analysis in this EXACT JSON format:
 {
   "symptomInterpretation": "Detailed symptom analysis including potential relationships between reported issues",
@@ -689,6 +698,10 @@ Return your analysis in this EXACT JSON format:
   "safetyWarnings": [
     "Specific safety warning 1 relevant to this specific device/repair",
     "Specific safety warning 2 relevant to this specific device/repair"
+  ],
+  "specificQuestions": [
+    "Precise technical question 1 focused on determining root cause",
+    "Precise technical question 2 focused on determining root cause"
   ]
 }`;
 

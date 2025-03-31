@@ -9,6 +9,7 @@ interface RepairQuestionsProps {
   issueDescription?: string;
   currentStep?: number;
   repairRequestId?: number;
+  specificQuestions?: string[]; // To display specific questions from diagnostic
 }
 
 interface QuestionAnswer {
@@ -18,7 +19,7 @@ interface QuestionAnswer {
   role?: "user" | "assistant";
 }
 
-export function RepairQuestions({ productType, issueDescription, currentStep, repairRequestId }: RepairQuestionsProps) {
+export function RepairQuestions({ productType, issueDescription, currentStep, repairRequestId, specificQuestions }: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
   const [conversation, setConversation] = useState<QuestionAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,8 +86,41 @@ export function RepairQuestions({ productType, issueDescription, currentStep, re
     }
   };
 
+  // Helper function to ask a specific question
+  const handleSpecificQuestionClick = (questionText: string) => {
+    setQuestion(questionText);
+  };
+
   return (
     <div className="space-y-4">
+      {/* Display specific diagnostic questions if available */}
+      {specificQuestions && specificQuestions.length > 0 && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
+          <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+            <MessageCircle className="h-4 w-4 text-primary" />
+            Suggested Questions to Find Root Cause
+          </h4>
+          <div className="space-y-2">
+            {specificQuestions.map((q, i) => (
+              <Button 
+                key={i} 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start text-sm h-auto py-2 font-normal"
+                onClick={() => handleSpecificQuestionClick(q)}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="bg-primary/10 rounded-full h-5 w-5 flex items-center justify-center shrink-0 text-primary text-xs font-medium">
+                    {i + 1}
+                  </div>
+                  <span className="text-left">{q}</span>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Conversation History */}
       {conversation.map((qa, index) => (
         <div key={index} className="space-y-2">

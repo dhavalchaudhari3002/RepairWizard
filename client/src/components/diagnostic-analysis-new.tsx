@@ -26,6 +26,7 @@ export interface RepairDiagnostic {
   diagnosticSteps: string[];
   likelySolutions: string[];
   safetyWarnings: string[];
+  specificQuestions?: string[]; // Specific questions to ask to determine root cause
 }
 
 // Component props
@@ -222,7 +223,8 @@ export function DiagnosticAnalysisNew({
     informationGaps: Array.isArray(diagnostic.informationGaps) ? diagnostic.informationGaps : [],
     diagnosticSteps: Array.isArray(diagnostic.diagnosticSteps) ? diagnostic.diagnosticSteps : [],
     likelySolutions: Array.isArray(diagnostic.likelySolutions) ? diagnostic.likelySolutions : [],
-    safetyWarnings: Array.isArray(diagnostic.safetyWarnings) ? diagnostic.safetyWarnings : []
+    safetyWarnings: Array.isArray(diagnostic.safetyWarnings) ? diagnostic.safetyWarnings : [],
+    specificQuestions: Array.isArray(diagnostic.specificQuestions) ? diagnostic.specificQuestions : []
   };
 
   // Success state - Display the diagnostic results
@@ -254,6 +256,26 @@ export function DiagnosticAnalysisNew({
               <h3 className="text-lg font-semibold">Symptoms</h3>
               <p className="text-muted-foreground">{safeData.symptomInterpretation}</p>
             </div>
+            
+            {/* Show specific questions if available */}
+            {safeData.specificQuestions && safeData.specificQuestions.length > 0 && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                <h3 className="text-base font-medium flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  Key Questions to Find Root Cause
+                </h3>
+                <ul className="space-y-2 ml-1">
+                  {safeData.specificQuestions.map((question, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <div className="bg-primary/10 rounded-full h-5 w-5 flex items-center justify-center shrink-0 text-primary text-xs font-medium mt-0.5">
+                        {i + 1}
+                      </div>
+                      <p className="text-sm">{question}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="causes">
