@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { RepairQuestions, AnsweredQuestion } from "./repair-questions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
+import { useQuestionEffectiveness } from "@/hooks/use-question-effectiveness";
 import { RepairDiagnostic } from "./diagnostic-analysis-new";
 
 interface RepairGuideStep {
@@ -52,6 +53,8 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
     trackVideoSearch,
     trackGuideUpdatedWithAnswers
   } = useInteractionTracking();
+  
+  const { trackSuccessfulGuideCreation } = useQuestionEffectiveness();
   
   // Reference for guide start time to calculate duration
   const startTimeRef = useRef<Date | null>(null);
@@ -243,6 +246,19 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
           data.title,
           { questionCount: uniqueQuestions.length }
         );
+        
+        // Also track that these questions led to a solution
+        const specificQuestions = uniqueQuestions.filter(q => q.isSpecificQuestion);
+        if (specificQuestions.length > 0) {
+          trackSuccessfulGuideCreation(
+            repairRequestId, 
+            productType,
+            specificQuestions.map(q => ({ 
+              question: q.question, 
+              isSpecificQuestion: q.isSpecificQuestion 
+            }))
+          );
+        }
       }
       
       toast({

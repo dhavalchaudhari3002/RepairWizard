@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, ImagePlus, X, CheckCircle } from "lucide-react";
+import { MessageCircle, ImagePlus, X, CheckCircle, ThumbsUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { QuestionFeedback } from "@/components/question-feedback";
+import { useQuestionEffectiveness } from "@/hooks/use-question-effectiveness";
 
 interface RepairQuestionsProps {
   productType: string;
@@ -45,6 +47,10 @@ export function RepairQuestions({
   
   // Track which specific questions have been answered
   const [answeredSpecificQuestions, setAnsweredSpecificQuestions] = useState<string[]>([]);
+  
+  // Question feedback states
+  const [feedbackQuestionIndex, setFeedbackQuestionIndex] = useState<number | null>(null);
+  const { trackEffectiveQuestion, trackIneffectiveQuestion } = useQuestionEffectiveness();
 
   // Notify parent component when answered questions change
   useEffect(() => {
@@ -159,6 +165,36 @@ export function RepairQuestions({
   const handleSpecificQuestionClick = (questionText: string) => {
     setQuestion(questionText);
   };
+  
+  // Handle showing feedback for a question
+  const handleShowFeedback = (index: number) => {
+    setFeedbackQuestionIndex(index);
+  };
+  
+  // Handle feedback submission
+  const handleFeedbackSubmitted = (rating: number, leadToSolution: boolean, index: number) => {
+    const qa = conversation[index];
+    
+    // Track the feedback result
+    if (leadToSolution || rating >= 4) {
+      trackEffectiveQuestion({
+        repairRequestId: repairRequestId || null,
+        productType,
+        question: qa.question,
+        isSpecificQuestion: !!qa.isSpecificQuestion
+      });
+    } else {
+      trackIneffectiveQuestion({
+        repairRequestId: repairRequestId || null,
+        productType,
+        question: qa.question,
+        isSpecificQuestion: !!qa.isSpecificQuestion
+      });
+    }
+    
+    // Close the feedback panel
+    setFeedbackQuestionIndex(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -203,8 +239,26 @@ export function RepairQuestions({
       {conversation.map((qa, index) => (
         <div key={index} className="space-y-2">
           <div className="bg-muted/50 p-3 rounded-lg">
-            <p className="text-sm font-medium">You asked:</p>
-            <p className="text-sm">{qa.question}</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium">You asked:</p>
+                <p className="text-sm">{qa.question}</p>
+              </div>
+              
+              {/* Only show feedback button for specific diagnostic questions */}
+              {qa.isSpecificQuestion && feedbackQuestionIndex !== index && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs flex items-center gap-1 h-7"
+                  onClick={() => handleShowFeedback(index)}
+                >
+                  <ThumbsUp className="h-3 w-3" />
+                  Rate question
+                </Button>
+              )}
+            </div>
+            
             {qa.imageUrl && (
               <div className="mt-2">
                 <img 
@@ -215,12 +269,27 @@ export function RepairQuestions({
               </div>
             )}
           </div>
+          
           <div className="bg-muted p-3 rounded-lg">
             <div className="flex gap-2 items-start">
               <MessageCircle className="h-5 w-5 mt-0.5 text-primary" />
               <p className="text-sm">{qa.answer}</p>
             </div>
           </div>
+          
+          {/* Feedback component for this question */}
+          {feedbackQuestionIndex === index && (
+            <QuestionFeedback
+              repairRequestId={repairRequestId || null}
+              productType={productType}
+              question={qa.question}
+              isSpecificQuestion={!!qa.isSpecificQuestion}
+              onClose={() => setFeedbackQuestionIndex(null)}
+              onFeedbackSubmitted={(rating, leadToSolution) => 
+                handleFeedbackSubmitted(rating, leadToSolution, index)
+              }
+            />
+          )}
         </div>
       ))}
 
