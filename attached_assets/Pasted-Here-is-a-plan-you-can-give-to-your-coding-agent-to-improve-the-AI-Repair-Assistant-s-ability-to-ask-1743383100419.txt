@@ -1,0 +1,36 @@
+Here is a plan you can give to your coding agent to improve the AI Repair Assistant's ability to ask specific questions to find the root cause, instead of asking generic questions:
+
+**Plan for Implementing Specific AI Questioning for Root Cause Analysis**
+
+The goal is to shift the AI Repair Assistant from potentially asking generic questions to proactively asking specific questions that directly address identified information gaps and help pinpoint the root cause of the user's issue.
+
+Here's a plan to achieve this:
+
+*   **Enhance the Diagnostic Analysis Phase:**
+    *   **Prioritise "Information Gaps" Identification:** The AI needs to be more sophisticated in identifying specific pieces of missing information that are critical for accurate diagnosis [2, previous turn]. Instead of just noting a general "information gap," the system should aim to identify *what specific information* is lacking.
+    *   **Implement a Decision Tree or Logic for Question Generation:** Based on the initial user input and the AI's preliminary analysis (including symptom interpretation and possible causes), the system should employ a decision tree or logical flow to determine the most relevant and specific follow-up questions. This will move away from generic troubleshooting questions.
+
+*   **Refine the "Interactive Repair Questions" Feature for Proactive Use:**
+    *   **Trigger Questioning Based on Analysis:** Instead of solely waiting for the user to ask questions, the system should be designed to proactively present questions to the user *after* its initial analysis of their input [previous turn].
+    *   **Contextual Question Generation:** The questions generated must be directly related to the user's initial description and the AI's preliminary findings. The system should leverage the "context from previous interactions" (the initial input) to formulate relevant and specific follow-up questions [3, previous turn].
+    *   **Prioritise Questions that Differentiate Potential Causes:** The AI should be programmed to ask questions that help distinguish between the identified "possible causes". For example, instead of asking "Have you tried restarting your device?", it might ask, "Did the issue start immediately after a software update?" if a recent update is a potential cause.
+
+*   **Improve System Prompts for GPT-4 and GPT-4-Vision:**
+    *   **Instruct on Specific Questioning:** The system prompts provided to OpenAI should explicitly instruct the models to identify specific information needs and formulate targeted questions to gather that information.
+    *   **Emphasise Root Cause Focus:** The prompts should guide the AI to ask questions that directly contribute to identifying the underlying cause of the problem, rather than general troubleshooting steps.
+    *   **Provide Examples of Specific vs. Generic Questions:** The prompts could include examples of effective specific questions versus less helpful generic ones to guide the AI's response generation.
+
+*   **Leverage Analytics for Iterative Improvement:**
+    *   **Track Question Effectiveness:** Monitor which AI-initiated questions lead to users providing helpful information and ultimately a successful diagnosis. Questions that don't yield useful responses should be reviewed and the underlying logic adjusted.
+    *   **Analyse User Feedback on AI Questions:** Gather user feedback specifically on the helpfulness and relevance of the questions asked by the AI. This feedback can be used to further refine the question generation process.
+    *   **Identify Patterns in Information Gaps:** Analyse common information gaps that the AI identifies for specific product types and issues. This can help in proactively designing more structured input fields or guided questioning during the initial user input phase (as we discussed previously) to reduce these gaps from the outset [previous turn].
+
+*   **Implementation Steps for the Coding Agent:**
+    1.  **Modify the Diagnostic Engine:** Update the backend logic to not only identify information gaps but also to categorise them and determine the most critical missing pieces for accurate diagnosis.
+    2.  **Develop a Question Generation Module:** Create a module that takes the initial analysis and identified information gaps as input and generates a set of specific, contextually relevant questions. This might involve implementing decision trees or rule-based systems.
+    3.  **Integrate Proactive Questioning into the User Interface:** Ensure the UI can present these AI-generated questions to the user in a clear and logical flow.
+    4.  **Refine System Prompts:** Update the prompts used when interacting with GPT-4 and GPT-4-Vision to emphasise the need for specific question generation focused on root cause analysis.
+    5.  **Implement Analytics Tracking:** Ensure the system logs data on the questions asked by the AI, user responses, and the effectiveness of these interactions in reaching a diagnosis.
+    6.  **Create a Feedback Mechanism:** Allow users to provide feedback on the helpfulness and specificity of the AI's questions.
+
+By implementing this plan, you can empower the AI Repair Assistant to move beyond generic questioning and engage in a more targeted and effective dialogue with users to quickly identify the root cause of their device issues.
