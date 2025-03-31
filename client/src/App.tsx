@@ -1,56 +1,40 @@
-import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import AuthPage from "@/pages/auth-page";
-import ResetPassword from "@/pages/reset-password";
-import ToolsPage from "@/pages/tools-page";
-import AnalyticsDashboard from "@/pages/analytics-dashboard";
-import SentryTestPage from "@/pages/sentry-test-page";
-import { AuthProvider } from "@/hooks/use-auth";
-import { DarkModeProvider } from "@/hooks/use-dark-mode";
-import { NotificationsProvider } from "./hooks/use-notifications-context";
-import { NavBar } from "@/components/navbar";
+import { useState, useEffect } from 'react';
 
-function Router() {
-  const [location] = useLocation();
-  // Hide navbar on auth and reset-password routes
-  const showNavBar = !["auth", "reset-password"].includes(location.split("/")[1]);
-  
-  // Keep on homepage to show the application
-  // Don't redirect so user can interact with the home page
-  
-  return (
-    <div className="relative min-h-screen flex flex-col">
-      {showNavBar && <NavBar />}
-      <main className="flex-1 relative z-0">
-        <Switch>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password" component={ResetPassword} />
-          <Route path="/" component={Home} />
-          <Route path="/tools" component={ToolsPage} />
-          <Route path="/analytics" component={AnalyticsDashboard} />
-          <Route path="/sentry-test" component={SentryTestPage} />
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-      <Toaster />
-    </div>
-  );
-}
-
+// Simplified App to debug the issue
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    console.log("App component mounted");
+    
+    // Simulate checking if everything is ready
+    const timer = setTimeout(() => {
+      console.log("App finished loading check");
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          <p>Please wait while we prepare the application</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <DarkModeProvider>
-          <NotificationsProvider>
-            <Router />
-          </NotificationsProvider>
-        </DarkModeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <h1 className="text-3xl font-bold mb-6">AI Repair Assistant</h1>
+      <p className="mb-4">Application is working correctly!</p>
+      <div className="p-4 bg-blue-900 rounded-lg">
+        <h2 className="text-xl font-semibold mb-2">Debug Information</h2>
+        <p>This is a simplified version of the app to diagnose loading issues.</p>
+      </div>
+    </div>
   );
 }

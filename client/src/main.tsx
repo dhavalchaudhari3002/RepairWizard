@@ -7,28 +7,12 @@ import { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
 
-// Initialize Sentry using the DSN from environment variables
-// The VITE_SENTRY_DSN_FRONTEND is configured in Replit Secrets
+// Temporarily disable Sentry to troubleshoot loading issues
+console.log("Temporarily disabling Sentry for troubleshooting");
 
 Sentry.init({
-  // Use the DSN value from environment variables via Replit Secrets
-  // Vite requires the VITE_ prefix for client-side environment variables
-  dsn: import.meta.env.VITE_SENTRY_DSN_FRONTEND || "",
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration(),
-  ],
-  // Add a release identifier to enable session tracking and better error grouping
-  release: 'repair-ai-assistant@1.0.0',
-  environment: 'development',
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
-  tracesSampleRate: 1.0,
-  // Enable session replay for better error diagnosis
-  replaysSessionSampleRate: 0.1, // Sample 10% of sessions
-  replaysOnErrorSampleRate: 1.0, // Sample 100% of sessions with errors
-  // Set tracePropagationTargets to control which URLs should be tracked
-  tracePropagationTargets: ["localhost", /^https:\/\//],
-  // Debug mode to help with troubleshooting
+  // Disabled for troubleshooting
+  dsn: "", // Empty DSN disables Sentry
   debug: true,
 });
 
@@ -61,10 +45,20 @@ const ErrorFallback = () => {
   );
 };
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+// Add error handler for uncaught errors
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error);
+});
+
+try {
+  console.log('Attempting to render the application...');
+  createRoot(rootElement).render(
+    <StrictMode>
       <App />
-    </Sentry.ErrorBoundary>
-  </StrictMode>
-);
+    </StrictMode>
+  );
+  console.log('Application rendering initiated successfully');
+} catch (error) {
+  console.error('Error rendering application:', error);
+  document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Application Error</h1><p>There was a problem loading the application. Please try again later.</p></div>';
+}
