@@ -385,6 +385,14 @@ export interface DiagnosticInfo {
   possibleCauses?: string[];
   likelySolutions?: string[];
   safetyWarnings?: string[];
+  answeredQuestions?: AnsweredQuestion[];
+}
+
+interface AnsweredQuestion {
+  question: string;
+  answer: string;
+  timestamp: number;
+  isSpecificQuestion: boolean;
 }
 
 /**
@@ -493,6 +501,31 @@ ISSUE-SPECIFIC DIAGNOSTIC REQUIREMENTS:
       
       if (diagnosticInfo.safetyWarnings && diagnosticInfo.safetyWarnings.length > 0) {
         userContent += `\n\nCRITICAL SAFETY WARNINGS (must be included where appropriate):\n${diagnosticInfo.safetyWarnings.map((warning, index) => `${index + 1}. ${warning}`).join('\n')}`;
+      }
+      
+      // Include the user's answers to specific diagnostic questions
+      if (diagnosticInfo.answeredQuestions && diagnosticInfo.answeredQuestions.length > 0) {
+        userContent += "\n\nUSER DIAGNOSTIC RESPONSES (use these to personalize and refine the repair guide):";
+        
+        // Group questions by whether they were specific diagnostic questions or general
+        const specificQuestions = diagnosticInfo.answeredQuestions.filter(q => q.isSpecificQuestion);
+        const generalQuestions = diagnosticInfo.answeredQuestions.filter(q => !q.isSpecificQuestion);
+        
+        if (specificQuestions.length > 0) {
+          userContent += "\n\nSPECIFIC DIAGNOSTIC QUESTIONS ANSWERED BY USER:";
+          specificQuestions.forEach((qa, index) => {
+            userContent += `\n${index + 1}. Q: ${qa.question}\n   A: ${qa.answer}`;
+          });
+        }
+        
+        if (generalQuestions.length > 0) {
+          userContent += "\n\nADDITIONAL USER QUESTIONS AND RESPONSES:";
+          generalQuestions.forEach((qa, index) => {
+            userContent += `\n${index + 1}. Q: ${qa.question}\n   A: ${qa.answer}`;
+          });
+        }
+        
+        userContent += "\n\nIMPORTANT: Tailor your repair steps based on the user's responses above. If specific issues or conditions were mentioned, prioritize steps that address those exact conditions.";
       }
       
       userContent += "\n\nIMPORTANT: Your guide must explicitly address EACH of the causes/solutions above with detailed steps. For any step suggesting a hardware replacement, you MUST first include MULTIPLE software, driver, and diagnostic steps to confirm the hardware is truly at fault.";

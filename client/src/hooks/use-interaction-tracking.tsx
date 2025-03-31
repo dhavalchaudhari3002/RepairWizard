@@ -168,6 +168,24 @@ export function useInteractionTracking() {
     });
   }, [trackInteraction]);
 
+  /**
+   * Track updating a guide based on answered questions
+   */
+  const trackGuideUpdatedWithAnswers = useCallback((
+    repairRequestId: number,
+    productType: string,
+    guideTitle: string,
+    metadata?: { questionCount: number }
+  ) => {
+    return trackInteraction({
+      repairRequestId,
+      productType,
+      interactionType: 'guide_updated_with_answers',
+      guideTitle,
+      metadata
+    });
+  }, [trackInteraction]);
+
   return {
     trackInteraction,
     trackGuideView,
@@ -177,6 +195,7 @@ export function useInteractionTracking() {
     trackGuideCompletion,
     trackGuideAbandonment,
     trackProductClick,
-    trackVideoSearch
+    trackVideoSearch,
+    trackGuideUpdatedWithAnswers
   };
 }

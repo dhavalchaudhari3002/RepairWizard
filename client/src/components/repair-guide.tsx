@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock, PlayCircle, Sh
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { RepairQuestions } from "./repair-questions";
+import { RepairQuestions, AnsweredQuestion } from "./repair-questions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
 import { RepairDiagnostic } from "./diagnostic-analysis-new";
@@ -40,6 +40,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   const { toast } = useToast();
   const [_, navigate] = useLocation();
   const { 
@@ -48,7 +49,8 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
     trackStepSkip,
     trackGuideCompletion,
     trackGuideAbandonment,
-    trackVideoSearch
+    trackVideoSearch,
+    trackGuideUpdatedWithAnswers
   } = useInteractionTracking();
   
   // Reference for guide start time to calculate duration
@@ -105,11 +107,13 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
 
     setLoading(true);
     try {
-      // Include diagnostic data in the request if available
+      // Include diagnostic data and answered questions in the request if available
       const diagnosticInfo = diagnosticData ? {
         possibleCauses: diagnosticData.possibleCauses,
         likelySolutions: diagnosticData.likelySolutions,
-        safetyWarnings: diagnosticData.safetyWarnings
+        safetyWarnings: diagnosticData.safetyWarnings,
+        // Also include any answered questions for more personalized guide generation
+        answeredQuestions: diagnosticData.answeredQuestions || []
       } : null;
       
       console.log("Attempting to generate guide for:", { 
@@ -164,6 +168,95 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate repair guide. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Regenerate the guide with updated answered questions
+  const regenerateGuideWithAnswers = async () => {
+    if (!productType || !issue || !repairRequestId) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Combine diagnostic data with the latest answered questions
+      const combinedQuestions = [
+        ...(diagnosticData?.answeredQuestions || []),
+        ...answeredQuestions
+      ];
+      
+      // Remove duplicates by using the question text as a key
+      const uniqueQuestions = Array.from(
+        new Map(combinedQuestions.map(q => [q.question, q])).values()
+      );
+      
+      // Create diagnostic info with all available data
+      const enhancedDiagnosticInfo = {
+        possibleCauses: diagnosticData?.possibleCauses || [],
+        likelySolutions: diagnosticData?.likelySolutions || [],
+        safetyWarnings: diagnosticData?.safetyWarnings || [],
+        answeredQuestions: uniqueQuestions
+      };
+      
+      console.log("Regenerating guide with updated answers:", { 
+        questionCount: uniqueQuestions.length,
+        specificQuestionCount: uniqueQuestions.filter(q => q.isSpecificQuestion).length
+      });
+      
+      const response = await apiRequest(
+        "POST",
+        "/api/repair-guides",
+        { 
+          productType, 
+          issue, 
+          repairRequestId,
+          diagnosticInfo: enhancedDiagnosticInfo
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Guide regeneration API error:", errorData);
+        throw new Error(errorData.details || errorData.error || "Failed to regenerate guide");
+      }
+
+      const data = await response.json();
+      console.log("Received updated guide data:", data);
+
+      if (!data || !data.title || !Array.isArray(data.steps)) {
+        console.error("Invalid guide data received:", data);
+        throw new Error("Invalid guide data received");
+      }
+
+      setGuide(data);
+      // Keep the current step position when regenerating
+      
+      // Track guide update
+      if (repairRequestId) {
+        trackInteraction({
+          interactionType: "guide_updated_with_answers",
+          metadata: {
+            productType,
+            guideTitle: data.title,
+            questionCount: uniqueQuestions.length
+          },
+          repairRequestId
+        });
+      }
+      
+      toast({
+        title: "Guide Updated",
+        description: "The repair guide has been updated based on your answers.",
+      });
+    } catch (error) {
+      console.error("Failed to regenerate guide:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update repair guide. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -378,6 +471,36 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
                     issueDescription={issue}
                     currentStep={currentStep}
                     repairRequestId={repairRequestId}
+                    specificQuestions={diagnosticData?.specificQuestions}
+                    onAnswersUpdated={(answers) => {
+                      // When answers are updated, save them and offer to regenerate the guide
+                      if (answers.length > 0 && repairRequestId) {
+                        // Update local state with answered questions
+                        setAnsweredQuestions(answers);
+
+                        // If there are multiple specific questions answered, offer to regenerate
+                        const specificAnswers = answers.filter(a => a.isSpecificQuestion);
+                        if (specificAnswers.length >= 2 && !loading) {
+                          // Show toast with option to regenerate
+                          toast({
+                            title: "Questions Answered",
+                            description: (
+                              <div className="space-y-2">
+                                <p>You've answered {specificAnswers.length} diagnostic questions. Would you like to update your repair guide based on these answers?</p>
+                                <Button 
+                                  onClick={() => regenerateGuideWithAnswers()}
+                                  size="sm"
+                                  className="mt-2"
+                                >
+                                  Update Repair Guide
+                                </Button>
+                              </div>
+                            ),
+                            duration: 8000,
+                          });
+                        }
+                      }
+                    }}
                   />
                 </div>
               </div>

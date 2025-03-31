@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, ImagePlus, X } from "lucide-react";
+import { MessageCircle, ImagePlus, X, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface RepairQuestionsProps {
@@ -10,6 +10,7 @@ interface RepairQuestionsProps {
   currentStep?: number;
   repairRequestId?: number;
   specificQuestions?: string[]; // To display specific questions from diagnostic
+  onAnswersUpdated?: (answers: AnsweredQuestion[]) => void; // Callback for when answers change
 }
 
 interface QuestionAnswer {
@@ -17,13 +18,40 @@ interface QuestionAnswer {
   answer: string;
   imageUrl?: string | null;
   role?: "user" | "assistant";
+  isSpecificQuestion?: boolean; // Flag to indicate if this was one of the AI-suggested specific questions
 }
 
-export function RepairQuestions({ productType, issueDescription, currentStep, repairRequestId, specificQuestions }: RepairQuestionsProps) {
+// Interface for tracking specific questions that have been answered
+export interface AnsweredQuestion {
+  question: string;
+  answer: string;
+  timestamp: number;
+  isSpecificQuestion: boolean;
+}
+
+export function RepairQuestions({ 
+  productType, 
+  issueDescription, 
+  currentStep, 
+  repairRequestId, 
+  specificQuestions,
+  onAnswersUpdated
+}: RepairQuestionsProps) {
   const [question, setQuestion] = useState("");
   const [conversation, setConversation] = useState<QuestionAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
+  
+  // Track which specific questions have been answered
+  const [answeredSpecificQuestions, setAnsweredSpecificQuestions] = useState<string[]>([]);
+
+  // Notify parent component when answered questions change
+  useEffect(() => {
+    if (onAnswersUpdated && answeredQuestions.length > 0) {
+      onAnswersUpdated(answeredQuestions);
+    }
+  }, [answeredQuestions, onAnswersUpdated]);
 
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -43,8 +71,19 @@ export function RepairQuestions({ productType, issueDescription, currentStep, re
     setImagePreview(null);
   };
 
+  // Check if a question is one of the specific diagnostic questions
+  const isSpecificQuestion = (questionText: string): boolean => {
+    if (!specificQuestions) return false;
+    return specificQuestions.some(q => 
+      q.toLowerCase().trim() === questionText.toLowerCase().trim()
+    );
+  };
+
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
+    
+    // Check if this is one of the specific diagnostic questions
+    const isSpecific = isSpecificQuestion(question);
 
     setIsLoading(true);
     try {
@@ -64,18 +103,48 @@ export function RepairQuestions({ productType, issueDescription, currentStep, re
           imageUrl: imagePreview,
           context,
           currentStep,
-          repairRequestId
+          repairRequestId,
+          isSpecificDiagnosticQuestion: isSpecific // Tell the API if this is a specific diagnostic question
         }
       );
       const data = await response.json();
       
       // Add the new Q&A to the conversation history
-      setConversation(prev => [...prev, { 
+      const newQA: QuestionAnswer = { 
         question, 
-        answer: data.answer,
+        answer: typeof data.answer === 'string' ? data.answer : JSON.stringify(data.answer),
         imageUrl: imagePreview,
-        role: "user" 
-      }]);
+        role: "user" as const, // Use const assertion to fix type issue
+        isSpecificQuestion: isSpecific
+      };
+      
+      setConversation(prev => [...prev, newQA]);
+      
+      // If this was a specific question, track it as answered
+      if (isSpecific) {
+        // Add to answered specific questions list
+        setAnsweredSpecificQuestions(prev => [...prev, question]);
+        
+        // Add to the overall answered questions for context management
+        const newAnsweredQuestion: AnsweredQuestion = {
+          question,
+          answer: typeof data.answer === 'string' ? data.answer : JSON.stringify(data.answer),
+          timestamp: Date.now(),
+          isSpecificQuestion: true
+        };
+        
+        setAnsweredQuestions(prev => [...prev, newAnsweredQuestion]);
+      } else {
+        // Still track regular questions for context
+        const newAnsweredQuestion: AnsweredQuestion = {
+          question,
+          answer: typeof data.answer === 'string' ? data.answer : JSON.stringify(data.answer),
+          timestamp: Date.now(),
+          isSpecificQuestion: false
+        };
+        
+        setAnsweredQuestions(prev => [...prev, newAnsweredQuestion]);
+      }
       
       setQuestion(""); // Clear input after successful response
       setImagePreview(null); // Clear image after sending
@@ -101,22 +170,31 @@ export function RepairQuestions({ productType, issueDescription, currentStep, re
             Suggested Questions to Find Root Cause
           </h4>
           <div className="space-y-2">
-            {specificQuestions.map((q, i) => (
-              <Button 
-                key={i} 
-                variant="ghost" 
-                size="sm" 
-                className="w-full justify-start text-sm h-auto py-2 font-normal"
-                onClick={() => handleSpecificQuestionClick(q)}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="bg-primary/10 rounded-full h-5 w-5 flex items-center justify-center shrink-0 text-primary text-xs font-medium">
-                    {i + 1}
+            {specificQuestions.map((q, i) => {
+              const isAnswered = answeredSpecificQuestions.includes(q);
+              return (
+                <Button 
+                  key={i} 
+                  variant={isAnswered ? "outline" : "ghost"}
+                  size="sm" 
+                  className={`w-full justify-start text-sm h-auto py-2 font-normal ${
+                    isAnswered ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : ''
+                  }`}
+                  onClick={() => handleSpecificQuestionClick(q)}
+                >
+                  <div className="flex items-start gap-2 w-full">
+                    <div className={`${
+                      isAnswered 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-100' 
+                        : 'bg-primary/10 text-primary'
+                    } rounded-full h-5 w-5 flex items-center justify-center shrink-0 text-xs font-medium`}>
+                      {isAnswered ? <CheckCircle className="h-3 w-3" /> : (i + 1)}
+                    </div>
+                    <span className="text-left">{q}</span>
                   </div>
-                  <span className="text-left">{q}</span>
-                </div>
-              </Button>
-            ))}
+                </Button>
+              );
+            })}
           </div>
         </div>
       )}

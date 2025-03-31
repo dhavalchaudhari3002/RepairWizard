@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,8 @@ import {
   ThumbsDown
 } from "lucide-react";
 import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
+import { RepairQuestions } from "./repair-questions";
+import { AnsweredQuestion } from "./repair-questions";
 
 // Define the RepairDiagnostic interface
 export interface RepairDiagnostic {
@@ -27,6 +29,7 @@ export interface RepairDiagnostic {
   likelySolutions: string[];
   safetyWarnings: string[];
   specificQuestions?: string[]; // Specific questions to ask to determine root cause
+  answeredQuestions?: AnsweredQuestion[]; // Answers to specific diagnostic questions (for context)
 }
 
 // Component props
@@ -49,9 +52,43 @@ export function DiagnosticAnalysisNew({
   const [diagnostic, setDiagnostic] = useState<RepairDiagnostic | null>(null);
   const [activeTab, setActiveTab] = useState("analysis");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   
   const { toast } = useToast();
   const { trackInteraction } = useInteractionTracking();
+  
+  // Handle question answers being updated
+  const handleAnswersUpdated = (newAnswers: AnsweredQuestion[]) => {
+    setAnsweredQuestions(newAnswers);
+    
+    // Update the diagnostic data with answered questions
+    if (diagnostic) {
+      const updatedDiagnostic = {
+        ...diagnostic,
+        answeredQuestions: newAnswers
+      };
+      
+      setDiagnostic(updatedDiagnostic);
+      
+      // Notify parent component of the updated diagnostic with answers
+      if (onDiagnosticComplete) {
+        onDiagnosticComplete(updatedDiagnostic);
+      }
+      
+      // Track that questions were answered
+      if (repairRequestId && newAnswers.length > 0) {
+        trackInteraction({
+          interactionType: "diagnostic_questions_answered",
+          metadata: {
+            productType,
+            questionCount: newAnswers.length,
+            specificQuestionCount: newAnswers.filter(q => q.isSpecificQuestion).length
+          },
+          repairRequestId
+        });
+      }
+    }
+  };
 
   // Fetch data on component mount
   useEffect(() => {
@@ -264,16 +301,41 @@ export function DiagnosticAnalysisNew({
                   <HelpCircle className="h-4 w-4 text-primary" />
                   Key Questions to Find Root Cause
                 </h3>
-                <ul className="space-y-2 ml-1">
-                  {safeData.specificQuestions.map((question, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <div className="bg-primary/10 rounded-full h-5 w-5 flex items-center justify-center shrink-0 text-primary text-xs font-medium mt-0.5">
-                        {i + 1}
+                
+                {/* Display the interactive questions component */}
+                <div className="mt-2 mb-2">
+                  <div className="border border-primary/10 rounded-lg overflow-hidden">
+                    <div className="p-3 bg-white dark:bg-gray-950">
+                      <h4 className="text-sm font-medium mb-2">Ask these questions to improve the diagnosis:</h4>
+                      <div className="space-y-1">
+                        {answeredQuestions.filter(q => q.isSpecificQuestion).length > 0 && (
+                          <div className="text-xs text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>
+                              {answeredQuestions.filter(q => q.isSpecificQuestion).length} of {safeData.specificQuestions.length} questions answered
+                            </span>
+                          </div>
+                        )}
+                        <div className="rounded-md overflow-hidden">
+                          {/* This embeds our repair-questions component */}
+                          <div className="p-3 bg-gray-50 dark:bg-gray-900">
+                            <div className="text-xs text-muted-foreground mb-3">
+                              Use the question input below to ask the specific questions listed above
+                            </div>
+                            {/* Use the RepairQuestions component */}
+                            <RepairQuestions
+                              productType={productType}
+                              issueDescription={issueDescription}
+                              repairRequestId={repairRequestId}
+                              specificQuestions={safeData.specificQuestions}
+                              onAnswersUpdated={handleAnswersUpdated}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm">{question}</p>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             
