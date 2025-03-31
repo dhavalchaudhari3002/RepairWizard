@@ -808,7 +808,7 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
 
     // Use a longer context window for conversation history
     const response = await openai.chat.completions.create({
-      model: input.imageUrl ? "gpt-4-vision-preview" : "gpt-4",
+      model: input.imageUrl ? "gpt-4-vision" : "gpt-4",
       messages,
       temperature: 0.3, // Set to 0.3 for balanced consistency and slight variability
       max_tokens: 800
