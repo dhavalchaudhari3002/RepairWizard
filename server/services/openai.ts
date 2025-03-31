@@ -722,11 +722,48 @@ Return your analysis in this EXACT JSON format:
   }
 }
 
-export async function getRepairAnswer(input: RepairQuestionInput, repairRequestId?: number): Promise<{ answer: string }> {
+// Define interface for image analysis results
+interface ImageAnalysisResult {
+  detected_issue: string;
+  confidence: number;
+  additional_questions: string[];
+  recommendations: string[];
+}
+
+export async function getRepairAnswer(input: RepairQuestionInput, repairRequestId?: number): Promise<{ answer: string } | ImageAnalysisResult> {
   try {
     const startTime = Date.now();
     
-    const systemPrompt = `You are a senior repair expert with extensive knowledge of electronics, appliances, and advanced troubleshooting methodologies.
+    // Check if this is an image analysis request for the repair form
+    const isImageAnalysis = input.imageUrl && input.question.includes("Analyze this image and identify the issue");
+    
+    // Select the appropriate system prompt
+    let systemPrompt: string;
+    
+    if (isImageAnalysis) {
+      systemPrompt = `You are an expert AI vision analyst specializing in device and product repair diagnostics. 
+Your task is to analyze images of damaged or malfunctioning products and provide detailed insights.
+
+CRITICAL ANALYSIS REQUIREMENTS:
+1. Carefully analyze the provided image of the product
+2. Consider both visible damage and potential internal issues based on visual cues
+3. Compare what you see in the image with the user's description of the issue
+4. Identify any information gaps that require clarification
+5. Provide a confidence score for your analysis (0.0-1.0)
+
+YOUR RESPONSE MUST BE A VALID JSON OBJECT with these fields:
+- detected_issue: A clear, detailed description of what problem you identify in the image
+- confidence: A number between 0 and 1 indicating your confidence in this assessment
+- additional_questions: An array of 2-3 specific questions to ask the user for better diagnosis
+- recommendations: An array of 1-3 preliminary recommendations based on your initial analysis
+
+IMPORTANT:
+- Be very specific about what you can and cannot determine from the image
+- If the image doesn't clearly show the issue, say so and focus on questions to clarify
+- Prioritize safety in your recommendations
+- Don't make assumptions beyond what's visible in the image and the user's description`;
+    } else {
+      systemPrompt = `You are a senior repair expert with extensive knowledge of electronics, appliances, and advanced troubleshooting methodologies.
 
 CRITICAL DIAGNOSTIC RULES:
 1. For computer instability/crashing questions:
@@ -768,6 +805,7 @@ When answering questions about repairs:
 
 Format your response as a JSON object with an "answer" field containing your thorough response.
 Ensure your answers avoid oversimplified suggestions like "just replace the component" without proper diagnostic confirmation.`;
+    }
 
     const contextPrompt = `Product Type: ${input.productType}${
       input.issueDescription ? `\nReported Issue: ${input.issueDescription}` : ''
@@ -775,7 +813,7 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
       input.currentStep !== undefined ? `\nCurrent Repair Guide Step: ${input.currentStep + 1}` : ''
     }`;
 
-    const messages: any[] = [
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt }
     ];
     
@@ -791,14 +829,14 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
         content: [
           {
             type: "text",
-            text: `${contextPrompt}\nAnalyze this image and answer this question: ${input.question}`
+            text: `${contextPrompt}\n${input.question}`
           },
           {
             type: "image_url",
             image_url: { url: input.imageUrl }
           }
         ]
-      });
+      } as OpenAI.Chat.Completions.ChatCompletionMessageParam); // Type assertion
     } else {
       messages.push({
         role: "user",
@@ -806,13 +844,26 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
       });
     }
 
-    // Use a longer context window for conversation history
-    const response = await openai.chat.completions.create({
-      model: input.imageUrl ? "gpt-4-vision" : "gpt-4",
-      messages,
-      temperature: 0.3, // Set to 0.3 for balanced consistency and slight variability
-      max_tokens: 800
-    });
+    // Configure the OpenAI API call
+    let response;
+    
+    if (isImageAnalysis) {
+      // For image analysis - without response_format for vision model
+      response = await openai.chat.completions.create({
+        model: "gpt-4-vision",
+        messages: messages,
+        temperature: 0.2,
+        max_tokens: 1000
+      });
+    } else {
+      // For standard Q&A
+      response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: messages,
+        temperature: 0.3,
+        max_tokens: 800
+      });
+    }
 
     const endTime = Date.now();
     const responseTime = endTime - startTime;
@@ -822,56 +873,92 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
       throw new Error("Empty response from OpenAI");
     }
 
-    let answer: string;
-    try {
-      const result = JSON.parse(content);
-      answer = result.answer || content;
-    } catch (error) {
-      // If parsing fails, use the raw content
-      answer = content;
-    }
-    
-    // Track analytics if repairRequestId is provided
-    if (repairRequestId) {
+    // Process the response based on the request type
+    if (isImageAnalysis) {
       try {
-        // Calculate tokens (approximate method)
-        const promptTokens = systemPrompt.length + contextPrompt.length + input.question.length;
-        const completionTokens = content.length;
+        // Parse the JSON response for image analysis
+        const result = JSON.parse(content);
         
-        // Calculate consistency score
-        const consistencyScore = await calculateConsistencyScore(
-          input.productType,
-          input.question,
-          answer
-        );
+        // Ensure we have all required fields
+        const validatedResult: ImageAnalysisResult = {
+          detected_issue: result.detected_issue || "Unable to determine issue from image",
+          confidence: typeof result.confidence === 'number' ? result.confidence : 0.5,
+          additional_questions: Array.isArray(result.additional_questions) ? result.additional_questions : [
+            "Can you describe the issue in more detail?",
+            "When did you first notice this problem?"
+          ],
+          recommendations: Array.isArray(result.recommendations) ? result.recommendations : []
+        };
         
-        // Check for potential inconsistencies
-        const inconsistencyFlags = await detectInconsistencies(
-          input.productType,
-          answer
-        );
-        
-        // Track the analytics data
-        await trackRepairAnalytics({
-          repairRequestId,
-          productType: input.productType,
-          issueDescription: input.question,
-          promptTokens,
-          completionTokens,
-          responseTime,
-          consistencyScore,
-          aiResponseSummary: answer,
-          inconsistencyFlags
-        });
-        
-        console.log("Tracked Q&A analytics with consistency score:", consistencyScore);
-      } catch (analyticsError) {
-        // Don't fail the main operation if analytics tracking fails
-        console.error("Failed to track Q&A analytics:", analyticsError);
+        console.log("Image analysis result:", validatedResult);
+        return validatedResult;
+      } catch (error) {
+        console.error("Failed to parse image analysis JSON:", content);
+        // Return a fallback object
+        return {
+          detected_issue: "Error analyzing image. " + (input.issueDescription || "Please provide more details."),
+          confidence: 0.3,
+          additional_questions: [
+            "Can you describe the issue in more detail?",
+            "When did you first notice this problem?",
+            "Are there any other symptoms you've observed?"
+          ],
+          recommendations: []
+        };
       }
-    }
+    } else {
+      // Standard Q&A response
+      let answer: string;
+      try {
+        const result = JSON.parse(content);
+        answer = result.answer || content;
+      } catch (error) {
+        // If parsing fails, use the raw content
+        answer = content;
+      }
+    
+      // Track analytics if repairRequestId is provided
+      if (repairRequestId) {
+        try {
+          // Calculate tokens (approximate method)
+          const promptTokens = systemPrompt.length + contextPrompt.length + input.question.length;
+          const completionTokens = content.length;
+          
+          // Calculate consistency score
+          const consistencyScore = await calculateConsistencyScore(
+            input.productType,
+            input.question,
+            answer
+          );
+          
+          // Check for potential inconsistencies
+          const inconsistencyFlags = await detectInconsistencies(
+            input.productType,
+            answer
+          );
+          
+          // Track the analytics data
+          await trackRepairAnalytics({
+            repairRequestId,
+            productType: input.productType,
+            issueDescription: input.question,
+            promptTokens,
+            completionTokens,
+            responseTime,
+            consistencyScore,
+            aiResponseSummary: answer,
+            inconsistencyFlags
+          });
+          
+          console.log("Tracked Q&A analytics with consistency score:", consistencyScore);
+        } catch (analyticsError) {
+          // Don't fail the main operation if analytics tracking fails
+          console.error("Failed to track Q&A analytics:", analyticsError);
+        }
+      }
 
-    return { answer };
+      return { answer };
+    }
   } catch (error) {
     console.error("Error getting repair answer:", error);
     throw new Error("Failed to get repair answer: " + 
