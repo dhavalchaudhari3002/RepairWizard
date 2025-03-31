@@ -17,6 +17,8 @@ import AuthPage from '@/pages/auth-page';
 import AnalyticsDashboard from '@/pages/analytics-dashboard';
 import ResetPassword from '@/pages/reset-password';
 import ToolsPage from '@/pages/tools-page';
+import UploadImagePage from '@/pages/upload-image-page';
+import VerificationPage from '@/pages/verification-page';
 
 // Protected route wrapper
 import { ProtectedRoute } from '@/lib/protected-route';
@@ -63,6 +65,8 @@ export default function App() {
                       <Route path="/reset-password" component={ResetPassword} />
                       <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
                       <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
+                      <Route path="/upload-image" component={UploadImagePage} />
+                      <Route path="/verification" component={VerificationPage} />
                       <Route component={NotFound} />
                     </Switch>
                   </main>

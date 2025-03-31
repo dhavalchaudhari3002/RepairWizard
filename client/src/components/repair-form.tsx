@@ -18,9 +18,10 @@ import { useState, useEffect } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { DiagnosticAnalysisNew as DiagnosticAnalysis, RepairDiagnostic } from "./diagnostic-analysis-new";
-import { ImagePlus, X, Brain, Stethoscope, ArrowRight, Image, CircleAlert, Check, MessageCircle } from "lucide-react";
+import { ImagePlus, X, Brain, Stethoscope, ArrowRight, Image, CircleAlert, Check, MessageCircle, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { useLocation } from "wouter";
 import { 
   Tooltip,
   TooltipContent,
@@ -60,6 +61,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [isSubmittingForm, setIsSubmittingForm] = useState<boolean>(false);
   const [confirmedIssue, setConfirmedIssue] = useState<string>('');
   const { toast } = useToast();
+  const [_, navigate] = useLocation();
 
   const form = useForm<InsertRepairRequest>({
     resolver: zodResolver(insertRepairRequestSchema),
@@ -581,8 +583,16 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
                   </div>
                   
                   {!imagePreview && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground space-y-2">
                       <p>Uploading an image helps us better diagnose your issue</p>
+                      <Button 
+                        type="button" 
+                        variant="link" 
+                        className="flex items-center gap-1 p-0 h-auto font-normal text-primary text-sm"
+                        onClick={() => navigate('/upload-image')}
+                      >
+                        Try our enhanced upload verification process <ExternalLink className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                 </div>
