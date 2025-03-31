@@ -54,7 +54,7 @@ export default function VerificationPage() {
             </div>
             
             <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate('/repair-request')} className="w-full">
+              <Button onClick={() => navigate('/')} className="w-full">
                 Continue to Repair Request
               </Button>
               <Button 

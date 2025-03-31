@@ -41,6 +41,7 @@ export function UploadImage({ onImageUploaded, onContinue }: UploadImageProps) {
   };
 
   const handleContinue = () => {
+    console.log("Continue button clicked");
     if (onContinue) {
       onContinue();
     }
@@ -101,7 +102,7 @@ export function UploadImage({ onImageUploaded, onContinue }: UploadImageProps) {
           <Button 
             onClick={handleContinue}
             className="w-full" 
-            disabled={isUploading}
+            disabled={isUploading || !imageData}
           >
             {isUploading ? (
               "Processing image..." 

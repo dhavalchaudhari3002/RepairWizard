@@ -9,16 +9,21 @@ export default function UploadImagePage() {
   const { toast } = useToast();
 
   const handleImageUploaded = (imageData: string) => {
+    console.log("Setting uploaded image data, length:", imageData.length);
     setUploadedImage(imageData);
     console.log("Image uploaded successfully");
   };
 
   const handleContinue = () => {
+    console.log("Continue handler called, uploadedImage exists:", !!uploadedImage);
+    
     if (uploadedImage) {
       // Store the image in sessionStorage or context
+      console.log("Storing image in sessionStorage");
       sessionStorage.setItem('uploadedImage', uploadedImage);
       
       // Navigate to the verification page
+      console.log("Navigating to verification page");
       navigate('/verification');
       
       toast({
@@ -26,6 +31,7 @@ export default function UploadImagePage() {
         description: "Proceeding to verification step",
       });
     } else {
+      console.log("No image selected");
       toast({
         title: "No image selected",
         description: "Please upload an image to continue",
