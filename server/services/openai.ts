@@ -982,9 +982,9 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
     let response;
     
     if (isImageAnalysis) {
-      // For image analysis - without response_format for vision model
+      // For image analysis - using gpt-4o which supports vision capabilities
       response = await openai.chat.completions.create({
-        model: "gpt-4-vision",
+        model: "gpt-4o",
         messages: messages,
         temperature: 0.2,
         max_tokens: 1000
