@@ -751,13 +751,36 @@ CRITICAL ANALYSIS REQUIREMENTS:
 4. Identify any information gaps that require clarification
 5. Provide a confidence score for your analysis (0.0-1.0)
 
+PRODUCT-SPECIFIC CONSIDERATIONS:
+1. For furniture items (chairs, tables, cabinets):
+   - Focus on identifying which specific part is damaged (leg, arm, back, seat, etc.)
+   - Look for structural integrity issues, broken joints, or loose fasteners
+   - Note any visible cracks, breaks, or deformities in specific components
+
+2. For electronics (computers, phones, TVs):
+   - Identify specific damaged components (screen, ports, buttons, case)
+   - Note any signs of water damage, physical impact, or internal damage
+   - Look for bent pins, broken connectors, or cracked circuit boards
+
+3. For appliances (refrigerator, washer, microwave):
+   - Identify specific malfunctioning components or damage areas
+   - Note any unusual sounds, leaks, or performance issues mentioned
+   - Check for control panel, motor, or power delivery system issues
+
 YOUR RESPONSE MUST BE A VALID JSON OBJECT with these fields:
 - detected_issue: A clear, detailed description of what problem you identify in the image
 - confidence: A number between 0 and 1 indicating your confidence in this assessment
 - additional_questions: An array of 2-3 specific questions to ask the user for better diagnosis
 - recommendations: An array of 1-3 preliminary recommendations based on your initial analysis
 
-IMPORTANT:
+IMPORTANT FOR QUESTIONS:
+- Always ask about SPECIFIC parts or components that appear damaged
+- For example, if it's a chair, ask "Which part of the chair is broken - the leg, back, or seat?"
+- Ask about the specific symptoms or behaviors related to the product type
+- AVOID generic questions like "Have you tried fixing it?" or "When did it happen?"
+- Focus questions on gathering technical details about the specific damage area
+
+IMPORTANT FOR ANALYSIS:
 - Be very specific about what you can and cannot determine from the image
 - If the image doesn't clearly show the issue, say so and focus on questions to clarify
 - Prioritize safety in your recommendations
@@ -894,15 +917,41 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
         return validatedResult;
       } catch (error) {
         console.error("Failed to parse image analysis JSON:", content);
-        // Return a fallback object
+        // Return a product-specific fallback object
+        const productType = input.productType?.toLowerCase() || '';
+        let fallbackQuestions = [];
+        
+        if (productType.includes('chair') || productType.includes('table') || productType.includes('furniture')) {
+          fallbackQuestions = [
+            "Which specific part of the furniture is damaged (leg, back, seat, arm)?",
+            "Is the damage a break, crack, or just a loose component?",
+            "Is the furniture still usable or completely broken?"
+          ];
+        } else if (productType.includes('computer') || productType.includes('laptop') || productType.includes('phone')) {
+          fallbackQuestions = [
+            "Which component of your device is showing the problem (screen, keyboard, battery)?", 
+            "Are there any error messages or unusual behavior?",
+            "Does the problem happen all the time or only in certain situations?"
+          ];
+        } else if (productType.includes('appliance') || productType.includes('washer') || productType.includes('refrigerator')) {
+          fallbackQuestions = [
+            "Which part of the appliance is malfunctioning?",
+            "Are there any unusual noises, leaks, or error codes?",
+            "Did the problem start suddenly or develop gradually?"
+          ];
+        } else {
+          // Generic but still specific questions
+          fallbackQuestions = [
+            "Which specific part of the " + productType + " is damaged or malfunctioning?",
+            "What symptoms or behaviors indicate the problem?",
+            "Can you describe the extent of the damage or malfunction?"
+          ];
+        }
+        
         return {
-          detected_issue: "Error analyzing image. " + (input.issueDescription || "Please provide more details."),
+          detected_issue: "Error analyzing image. " + (input.issueDescription || "Please provide more details about the " + productType + "."),
           confidence: 0.3,
-          additional_questions: [
-            "Can you describe the issue in more detail?",
-            "When did you first notice this problem?",
-            "Are there any other symptoms you've observed?"
-          ],
+          additional_questions: fallbackQuestions,
           recommendations: []
         };
       }
