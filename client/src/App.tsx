@@ -8,6 +8,7 @@ import { queryClient } from '@/lib/query-client';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider } from '@/hooks/use-auth';
 import { NotificationsProvider } from '@/hooks/use-notifications-context';
+import { DarkModeProvider } from '@/hooks/use-dark-mode';
 
 // Pages
 import Home from '@/pages/home';
@@ -49,26 +50,28 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
-        <AuthProvider>
-          <NotificationsProvider>
-            <Suspense fallback={<LoadingFallback />}>
-              <div className="min-h-screen bg-background">
-                <NavBar />
-                <main>
-                  <Switch>
-                    <Route path="/" component={Home} />
-                    <Route path="/auth" component={AuthPage} />
-                    <Route path="/reset-password" component={ResetPassword} />
-                    <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
-                    <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
-                    <Route component={NotFound} />
-                  </Switch>
-                </main>
-                <Toaster />
-              </div>
-            </Suspense>
-          </NotificationsProvider>
-        </AuthProvider>
+        <DarkModeProvider>
+          <AuthProvider>
+            <NotificationsProvider>
+              <Suspense fallback={<LoadingFallback />}>
+                <div className="min-h-screen bg-background">
+                  <NavBar />
+                  <main>
+                    <Switch>
+                      <Route path="/" component={Home} />
+                      <Route path="/auth" component={AuthPage} />
+                      <Route path="/reset-password" component={ResetPassword} />
+                      <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
+                      <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
+                      <Route component={NotFound} />
+                    </Switch>
+                  </main>
+                  <Toaster />
+                </div>
+              </Suspense>
+            </NotificationsProvider>
+          </AuthProvider>
+        </DarkModeProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
