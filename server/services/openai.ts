@@ -676,6 +676,57 @@ SPECIFIC QUESTIONS GUIDELINES:
 5. Format questions to be direct and answerable with specific technical details, not just yes/no
 6. Include at least one question focused on environmental factors (e.g., "Does the issue correlate with high ambient temperature or after the device has been running for hours?")
 
+EXAMPLES OF EFFECTIVE VS. INEFFECTIVE DIAGNOSTIC QUESTIONS:
+
+GOOD EXAMPLES (use these as models):
+- "Does the USB device disconnect issue happen with all USB devices or only specific ones?" (isolates variables)
+- "At what specific point during boot does the system freeze - before BIOS, during OS logo, or after desktop appears?" (timing precision)
+- "When the system crashes, does it show a blue screen with error code, freeze completely, or restart itself?" (symptom specificity)
+- "Have you noticed any correlation between the overheating and specific applications or tasks?" (usage pattern identification)
+- "Does the sound distortion happen at all volume levels or only when volume exceeds a certain threshold?" (threshold identification)
+
+POOR EXAMPLES (avoid these patterns):
+- "Have you tried restarting the device?" (too generic, assumes no prior troubleshooting)
+- "Is the device broken?" (too vague, not actionable)
+- "Do you think it's a hardware or software issue?" (puts diagnostic burden on user)
+- "Has this happened before?" (lacks specific diagnostic value)
+- "Do you want to try replacing the component?" (jumps to solution before diagnosis)
+
+PRODUCT-SPECIFIC CONSIDERATIONS:
+1. For computers/laptops:
+   - Prioritize questions about specific error messages, timing of issues related to startup/shutdown/sleep
+   - Ask about correlation with software updates, driver installations, or BIOS changes
+   - Focus on temperature behavior during different activities (idle vs. load)
+   - Determine if issues happen with specific hardware components or peripherals
+   - Example gap: "Unknown whether the issue occurs immediately at startup or after prolonged use"
+
+2. For smartphones/tablets:
+   - Focus on battery behavior, charging patterns, and power consumption
+   - Distinguish between app-specific issues vs. system-wide problems
+   - Ask whether problems occur in safe mode vs. normal operation
+   - Determine correlation with recent updates, app installations, or physical damage
+   - Example gap: "Unknown if factory reset has been attempted and if issue persists afterward"
+
+3. For appliances (refrigerators, washers, dishwashers):
+   - Emphasize unusual noises, timing of sounds, and their characteristics (grinding, buzzing, clicking)
+   - Focus on cycle behavior changes, water flow/drainage issues, or temperature regulation
+   - Ask about power-related symptoms (flickering, partial operation, complete failure)
+   - Determine age of appliance and maintenance history
+   - Example gap: "Unknown if water supply pressure to appliance has been checked"
+
+4. For consumer electronics (TVs, audio equipment, gaming consoles):
+   - Concentrate on signal quality, input source behavior, and connection stability
+   - Ask about specific content types that cause issues (high resolution, certain media formats)
+   - Focus on power-related patterns (standby issues, intermittent shutoffs)
+   - Determine if problems occur with all connected devices or specific ones
+   - Example gap: "Unknown whether different HDMI cables have been tested"
+
+5. For networking equipment (routers, modems, access points):
+   - Ask about specific connection patterns, affected devices, and frequency of issues
+   - Focus on configuration changes, firmware updates, or ISP-related changes
+   - Determine environmental factors (interference sources, device placement)
+   - Example gap: "Unknown if device is overheating during prolonged operation"
+
 Return your analysis in this EXACT JSON format:
 {
   "symptomInterpretation": "Detailed symptom analysis including potential relationships between reported issues",
@@ -792,6 +843,20 @@ IMPORTANT FOR QUESTIONS:
 - Ask about the specific symptoms or behaviors related to the product type
 - AVOID generic questions like "Have you tried fixing it?" or "When did it happen?"
 - Focus questions on gathering technical details about the specific damage area
+
+EXAMPLES OF EFFECTIVE DIAGNOSTIC QUESTIONS FOR IMAGES:
+- "Is the clicking sound coming from the upper or lower part of the refrigerator?"
+- "Does the screen discoloration appear only when showing certain colors or is it constant?"
+- "When the laptop overheats, which specific area gets hottest: keyboard, bottom center, or near the fan vents?"
+- "Has the device been exposed to moisture or extreme temperatures before this damage occurred?"
+- "When the device is turned on, do you see any indicator lights and what colors/patterns do they show?"
+
+AVOID INEFFECTIVE QUESTIONS LIKE:
+- "Is it broken?" (too vague)
+- "Have you tried turning it off and on?" (assumes basic troubleshooting wasn't done)
+- "Do you want to buy a new one?" (outside diagnostic scope)
+- "When did you buy it?" (not relevant to technical diagnosis)
+- "Is it under warranty?" (not relevant to technical diagnosis)
 
 IMPORTANT FOR ANALYSIS:
 - Be very specific about what you can and cannot determine from the image
