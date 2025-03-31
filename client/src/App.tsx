@@ -1,40 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { Route, Switch, useLocation } from 'wouter';
+import { Toaster } from '@/components/ui/toaster';
+import { NavBar } from '@/components/navbar';
+import { ThemeProvider } from '@/components/theme-provider';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query-client';
+import { Loader2 } from 'lucide-react';
+import { AuthProvider } from '@/hooks/use-auth';
+import { NotificationsProvider } from '@/hooks/use-notifications-context';
 
-// Simplified App to debug the issue
+// Pages
+import Home from '@/pages/home';
+import NotFound from '@/pages/not-found';
+import AuthPage from '@/pages/auth-page';
+import AnalyticsDashboard from '@/pages/analytics-dashboard';
+import ResetPassword from '@/pages/reset-password';
+import ToolsPage from '@/pages/tools-page';
+
+// Protected route wrapper
+import { ProtectedRoute } from '@/lib/protected-route';
+
+// Fallback loading component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
     console.log("App component mounted");
     
-    // Simulate checking if everything is ready
+    // Initialize app and check if everything is ready
     const timer = setTimeout(() => {
       console.log("App finished loading check");
-      setIsLoading(false);
+      setIsInitialized(true);
     }, 1000);
     
     return () => clearTimeout(timer);
   }, []);
   
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p>Please wait while we prepare the application</p>
-        </div>
-      </div>
-    );
+  if (!isInitialized) {
+    return <LoadingFallback />;
   }
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">AI Repair Assistant</h1>
-      <p className="mb-4">Application is working correctly!</p>
-      <div className="p-4 bg-blue-900 rounded-lg">
-        <h2 className="text-xl font-semibold mb-2">Debug Information</h2>
-        <p>This is a simplified version of the app to diagnose loading issues.</p>
-      </div>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark">
+        <AuthProvider>
+          <NotificationsProvider>
+            <Suspense fallback={<LoadingFallback />}>
+              <div className="min-h-screen bg-background">
+                <NavBar />
+                <main>
+                  <Switch>
+                    <Route path="/" component={Home} />
+                    <Route path="/auth" component={AuthPage} />
+                    <Route path="/reset-password" component={ResetPassword} />
+                    <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
+                    <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
+                    <Route component={NotFound} />
+                  </Switch>
+                </main>
+                <Toaster />
+              </div>
+            </Suspense>
+          </NotificationsProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
