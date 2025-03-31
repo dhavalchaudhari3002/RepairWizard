@@ -237,15 +237,12 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
       
       // Track guide update
       if (repairRequestId) {
-        trackInteraction({
-          interactionType: "guide_updated_with_answers",
-          metadata: {
-            productType,
-            guideTitle: data.title,
-            questionCount: uniqueQuestions.length
-          },
-          repairRequestId
-        });
+        trackGuideUpdatedWithAnswers(
+          repairRequestId,
+          productType,
+          data.title,
+          { questionCount: uniqueQuestions.length }
+        );
       }
       
       toast({
