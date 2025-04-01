@@ -39,25 +39,23 @@ async function trackDiagnosticAnalytics(
     const causesSummary = diagnostic.possibleCauses.join('. ');
     const stepsSummary = diagnostic.diagnosticSteps.join('. ');
     
-    const responseSummary = {
-  symptoms: diagnostic.symptomInterpretation,
-  causes: diagnostic.possibleCauses,
-  steps: diagnostic.diagnosticSteps,
-  success_rate: calculateSuccessRate(diagnostic),
-  diagnostic_confidence: assessDiagnosticConfidence(diagnostic)
-};
+    // Create a string-based summary for consistency calculations
+    const responseSummaryText = `
+      Symptoms: ${diagnostic.symptomInterpretation}
+      Causes: ${causesSummary}
+      Steps: ${stepsSummary}
+    `;
 
-// Track detailed analytics
-const analyticsData = {
-  ...responseSummary,
-  response_time: Date.now() - startTime,
-  product_category: productType,
-  issue_complexity: assessIssueComplexity(issueDescription)
-};
+    // Create a detailed object for analytics storage
+    const analyticsData = {
+      response_time: Date.now() - startTime,
+      product_category: productType,
+      issue_complexity: issueDescription.length > 100 ? "Complex" : "Simple"
+    };
     
     // Calculate tokens (approximate method)
     const promptTokens = (systemPrompt?.length || 0) + productType.length + issueDescription.length;
-    const completionTokens = rawContent?.length || responseSummary.length;
+    const completionTokens = rawContent?.length || responseSummaryText.length;
     
     // Get repair request details
     const repairRequest = await db.query.repairRequests.findFirst({
@@ -69,13 +67,13 @@ const analyticsData = {
       const consistencyScore = await calculateConsistencyScore(
         productType,
         issueDescription,
-        responseSummary
+        responseSummaryText
       );
       
       // Check for potential inconsistencies
       const inconsistencyFlags = await detectInconsistencies(
         productType,
-        responseSummary
+        responseSummaryText
       );
       
       // Calculate response time
@@ -90,7 +88,7 @@ const analyticsData = {
         completionTokens,
         responseTime,
         consistencyScore,
-        aiResponseSummary: responseSummary,
+        aiResponseSummary: responseSummaryText,
         inconsistencyFlags
       });
       
@@ -264,12 +262,9 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
   // Check cache first with product category matching
   const cachedResponse = await getCachedResponse(cacheKey);
   if (cachedResponse) {
-    // Verify the cached response is still relevant
-    const isRelevant = await validateCachedResponse(cachedResponse, productType);
-    if (isRelevant) {
-      console.log("Using validated cached response");
-      return cachedResponse;
-    }
+    // Just use the cached response if it exists
+    console.log("Using cached diagnostic response");
+    return cachedResponse;
   }
 
   // Quick response for common issues
@@ -1010,8 +1005,12 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
     // Process the response based on the request type
     if (isImageAnalysis) {
       try {
+        // Sometimes GPT returns with markdown code blocks, so let's clean that up
+        const cleanContent = content.replace(/```json\n|\n```/g, '');
+        console.log("Attempting to parse JSON from:", cleanContent);
+        
         // Parse the JSON response for image analysis
-        const result = JSON.parse(content);
+        const result = JSON.parse(cleanContent);
         
         // Ensure we have all required fields
         const validatedResult: ImageAnalysisResult = {
@@ -1025,6 +1024,14 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
         };
         
         console.log("Image analysis result:", validatedResult);
+        
+        // Check if we should also integrate with text description
+        if (input.issueDescription && validatedResult.confidence < 0.7) {
+          console.log("Enriching analysis with text description:", input.issueDescription);
+          // Combine image and text analysis for more accurate questions
+          validatedResult.detected_issue = `${validatedResult.detected_issue} (Visual analysis combined with user description: ${input.issueDescription})`;
+        }
+        
         return validatedResult;
       } catch (error) {
         console.error("Failed to parse image analysis JSON:", content);

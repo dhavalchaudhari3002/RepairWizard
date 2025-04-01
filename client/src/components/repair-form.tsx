@@ -120,14 +120,26 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
         return;
       }
       
-      // If image is provided, call the API to analyze it
+      // If image is provided, call the API to analyze it with enhanced prompt
+      const analysisPrompt = `Analyze this image and identify the issue with this ${productType}. 
+The user describes the issue as: "${issueDescription}"
+
+IMPORTANT ANALYSIS REQUIREMENTS:
+1. Focus PRIMARILY on what you can see in the actual image
+2. Compare the visual evidence with the user's text description
+3. Identify specific parts that are broken or malfunctioning
+4. Look for signs of damage, wear, unusual conditions or error indicators
+5. Determine if the image confirms or contradicts the user's description
+
+REQUIRED OUTCOME:
+- Provide a comprehensive diagnosis that integrates BOTH visual evidence AND the text description
+- Ask highly specific diagnostic questions about exactly what's visible in the image`;
+
       const res = await apiRequest(
         "POST",
         "/api/repair-questions",
         {
-          question: "Analyze this image and identify the issue with this " + productType + ". " +
-                   "The user says: '" + issueDescription + "'. " +
-                   "Provide a detailed analysis of what you see in the image and if it confirms the reported issue.",
+          question: analysisPrompt,
           productType,
           issueDescription,
           imageUrl: imagePreview,
@@ -142,12 +154,46 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       const data = await res.json();
       console.log("Image analysis result:", data);
       
-      // Create a structured analysis result
+      // Create a structured analysis result that intelligently combines AI and fallback questions
+      // Generate context-specific questions as fallback
       const specificQuestions = getContextSpecificQuestions(productType, issueDescription);
+      
+      // If we have high confidence AI-generated questions, prioritize those
+      let combinedQuestions: string[] = [];
+      
+      if (data.additional_questions && data.additional_questions.length > 0 && data.confidence > 0.5) {
+        // Use AI questions as primary source
+        combinedQuestions = data.additional_questions;
+        
+        // Add any unique context-specific questions if we don't have enough
+        if (combinedQuestions.length < 3) {
+          specificQuestions.forEach((q: string) => {
+            if (!combinedQuestions.some((aiQ: string) => aiQ.toLowerCase().includes(q.toLowerCase().substring(0, 15)))) {
+              if (combinedQuestions.length < 4) {
+                combinedQuestions.push(q);
+              }
+            }
+          });
+        }
+      } else {
+        // If AI confidence is low, use our context-specific questions but add any unique AI ones
+        combinedQuestions = specificQuestions;
+        
+        if (data.additional_questions && data.additional_questions.length > 0) {
+          data.additional_questions.forEach((q: string) => {
+            if (!combinedQuestions.some((specificQ: string) => specificQ.toLowerCase().includes(q.toLowerCase().substring(0, 15)))) {
+              if (combinedQuestions.length < 5) {
+                combinedQuestions.push(q);
+              }
+            }
+          });
+        }
+      }
+      
       const analysisResult: ImageAnalysisResult = {
         detected_issue: data.detected_issue || issueDescription,
         confidence: data.confidence || 0.7,
-        additional_questions: data.additional_questions || specificQuestions,
+        additional_questions: combinedQuestions,
         recommendations: data.recommendations || []
       };
       
