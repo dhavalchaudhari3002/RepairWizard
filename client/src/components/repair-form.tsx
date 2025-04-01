@@ -102,7 +102,24 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
     setIsAnalyzingImage(true);
     
     try {
-      // Call the API to analyze the image and get AI insights
+      // If no image is uploaded, we'll proceed with text-based analysis only
+      if (!imagePreview) {
+        console.log("No image uploaded, proceeding with text-based analysis only");
+        // Create a default analysis result based on the text description
+        setImageAnalysisResult({
+          detected_issue: issueDescription,
+          confidence: 0.7,
+          additional_questions: [
+            "Can you describe when the issue first appeared?",
+            "Have you tried any solutions already?"
+          ],
+          recommendations: []
+        });
+        setStep(2);
+        return;
+      }
+      
+      // If image is provided, call the API to analyze it
       const res = await apiRequest(
         "POST",
         "/api/repair-questions",
@@ -336,7 +353,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
               AI Analysis Results
             </CardTitle>
             <CardDescription>
-              We've analyzed your {productType} issue
+              We've analyzed your {productType} issue {imagePreview ? "based on your uploaded image" : "based on your description"}
             </CardDescription>
           </CardHeader>
           
@@ -537,7 +554,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Upload Image</FormLabel>
+              <FormLabel>Upload Image <span className="ml-2 text-xs text-muted-foreground">(Optional)</span></FormLabel>
               <FormControl>
                 <div className="space-y-4">
                   {/* Image Preview */}
@@ -584,7 +601,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
                   
                   {!imagePreview && (
                     <div className="text-sm text-muted-foreground space-y-2">
-                      <p>Uploading an image helps us better diagnose your issue</p>
+                      <p>Uploading an image helps us better diagnose your issue, but it's not required</p>
                     </div>
                   )}
                 </div>
@@ -621,11 +638,11 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
           disabled={isAnalyzingImage}
         >
           {isAnalyzingImage ? (
-            "Analyzing Image & Issue..." 
+            imagePreview ? "Analyzing Image & Issue..." : "Analyzing Issue..."
           ) : (
             <>
               <ArrowRight className="mr-2 h-4 w-4" />
-              Continue to Verification
+              {imagePreview ? "Continue to Verification" : "Continue with Text Analysis"}
             </>
           )}
         </Button>
