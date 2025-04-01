@@ -156,6 +156,10 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       setStep(2);
     } catch (error) {
       console.error("Error analyzing image:", error);
+      // Add more detailed error information
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log("Error details:", errorMessage);
+      
       toast({
         title: "Error",
         description: "Failed to analyze image. Proceeding with text description only.",
@@ -506,14 +510,10 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   // Step 1: Initial information entry
   return (
     <Form {...form}>
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        if (form.formState.isValid) {
-          handleAnalyzeImage();
-        } else {
-          form.handleSubmit(() => {})();
-        }
-      }} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => {
+        console.log("Form submitted with data:", data);
+        handleAnalyzeImage();
+      })} className="space-y-6">
         <FormField
           control={form.control}
           name="productType"
