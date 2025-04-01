@@ -51,6 +51,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [step, setStep] = useState(1); // 1: Form, 2: Image Analysis & Confirm, 3: Results
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [multipleImages, setMultipleImages] = useState<string[]>([]);
   const [useML, setUseML] = useState<boolean>(true);
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const [diagnosticData, setDiagnosticData] = useState<RepairDiagnostic | null>(null);
@@ -69,6 +70,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       productType: "",
       issueDescription: "",
       imageUrl: "",
+      imageUrls: [],
     },
   });
 
@@ -135,16 +137,31 @@ REQUIRED OUTCOME:
 - Provide a comprehensive diagnosis that integrates BOTH visual evidence AND the text description
 - Ask highly specific diagnostic questions about exactly what's visible in the image`;
 
+      // Use multiple images if available
+      const requestPayload = {
+        question: analysisPrompt,
+        productType,
+        issueDescription,
+        context: [],
+      };
+
+      // If we have multiple images, use imageUrls instead of imageUrl
+      if (multipleImages.length > 1) {
+        Object.assign(requestPayload, { 
+          imageUrls: multipleImages,
+          // Keep imageUrl for backwards compatibility (first image)
+          imageUrl: multipleImages[0]
+        });
+        console.log(`Analyzing ${multipleImages.length} images for this repair request`);
+      } else if (imagePreview) {
+        // Single image case
+        Object.assign(requestPayload, { imageUrl: imagePreview });
+      }
+      
       const res = await apiRequest(
         "POST",
         "/api/repair-questions",
-        {
-          question: analysisPrompt,
-          productType,
-          issueDescription,
-          imageUrl: imagePreview,
-          context: [],
-        }
+        requestPayload
       );
       
       if (!res.ok) {
@@ -407,15 +424,45 @@ REQUIRED OUTCOME:
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64String = e.target?.result as string;
+      
+      // Set the first image as the preview and as imageUrl for backward compatibility
       setImagePreview(base64String);
       form.setValue('imageUrl', base64String, { shouldValidate: true });
+      
+      // Add to the multipleImages array
+      const updatedImages = [...multipleImages, base64String];
+      setMultipleImages(updatedImages);
+      form.setValue('imageUrls', updatedImages, { shouldValidate: true });
+      
+      toast({
+        title: "Image added",
+        description: `Added image ${updatedImages.length} of your ${form.getValues('productType')}`,
+      });
     };
     reader.readAsDataURL(file);
   };
 
-  const removeImage = () => {
-    setImagePreview(null);
-    form.setValue('imageUrl', '', { shouldValidate: true });
+  const removeImage = (imageToRemove?: string) => {
+    if (!imageToRemove) {
+      // If no specific image is specified, clear all images
+      setImagePreview(null);
+      setMultipleImages([]);
+      form.setValue('imageUrl', '', { shouldValidate: true });
+      form.setValue('imageUrls', [], { shouldValidate: true });
+      return;
+    }
+    
+    // Remove specific image
+    const updatedImages = multipleImages.filter(img => img !== imageToRemove);
+    setMultipleImages(updatedImages);
+    form.setValue('imageUrls', updatedImages, { shouldValidate: true });
+    
+    // Update preview if needed
+    if (imagePreview === imageToRemove) {
+      const newPreview = updatedImages.length > 0 ? updatedImages[0] : null;
+      setImagePreview(newPreview);
+      form.setValue('imageUrl', newPreview || '', { shouldValidate: true });
+    }
   };
 
   // Handler for diagnostic data
@@ -451,6 +498,7 @@ REQUIRED OUTCOME:
             setStep(1);
             form.reset();
             setImagePreview(null);
+            setMultipleImages([]);
             setRepairRequestId(null);
             setImageAnalysisResult(null);
             setUserAnswers({});
@@ -483,7 +531,13 @@ REQUIRED OUTCOME:
               AI Analysis Results
             </CardTitle>
             <CardDescription>
-              We've analyzed your {productType} issue {imagePreview ? "based on your uploaded image" : "based on your description"}
+              We've analyzed your {productType} issue 
+              {multipleImages.length > 0 
+                ? multipleImages.length > 1 
+                  ? ` based on ${multipleImages.length} uploaded images` 
+                  : " based on your uploaded image"
+                : " based on your description"
+              }
             </CardDescription>
           </CardHeader>
           
@@ -501,24 +555,52 @@ REQUIRED OUTCOME:
               <div className="space-y-6">
                 {/* Image and Analysis */}
                 <div className="flex flex-col md:flex-row gap-4">
-                  {imagePreview && (
-                    <div className="relative md:w-1/3">
-                      <img 
-                        src={imagePreview} 
-                        alt="Uploaded issue" 
-                        className="rounded-lg max-h-[200px] object-cover"
-                      />
-                      <Badge 
-                        variant="outline" 
-                        className="absolute top-2 right-2 bg-background/80"
-                      >
-                        <Image className="h-3 w-3 mr-1" />
-                        Uploaded Image
-                      </Badge>
+                  {multipleImages.length > 0 && (
+                    <div className={`${multipleImages.length > 1 ? 'md:w-1/2' : 'md:w-1/3'}`}>
+                      {/* Show primary image larger */}
+                      <div className="relative mb-2">
+                        <img 
+                          src={typeof imagePreview === 'string' ? imagePreview : multipleImages[0]} 
+                          alt="Primary uploaded issue" 
+                          className="rounded-lg max-h-[200px] w-full object-cover"
+                        />
+                        <Badge 
+                          variant="outline" 
+                          className="absolute top-2 right-2 bg-background/80"
+                        >
+                          <Image className="h-3 w-3 mr-1" />
+                          Primary Image
+                        </Badge>
+                      </div>
+                      
+                      {/* Show additional images as thumbnails */}
+                      {multipleImages.length > 1 && (
+                        <div className="flex gap-1 flex-wrap">
+                          {multipleImages.slice(0, 3).map((img, idx) => {
+                            if (typeof imagePreview === 'string' && img === imagePreview) {
+                              return null; // Skip the primary image
+                            }
+                            return (
+                              <div key={idx} className="relative">
+                                <img 
+                                  src={img} 
+                                  alt={`Additional image ${idx + 1}`} 
+                                  className="h-16 w-16 rounded-md object-cover"
+                                />
+                              </div>
+                            );
+                          })}
+                          {multipleImages.length > 4 && (
+                            <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                              +{multipleImages.length - 4} more
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   
-                  <div className={`${imagePreview ? 'md:w-2/3' : 'w-full'}`}>
+                  <div className={`${multipleImages.length > 0 ? 'md:w-2/3' : 'w-full'}`}>
                     <h3 className="text-lg font-medium mb-2">Issue Analysis</h3>
                     <Alert>
                       <Brain className="h-4 w-4" />
@@ -680,24 +762,31 @@ REQUIRED OUTCOME:
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Upload Image <span className="ml-2 text-xs text-muted-foreground">(Optional)</span></FormLabel>
+              <FormLabel>Upload Images <span className="ml-2 text-xs text-muted-foreground">(Upload multiple for better diagnosis)</span></FormLabel>
               <FormControl>
                 <div className="space-y-4">
-                  {/* Image Preview */}
-                  {imagePreview && (
-                    <div className="relative inline-block">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="h-[120px] rounded-lg object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-sm"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                  {/* Multiple Images Preview */}
+                  {multipleImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {multipleImages.map((image, index) => (
+                        <div key={index} className="relative inline-block">
+                          <img 
+                            src={image} 
+                            alt={`Preview ${index + 1}`} 
+                            className="h-[120px] rounded-lg object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              removeImage(image);
+                            }}
+                            className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-sm"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -721,13 +810,14 @@ REQUIRED OUTCOME:
                       onClick={() => document.getElementById('file-upload')?.click()}
                     >
                       <ImagePlus className="h-4 w-4 mr-2" />
-                      {imagePreview ? "Change Image" : "Upload Image"}
+                      {multipleImages.length > 0 ? `Add Another Image (${multipleImages.length})` : "Upload Image"}
                     </Button>
                   </div>
                   
-                  {!imagePreview && (
+                  {multipleImages.length === 0 && (
                     <div className="text-sm text-muted-foreground space-y-2">
-                      <p>Uploading an image helps us better diagnose your issue, but it's not required</p>
+                      <p>Upload multiple images to help us diagnose your issue more accurately</p>
+                      <p>Different angles and closeups of the problem area are most helpful</p>
                     </div>
                   )}
                 </div>
@@ -764,11 +854,15 @@ REQUIRED OUTCOME:
           disabled={isAnalyzingImage}
         >
           {isAnalyzingImage ? (
-            imagePreview ? "Analyzing Image & Issue..." : "Analyzing Issue..."
+            multipleImages.length > 0 
+              ? `Analyzing ${multipleImages.length} ${multipleImages.length === 1 ? 'Image' : 'Images'} & Issue...` 
+              : "Analyzing Issue..."
           ) : (
             <>
               <ArrowRight className="mr-2 h-4 w-4" />
-              {imagePreview ? "Continue to Verification" : "Continue with Text Analysis"}
+              {multipleImages.length > 0 
+                ? `Continue with ${multipleImages.length} ${multipleImages.length === 1 ? 'Image' : 'Images'}` 
+                : "Continue with Text Analysis"}
             </>
           )}
         </Button>

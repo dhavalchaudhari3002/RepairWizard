@@ -69,7 +69,8 @@ export const repairRequests = pgTable("repair_requests", {
   customerId: integer("customer_id").references(() => users.id), // Made nullable
   productType: text("product_type").notNull(),
   issueDescription: text("issue_description").notNull(),
-  imageUrl: text("image_url"),
+  imageUrl: text("image_url"), // Keep for backward compatibility
+  imageUrls: text("image_urls").array(), // New field for multiple images
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -93,12 +94,14 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     productType: true,
     issueDescription: true,
     imageUrl: true,
+    imageUrls: true,
     customerId: true, // Add customerId to the schema
   })
   .extend({
     productType: z.string().min(1, "Product type is required"),
     issueDescription: z.string().min(1, "Issue description is required"),
     imageUrl: z.string().optional(),
+    imageUrls: z.array(z.string()).optional().default([]),
     customerId: z.number().optional(), // Make it optional since it's added by the server
   });
 

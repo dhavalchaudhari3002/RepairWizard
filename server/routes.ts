@@ -216,6 +216,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = req.user as Express.User;
       const data = insertRepairRequestSchema.parse(req.body);
+      
+      // Handle backwards compatibility
+      // If imageUrl is provided but imageUrls is not, initialize imageUrls with imageUrl
+      if (data.imageUrl && (!data.imageUrls || data.imageUrls.length === 0)) {
+        data.imageUrls = [data.imageUrl];
+      }
+      
+      // If we have imageUrls but no imageUrl, set imageUrl to the first image
+      if (data.imageUrls && data.imageUrls.length > 0 && !data.imageUrl) {
+        data.imageUrl = data.imageUrls[0];
+      }
+      
       const repairRequest = await storage.createRepairRequest({
         ...data,
         customerId: user.id
@@ -399,18 +411,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/repair-questions", async (req, res) => {
     try {
-      const { question, productType, issueDescription, imageUrl, context, currentStep, repairRequestId } = req.body;
+      const { question, productType, issueDescription, imageUrl, imageUrls, context, currentStep, repairRequestId } = req.body;
       if (!question || !productType) {
         res.status(400).json({ error: "Question and product type are required" });
         return;
       }
 
+      // Handle multiple images or fall back to single image
+      const finalImageUrl = imageUrl || (imageUrls && imageUrls.length > 0 ? imageUrls[0] : undefined);
+      
       // Get answer with conversation context and track analytics if repairRequestId is provided
       const answer = await getRepairAnswer({ 
         question, 
         productType, 
         issueDescription,
-        imageUrl, 
+        imageUrl: finalImageUrl, 
+        imageUrls: imageUrls, // Pass all images for potential future use
         context, 
         currentStep 
       }, repairRequestId);

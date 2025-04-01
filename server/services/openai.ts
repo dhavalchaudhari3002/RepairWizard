@@ -159,6 +159,7 @@ interface RepairQuestionInput {
   productType: string;
   issueDescription?: string;
   imageUrl?: string;
+  imageUrls?: string[]; // New field for multiple images
   context?: { role: "user" | "assistant"; content: string }[];
   currentStep?: number;
 }
@@ -827,7 +828,13 @@ export async function getRepairAnswer(input: RepairQuestionInput, repairRequestI
     const startTime = Date.now();
     
     // Check if this is an image analysis request for the repair form
-    const isImageAnalysis = input.imageUrl && input.question.includes("Analyze this image and identify the issue");
+    // Support both single image and multiple images
+    const hasImage = input.imageUrl || (input.imageUrls && input.imageUrls.length > 0);
+    const isImageAnalysis = hasImage && input.question.includes("Analyze this image and identify the issue");
+    
+    if (isImageAnalysis && input.imageUrls && input.imageUrls.length > 1) {
+      console.log(`Processing multiple images (${input.imageUrls.length}) for analysis`);
+    }
     
     // Select the appropriate system prompt
     let systemPrompt: string;
@@ -837,11 +844,12 @@ export async function getRepairAnswer(input: RepairQuestionInput, repairRequestI
 Your task is to analyze images of damaged or malfunctioning products and provide detailed insights.
 
 CRITICAL ANALYSIS REQUIREMENTS:
-1. Carefully analyze the provided image of the product
+1. Carefully analyze all provided images of the product
 2. Consider both visible damage and potential internal issues based on visual cues
-3. Compare what you see in the image with the user's description of the issue
-4. Identify any information gaps that require clarification
-5. Provide a confidence score for your analysis (0.0-1.0)
+3. When multiple images are provided, analyze each one and synthesize your findings
+4. Compare what you see in the image(s) with the user's description of the issue
+5. Identify any information gaps that require clarification
+6. Provide a confidence score for your analysis (0.0-1.0)
 
 PRODUCT-SPECIFIC CONSIDERATIONS:
 1. For furniture items (chairs, tables, cabinets):
@@ -952,21 +960,54 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
     }
     
     // Add the current question as the most recent message
-    if (input.imageUrl) {
+    if (input.imageUrls && input.imageUrls.length > 0) {
+      // Handle multiple images
+      type ContentItem = 
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } };
+      
+      const contentArray: ContentItem[] = [
+        {
+          type: "text",
+          text: `${contextPrompt}\n${input.question}${input.imageUrls.length > 1 ? ` (I've provided ${input.imageUrls.length} images for analysis)` : ''}`
+        }
+      ];
+      
+      // Add each image to the content array
+      input.imageUrls.forEach(imageUrl => {
+        contentArray.push({
+          type: "image_url",
+          image_url: { url: imageUrl }
+        });
+      });
+      
       messages.push({
         role: "user",
-        content: [
-          {
-            type: "text",
-            text: `${contextPrompt}\n${input.question}`
-          },
-          {
-            type: "image_url",
-            image_url: { url: input.imageUrl }
-          }
-        ]
+        content: contentArray
+      } as OpenAI.Chat.Completions.ChatCompletionMessageParam); // Type assertion
+    } else if (input.imageUrl) {
+      // Handle single image (backwards compatibility)
+      type ContentItem = 
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } };
+        
+      const contentArray: ContentItem[] = [
+        {
+          type: "text",
+          text: `${contextPrompt}\n${input.question}`
+        },
+        {
+          type: "image_url",
+          image_url: { url: input.imageUrl }
+        }
+      ];
+      
+      messages.push({
+        role: "user",
+        content: contentArray
       } as OpenAI.Chat.Completions.ChatCompletionMessageParam); // Type assertion
     } else {
+      // Text only
       messages.push({
         role: "user",
         content: `${contextPrompt}\nQuestion: ${input.question}`
