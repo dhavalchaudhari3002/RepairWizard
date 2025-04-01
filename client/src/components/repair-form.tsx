@@ -105,19 +105,46 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
     
     try {
       // If no image is uploaded, we'll proceed with text-based analysis only
-      if (!imagePreview) {
+      if (!imagePreview && multipleImages.length === 0) {
         console.log("No image uploaded, proceeding with text-based analysis only");
         
         // Generate more specific questions based on the product type
         const additionalQuestions = getContextSpecificQuestions(productType, issueDescription);
         
-        // Create a tailored analysis result based on the product type and issue
-        setImageAnalysisResult({
-          detected_issue: issueDescription,
-          confidence: 0.7,
-          additional_questions: additionalQuestions,
-          recommendations: []
-        });
+        // We still need to make an API request for text-based analysis to ensure server-side processing
+        const requestPayload = {
+          question: `Analyze this ${productType} with the following issue: ${issueDescription}`,
+          productType,
+          issueDescription,
+          context: [],
+        };
+        
+        // Make API request for text analysis only
+        try {
+          const res = await apiRequest(
+            "POST",
+            "/api/repair-questions",
+            requestPayload
+          );
+          
+          if (!res.ok) {
+            throw new Error('Failed to process text analysis');
+          }
+          
+          const data = await res.json();
+          setImageAnalysisResult(data);
+        } catch (error) {
+          console.error("Text analysis failed, using fallback method:", error);
+          
+          // Fallback to client-side analysis if API fails
+          setImageAnalysisResult({
+            detected_issue: issueDescription,
+            confidence: 0.7,
+            additional_questions: additionalQuestions,
+            recommendations: []
+          });
+        }
+        
         setStep(2);
         return;
       }
