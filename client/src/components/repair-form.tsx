@@ -105,14 +105,15 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       // If no image is uploaded, we'll proceed with text-based analysis only
       if (!imagePreview) {
         console.log("No image uploaded, proceeding with text-based analysis only");
-        // Create a default analysis result based on the text description
+        
+        // Generate more specific questions based on the product type
+        const additionalQuestions = getContextSpecificQuestions(productType, issueDescription);
+        
+        // Create a tailored analysis result based on the product type and issue
         setImageAnalysisResult({
           detected_issue: issueDescription,
           confidence: 0.7,
-          additional_questions: [
-            "Can you describe when the issue first appeared?",
-            "Have you tried any solutions already?"
-          ],
+          additional_questions: additionalQuestions,
           recommendations: []
         });
         setStep(2);
@@ -142,13 +143,11 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       console.log("Image analysis result:", data);
       
       // Create a structured analysis result
+      const specificQuestions = getContextSpecificQuestions(productType, issueDescription);
       const analysisResult: ImageAnalysisResult = {
         detected_issue: data.detected_issue || issueDescription,
         confidence: data.confidence || 0.7,
-        additional_questions: data.additional_questions || [
-          "Can you describe when the issue first appeared?",
-          "Have you tried any solutions already?"
-        ],
+        additional_questions: data.additional_questions || specificQuestions,
         recommendations: data.recommendations || []
       };
       
@@ -165,14 +164,12 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
         description: "Failed to analyze image. Proceeding with text description only.",
         variant: "destructive",
       });
-      // Even if image analysis fails, still proceed to confirmation step
+      // Even if image analysis fails, still proceed to confirmation step with specific questions
+      const specificQuestions = getContextSpecificQuestions(productType, issueDescription);
       setImageAnalysisResult({
         detected_issue: issueDescription,
         confidence: 0.5,
-        additional_questions: [
-          "Can you provide more details about the issue?",
-          "When did you first notice this problem?"
-        ],
+        additional_questions: specificQuestions,
         recommendations: []
       });
       setStep(2);
@@ -187,6 +184,89 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       ...prev,
       [question]: answer
     }));
+  };
+
+  // Get specific diagnostic questions based on product type and issue description
+  const getContextSpecificQuestions = (productType: string, issueDescription: string): string[] => {
+    const productTypeLower = productType.toLowerCase();
+    const issueDescriptionLower = issueDescription.toLowerCase();
+    
+    // Default questions for any product
+    const defaultQuestions = [
+      "When did you first notice this issue?",
+      "Does the problem occur consistently or intermittently?"
+    ];
+    
+    // Product-specific questions
+    if (productTypeLower.includes("chair")) {
+      if (issueDescriptionLower.includes("broken") || issueDescriptionLower.includes("crack")) {
+        return [
+          "Which specific part of the chair is broken?",
+          "Do you hear any sounds when sitting on the chair?",
+          "Did the chair break suddenly or gradually over time?"
+        ];
+      } else if (issueDescriptionLower.includes("wobble") || issueDescriptionLower.includes("unstable")) {
+        return [
+          "Are all the legs of equal length?",
+          "Does the wobbling happen on all floor types?",
+          "Have you tried tightening any screws or bolts on the chair?"
+        ];
+      }
+    } 
+    else if (productTypeLower.includes("phone") || productTypeLower.includes("smartphone")) {
+      if (issueDescriptionLower.includes("screen") || issueDescriptionLower.includes("display")) {
+        return [
+          "Is the screen physically cracked or just not displaying correctly?",
+          "Can you still use the touchscreen functionality?",
+          "Did you drop the phone before the issue started?"
+        ];
+      } else if (issueDescriptionLower.includes("battery") || issueDescriptionLower.includes("charging")) {
+        return [
+          "How long does your battery currently last?",
+          "Have you tried using different charging cables or adapters?",
+          "Does the phone get unusually hot while charging?"
+        ];
+      }
+    }
+    else if (productTypeLower.includes("laptop") || productTypeLower.includes("computer")) {
+      if (issueDescriptionLower.includes("slow") || issueDescriptionLower.includes("performance")) {
+        return [
+          "When did your laptop start slowing down?",
+          "How much free storage space do you have available?",
+          "Are there specific programs that cause the slowdown?"
+        ];
+      } else if (issueDescriptionLower.includes("keyboard") || issueDescriptionLower.includes("key")) {
+        return [
+          "Which specific keys are affected?",
+          "Have you tried cleaning the keyboard?",
+          "Did you spill any liquid on the keyboard recently?"
+        ];
+      }
+    }
+    
+    // If we can't determine specific questions, use product-specific general questions
+    if (productTypeLower.includes("chair")) {
+      return [
+        "What type of chair is it (office, dining, etc.)?",
+        "What material is the chair made of?",
+        "How old is the chair?"
+      ];
+    } else if (productTypeLower.includes("phone")) {
+      return [
+        "What model of phone do you have?",
+        "When did you purchase the phone?",
+        "Have you installed any new apps before the issue started?"
+      ];
+    } else if (productTypeLower.includes("laptop")) {
+      return [
+        "What brand and model is your laptop?", 
+        "What operating system are you using?",
+        "Have you installed any new software recently?"
+      ];
+    }
+    
+    // Return default questions if nothing specific matches
+    return defaultQuestions;
   };
 
   // Submit the final, confirmed repair request
