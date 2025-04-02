@@ -221,10 +221,12 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // e.g., "electronics", "furniture", "appliance", "vehicle"
   brand: text("brand").notNull(),
   imageUrl: text("image_url"),
   specs: jsonb("specifications"), // Technical specifications as JSON
+  commonFailurePoints: jsonb("common_failure_points"), // Common parts that fail for this product type
+  maintenanceTips: jsonb("maintenance_tips"), // Product-specific maintenance suggestions
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -326,6 +328,43 @@ export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;
 export type ProductRecommendation = typeof productRecommendations.$inferSelect;
 export type InsertProductRecommendation = z.infer<typeof insertProductRecommendationSchema>;
 
+// Diagnostic Question Trees - For capturing branching question logic
+export const diagnosticQuestionTrees = pgTable("diagnostic_question_trees", {
+  id: serial("id").primaryKey(),
+  productCategory: text("product_category").notNull(), // e.g., "electronics", "furniture", "appliance", "vehicle"
+  subCategory: text("sub_category"), // Optional subcategory like "laptop", "refrigerator", "car"
+  version: integer("version").notNull().default(1), // For tracking updates to the question tree
+  treeData: jsonb("tree_data").notNull(), // JSON structure with questions, answer choices, and next question IDs
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Common failure patterns with symptoms and causes
+export const failurePatterns = pgTable("failure_patterns", {
+  id: serial("id").primaryKey(),
+  productCategory: text("product_category").notNull(),
+  title: text("title").notNull(), // Name of the failure pattern
+  symptoms: text("symptoms").array(), // Observable symptoms
+  causes: text("causes").array(), // Common causes
+  telltaleAudioCues: text("telltale_audio_cues").array(), // Specific sounds that indicate this failure
+  visualIndicators: text("visual_indicators").array(), // What to look for in images
+  recommendedQuestions: text("recommended_questions").array(), // Questions to ask to confirm this failure
+  urgencyLevel: text("urgency_level", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Product repair history for learning from past repairs
+export const repairHistory = pgTable("repair_history", {
+  id: serial("id").primaryKey(),
+  repairRequestId: integer("repair_request_id").references(() => repairRequests.id).notNull(),
+  diagnosisAccuracy: decimal("diagnosis_accuracy"), // How accurate the initial diagnosis was (0-1)
+  actualProblem: text("actual_problem"), // What the problem turned out to be
+  solutionEffectiveness: decimal("solution_effectiveness"), // How effective the solution was (0-1)
+  followupNotes: text("followup_notes"), // Notes from after the repair
+  userReported: boolean("user_reported").default(false), // Whether this data came from user feedback
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // User Interaction Tracking
 export const userInteractions = pgTable("user_interactions", {
   id: serial("id").primaryKey(),
@@ -353,3 +392,64 @@ export const insertUserInteractionSchema = createInsertSchema(userInteractions)
 
 export type UserInteraction = typeof userInteractions.$inferSelect;
 export type InsertUserInteraction = z.infer<typeof insertUserInteractionSchema>;
+
+// Create insert schema for diagnostic question trees
+export const insertDiagnosticQuestionTreeSchema = createInsertSchema(diagnosticQuestionTrees)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    productCategory: z.string().min(1, "Product category is required"),
+    subCategory: z.string().optional(),
+    version: z.number().int().positive().optional(),
+    treeData: z.record(z.any()).refine(data => {
+      // Validate that the tree structure is correct
+      // This is a simple validation; you may want to add more detailed validation based on your structure
+      return typeof data === 'object' && data !== null;
+    }, {
+      message: "Tree data must be a valid JSON object with the correct question tree structure"
+    }),
+  });
+
+// Create insert schema for failure patterns
+export const insertFailurePatternSchema = createInsertSchema(failurePatterns)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    productCategory: z.string().min(1, "Product category is required"),
+    title: z.string().min(1, "Title is required"),
+    symptoms: z.array(z.string()),
+    causes: z.array(z.string()),
+    telltaleAudioCues: z.array(z.string()).optional().default([]),
+    visualIndicators: z.array(z.string()).optional().default([]),
+    recommendedQuestions: z.array(z.string()).optional().default([]),
+    urgencyLevel: z.enum(["low", "medium", "high", "critical"]),
+  });
+
+// Create insert schema for repair history
+export const insertRepairHistorySchema = createInsertSchema(repairHistory)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    diagnosisAccuracy: z.number().min(0).max(1).optional(),
+    actualProblem: z.string().min(1, "Actual problem is required"),
+    solutionEffectiveness: z.number().min(0).max(1).optional(),
+    followupNotes: z.string().optional(),
+    userReported: z.boolean().optional().default(false),
+  });
+
+// Type exports for new schemas
+export type DiagnosticQuestionTree = typeof diagnosticQuestionTrees.$inferSelect;
+export type InsertDiagnosticQuestionTree = z.infer<typeof insertDiagnosticQuestionTreeSchema>;
+
+export type FailurePattern = typeof failurePatterns.$inferSelect;
+export type InsertFailurePattern = z.infer<typeof insertFailurePatternSchema>;
+
+export type RepairHistory = typeof repairHistory.$inferSelect;
+export type InsertRepairHistory = z.infer<typeof insertRepairHistorySchema>;

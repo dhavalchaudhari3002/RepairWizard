@@ -4,13 +4,25 @@ import {
   notifications, 
   userInteractions,
   repairAnalytics,
+  products,
+  diagnosticQuestionTrees,
+  failurePatterns,
+  repairHistory,
   type User, 
   type RepairRequest, 
   type Notification,
   type UserInteraction,
   type InsertUserInteraction,
   type InsertRepairAnalytics,
-  type RepairAnalytics
+  type RepairAnalytics,
+  type Product,
+  type InsertProduct,
+  type DiagnosticQuestionTree,
+  type InsertDiagnosticQuestionTree,
+  type FailurePattern,
+  type InsertFailurePattern,
+  type RepairHistory,
+  type InsertRepairHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -57,6 +69,29 @@ export interface IStorage {
   
   // AI Repair Analytics
   trackRepairAnalytics(data: InsertRepairAnalytics): Promise<RepairAnalytics>;
+
+  // Product Knowledge Base
+  createProduct(product: InsertProduct): Promise<Product>;
+  getProduct(id: number): Promise<Product | undefined>;
+  getProductsByCategory(category: string): Promise<Product[]>;
+  updateProduct(id: number, data: Partial<Product>): Promise<Product>;
+  
+  // Diagnostic Question Trees
+  createDiagnosticQuestionTree(tree: InsertDiagnosticQuestionTree): Promise<DiagnosticQuestionTree>;
+  getDiagnosticQuestionTree(id: number): Promise<DiagnosticQuestionTree | undefined>;
+  getDiagnosticQuestionTreeByCategory(category: string, subCategory?: string): Promise<DiagnosticQuestionTree | undefined>;
+  updateDiagnosticQuestionTree(id: number, data: Partial<DiagnosticQuestionTree>): Promise<DiagnosticQuestionTree>;
+  
+  // Failure Patterns
+  createFailurePattern(pattern: InsertFailurePattern): Promise<FailurePattern>;
+  getFailurePattern(id: number): Promise<FailurePattern | undefined>;
+  getFailurePatternsByCategory(category: string): Promise<FailurePattern[]>;
+  getFailurePatternsBySymptoms(symptoms: string[]): Promise<FailurePattern[]>;
+  
+  // Repair History
+  createRepairHistory(history: InsertRepairHistory): Promise<RepairHistory>;
+  getRepairHistoryByRequestId(repairRequestId: number): Promise<RepairHistory | undefined>;
+  updateRepairHistory(id: number, data: Partial<RepairHistory>): Promise<RepairHistory>;
 
   // Session store
   sessionStore: session.Store;
@@ -577,6 +612,232 @@ export class DatabaseStorage implements IStorage {
       return analytics;
     } catch (error) {
       console.error("Error in trackRepairAnalytics:", error);
+      throw error;
+    }
+  }
+
+  // Product Knowledge Base methods
+  async createProduct(productData: InsertProduct): Promise<Product> {
+    try {
+      const [product] = await db
+        .insert(products)
+        .values(productData)
+        .returning();
+      return product;
+    } catch (error) {
+      console.error("Error in createProduct:", error);
+      throw error;
+    }
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    try {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, id));
+      return product;
+    } catch (error) {
+      console.error("Error in getProduct:", error);
+      throw error;
+    }
+  }
+
+  async getProductsByCategory(category: string): Promise<Product[]> {
+    try {
+      return await db
+        .select()
+        .from(products)
+        .where(eq(products.category, category));
+    } catch (error) {
+      console.error("Error in getProductsByCategory:", error);
+      throw error;
+    }
+  }
+
+  async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
+    try {
+      const [product] = await db
+        .update(products)
+        .set(data)
+        .where(eq(products.id, id))
+        .returning();
+      return product;
+    } catch (error) {
+      console.error("Error in updateProduct:", error);
+      throw error;
+    }
+  }
+
+  // Diagnostic Question Trees methods
+  async createDiagnosticQuestionTree(treeData: InsertDiagnosticQuestionTree): Promise<DiagnosticQuestionTree> {
+    try {
+      const [tree] = await db
+        .insert(diagnosticQuestionTrees)
+        .values(treeData)
+        .returning();
+      return tree;
+    } catch (error) {
+      console.error("Error in createDiagnosticQuestionTree:", error);
+      throw error;
+    }
+  }
+
+  async getDiagnosticQuestionTree(id: number): Promise<DiagnosticQuestionTree | undefined> {
+    try {
+      const [tree] = await db
+        .select()
+        .from(diagnosticQuestionTrees)
+        .where(eq(diagnosticQuestionTrees.id, id));
+      return tree;
+    } catch (error) {
+      console.error("Error in getDiagnosticQuestionTree:", error);
+      throw error;
+    }
+  }
+
+  async getDiagnosticQuestionTreeByCategory(category: string, subCategory?: string): Promise<DiagnosticQuestionTree | undefined> {
+    try {
+      // Create base query
+      let query = db
+        .select()
+        .from(diagnosticQuestionTrees)
+        .where(eq(diagnosticQuestionTrees.productCategory, category))
+        .orderBy(desc(diagnosticQuestionTrees.version));
+        
+      // If subCategory is provided, refine the query
+      if (subCategory) {
+        query = query.where(eq(diagnosticQuestionTrees.subCategory, subCategory));
+      }
+      
+      // Get the first result (most recent version)
+      const results = await query.limit(1);
+      return results.length > 0 ? results[0] : undefined;
+    } catch (error) {
+      console.error("Error in getDiagnosticQuestionTreeByCategory:", error);
+      throw error;
+    }
+  }
+
+  async updateDiagnosticQuestionTree(id: number, data: Partial<DiagnosticQuestionTree>): Promise<DiagnosticQuestionTree> {
+    try {
+      const [tree] = await db
+        .update(diagnosticQuestionTrees)
+        .set(data)
+        .where(eq(diagnosticQuestionTrees.id, id))
+        .returning();
+      return tree;
+    } catch (error) {
+      console.error("Error in updateDiagnosticQuestionTree:", error);
+      throw error;
+    }
+  }
+
+  // Failure Patterns methods
+  async createFailurePattern(patternData: InsertFailurePattern): Promise<FailurePattern> {
+    try {
+      const [pattern] = await db
+        .insert(failurePatterns)
+        .values(patternData)
+        .returning();
+      return pattern;
+    } catch (error) {
+      console.error("Error in createFailurePattern:", error);
+      throw error;
+    }
+  }
+
+  async getFailurePattern(id: number): Promise<FailurePattern | undefined> {
+    try {
+      const [pattern] = await db
+        .select()
+        .from(failurePatterns)
+        .where(eq(failurePatterns.id, id));
+      return pattern;
+    } catch (error) {
+      console.error("Error in getFailurePattern:", error);
+      throw error;
+    }
+  }
+
+  async getFailurePatternsByCategory(category: string): Promise<FailurePattern[]> {
+    try {
+      return await db
+        .select()
+        .from(failurePatterns)
+        .where(eq(failurePatterns.productCategory, category));
+    } catch (error) {
+      console.error("Error in getFailurePatternsByCategory:", error);
+      throw error;
+    }
+  }
+
+  async getFailurePatternsBySymptoms(symptoms: string[]): Promise<FailurePattern[]> {
+    try {
+      // For each symptom, we'll create a query for patterns that contain that symptom
+      // This is a simple implementation - for a more sophisticated search, you might 
+      // want to consider using a PostgreSQL full-text search or a more complex query
+      
+      // Get all patterns first
+      const allPatterns = await db.select().from(failurePatterns);
+      
+      // Filter patterns that match any of the symptoms
+      // This is done in-memory since SQL array contains queries can be complex
+      const matchingPatterns = allPatterns.filter(pattern => {
+        if (!pattern.symptoms) return false;
+        
+        // Check if any of the pattern's symptoms match any of the input symptoms
+        return pattern.symptoms.some(patternSymptom => 
+          symptoms.some(inputSymptom => 
+            patternSymptom.toLowerCase().includes(inputSymptom.toLowerCase())
+          )
+        );
+      });
+      
+      return matchingPatterns;
+    } catch (error) {
+      console.error("Error in getFailurePatternsBySymptoms:", error);
+      throw error;
+    }
+  }
+
+  // Repair History methods
+  async createRepairHistory(historyData: InsertRepairHistory): Promise<RepairHistory> {
+    try {
+      const [history] = await db
+        .insert(repairHistory)
+        .values(historyData)
+        .returning();
+      return history;
+    } catch (error) {
+      console.error("Error in createRepairHistory:", error);
+      throw error;
+    }
+  }
+
+  async getRepairHistoryByRequestId(repairRequestId: number): Promise<RepairHistory | undefined> {
+    try {
+      const [history] = await db
+        .select()
+        .from(repairHistory)
+        .where(eq(repairHistory.repairRequestId, repairRequestId));
+      return history;
+    } catch (error) {
+      console.error("Error in getRepairHistoryByRequestId:", error);
+      throw error;
+    }
+  }
+
+  async updateRepairHistory(id: number, data: Partial<RepairHistory>): Promise<RepairHistory> {
+    try {
+      const [history] = await db
+        .update(repairHistory)
+        .set(data)
+        .where(eq(repairHistory.id, id))
+        .returning();
+      return history;
+    } catch (error) {
+      console.error("Error in updateRepairHistory:", error);
       throw error;
     }
   }

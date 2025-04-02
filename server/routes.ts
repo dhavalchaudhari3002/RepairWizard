@@ -24,6 +24,7 @@ import {
   estimateRepairTime, 
   getIssuesAndRecommendations 
 } from "./ml-services/repair-cost-model";
+import { createBasicDiagnosticTree, treeToDbFormat } from "./utils/diagnostic-tree";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
@@ -682,6 +683,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to fetch interaction statistics",
         details: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // Diagnostic Question Trees API Routes
+  app.get("/api/diagnostic-trees", async (req, res) => {
+    try {
+      const category = req.query.category as string;
+      const subcategory = req.query.subcategory as string | undefined;
+      
+      if (!category) {
+        return res.status(400).json({ error: 'Product category is required' });
+      }
+      
+      // Get the most recent version of the question tree for this category/subcategory
+      const tree = await storage.getDiagnosticQuestionTreeByCategory(category, subcategory);
+      
+      if (tree) {
+        return res.status(200).json(tree);
+      } else {
+        // If no tree exists, create a basic one
+        const basicTree = createBasicDiagnosticTree(category, subcategory);
+        const treeData = treeToDbFormat(basicTree);
+        
+        // Store the new tree in the database
+        const newTree = await storage.createDiagnosticQuestionTree({
+          productCategory: category,
+          subCategory: subcategory || undefined,
+          version: 1,
+          treeData: JSON.stringify(basicTree)
+        });
+        
+        return res.status(201).json(newTree);
+      }
+    } catch (error) {
+      console.error('Error fetching diagnostic trees:', error);
+      return res.status(500).json({ error: 'Failed to fetch diagnostic trees' });
+    }
+  });
+
+  app.get("/api/diagnostic-trees/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Valid ID is required' });
+      }
+      
+      const tree = await storage.getDiagnosticQuestionTree(id);
+      
+      if (tree) {
+        return res.status(200).json(tree);
+      } else {
+        return res.status(404).json({ error: 'Diagnostic tree not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching diagnostic tree:', error);
+      return res.status(500).json({ error: 'Failed to fetch diagnostic tree' });
+    }
+  });
+
+  app.post("/api/diagnostic-trees", async (req, res) => {
+    try {
+      // Validation is handled in the storage layer
+      const { productCategory, subCategory, treeData, version } = req.body;
+      
+      if (!productCategory || !treeData) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: 'Product category and tree data are required' 
+        });
+      }
+      
+      // Get the current highest version for this category/subcategory
+      const existingTree = await storage.getDiagnosticQuestionTreeByCategory(productCategory, subCategory);
+      const newVersion = existingTree ? existingTree.version + 1 : 1;
+      
+      // Create the new tree with incremented version
+      const newTree = await storage.createDiagnosticQuestionTree({
+        productCategory,
+        subCategory: subCategory || undefined,
+        version: version || newVersion,
+        treeData: typeof treeData === 'string' ? treeData : JSON.stringify(treeData)
+      });
+      
+      return res.status(201).json(newTree);
+    } catch (error) {
+      console.error('Error creating diagnostic tree:', error);
+      return res.status(500).json({ error: 'Failed to create diagnostic tree' });
+    }
+  });
+
+  app.put("/api/diagnostic-trees/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Valid ID is required' });
+      }
+      
+      const { treeData } = req.body;
+      
+      if (!treeData) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: 'Tree data is required' 
+        });
+      }
+      
+      // Check if the tree exists
+      const existingTree = await storage.getDiagnosticQuestionTree(id);
+      
+      if (!existingTree) {
+        return res.status(404).json({ error: 'Diagnostic tree not found' });
+      }
+      
+      // Update the tree
+      const updatedTree = await storage.updateDiagnosticQuestionTree(id, {
+        treeData: typeof treeData === 'string' ? treeData : JSON.stringify(treeData),
+        updatedAt: new Date()
+      });
+      
+      return res.status(200).json(updatedTree);
+    } catch (error) {
+      console.error('Error updating diagnostic tree:', error);
+      return res.status(500).json({ error: 'Failed to update diagnostic tree' });
     }
   });
 
