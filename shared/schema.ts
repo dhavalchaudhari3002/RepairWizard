@@ -71,6 +71,7 @@ export const repairRequests = pgTable("repair_requests", {
   issueDescription: text("issue_description").notNull(),
   imageUrl: text("image_url"), // Keep for backward compatibility
   imageUrls: text("image_urls").array(), // New field for multiple images
+  audioUrl: text("audio_url"), // New field for sound recording
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -95,6 +96,7 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     issueDescription: true,
     imageUrl: true,
     imageUrls: true,
+    audioUrl: true,
     customerId: true, // Add customerId to the schema
   })
   .extend({
@@ -102,6 +104,7 @@ export const insertRepairRequestSchema = createInsertSchema(repairRequests)
     issueDescription: z.string().min(1, "Issue description is required"),
     imageUrl: z.string().optional(),
     imageUrls: z.array(z.string()).optional().default([]),
+    audioUrl: z.string().optional(),
     customerId: z.number().optional(), // Make it optional since it's added by the server
   });
 

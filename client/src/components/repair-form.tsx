@@ -18,7 +18,8 @@ import { useState, useEffect } from "react";
 import { CostEstimate } from "./cost-estimate";
 import { RepairGuidance } from "./repair-guidance";
 import { DiagnosticAnalysisNew as DiagnosticAnalysis, RepairDiagnostic } from "./diagnostic-analysis-new";
-import { ImagePlus, X, Brain, Stethoscope, ArrowRight, Image, CircleAlert, Check, MessageCircle, ExternalLink } from "lucide-react";
+import { ImagePlus, X, Brain, Stethoscope, ArrowRight, Image, CircleAlert, Check, MessageCircle, ExternalLink, Volume2 } from "lucide-react";
+import AudioUpload from "./audio-upload";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
@@ -52,6 +53,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   const [estimateData, setEstimateData] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [multipleImages, setMultipleImages] = useState<string[]>([]);
+  const [audioRecording, setAudioRecording] = useState<string | null>(null);
   const [useML, setUseML] = useState<boolean>(true);
   const [repairRequestId, setRepairRequestId] = useState<number | null>(null);
   const [diagnosticData, setDiagnosticData] = useState<RepairDiagnostic | null>(null);
@@ -71,6 +73,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
       issueDescription: "",
       imageUrl: "",
       imageUrls: [],
+      audioUrl: "",
     },
   });
 
@@ -296,38 +299,82 @@ REQUIRED OUTCOME:
     const productTypeLower = productType.toLowerCase();
     const issueDescriptionLower = issueDescription.toLowerCase();
     
-    // Default questions for any product
+    // Enhanced default questions for any product
     const defaultQuestions = [
       "When did you first notice this issue?",
-      "Does the problem occur consistently or intermittently?"
+      "Does the problem occur consistently or intermittently?",
+      "Have you attempted any repairs or troubleshooting already?",
+      "On a scale of 1-10, how severely does this issue affect the product's functionality?"
     ];
     
-    // Product-specific questions
+    // VEHICLE DIAGNOSTICS
     if (productTypeLower.includes("car") || productTypeLower.includes("vehicle") || productTypeLower.includes("auto")) {
+      // Brake system issues
       if (issueDescriptionLower.includes("brake") || issueDescriptionLower.includes("break") || 
-          issueDescriptionLower.includes("stop")) {
+          issueDescriptionLower.includes("stop") || issueDescriptionLower.includes("pedal")) {
         return [
-          "Do you hear any unusual sounds when applying the brakes?",
-          "Does the brake pedal feel soft or spongy when pressed?",
+          "Do you hear any unusual sounds when applying the brakes (squealing, grinding, etc.)?",
+          "Does the brake pedal feel soft, spongy, or go too far down when pressed?",
           "Does the car pull to one side when braking?",
-          "Have you checked the brake fluid level?",
-          "When was the last time you had your brakes serviced?"
+          "Have you checked the brake fluid level and condition (color)?",
+          "When was the last time you had your brakes serviced?",
+          "Does the brake pedal pulsate or vibrate when pressed?",
+          "Do the brakes feel less responsive when the vehicle is wet or after driving through water?"
         ];
-      } else if (issueDescriptionLower.includes("engine") || issueDescriptionLower.includes("start")) {
+      } 
+      // Engine issues
+      else if (issueDescriptionLower.includes("engine") || issueDescriptionLower.includes("start") || 
+               issueDescriptionLower.includes("crank") || issueDescriptionLower.includes("power")) {
         return [
-          "Does the engine turn over but not start?",
-          "Are there any warning lights on the dashboard?",
-          "Have you checked the battery connections?",
+          "Does the engine turn over (crank) but not start?",
+          "Are there any warning lights illuminated on the dashboard?",
+          "Have you checked the battery connections and battery age?",
+          "Have you noticed any unusual sounds when attempting to start the engine?",
+          "Any unusual odors (fuel smell, burning smell, etc.)?",
+          "When was your last oil change and other routine maintenance?",
           "Have you had any fuel or electrical issues recently?",
-          "When was your last oil change?"
+          "Does the issue occur when the engine is cold, warm, or both?"
         ];
-      } else if (issueDescriptionLower.includes("transmission") || issueDescriptionLower.includes("gear")) {
+      } 
+      // Transmission issues
+      else if (issueDescriptionLower.includes("transmission") || issueDescriptionLower.includes("gear") || 
+               issueDescriptionLower.includes("shift") || issueDescriptionLower.includes("clutch")) {
         return [
-          "Is there any unusual shifting or delay between gears?",
-          "Have you noticed any fluid leaks under your car?",
-          "Does the transmission make grinding or whining noises?",
-          "Do you feel vibrations when the car is in specific gears?",
-          "What specific symptoms occur when shifting gears?"
+          "Is there any unusual shifting, delay, or slippage between gears?",
+          "Have you noticed any fluid leaks under your car (color of the fluid)?",
+          "Does the transmission make grinding, whining, or clunking noises?",
+          "Do you feel vibrations or shuddering when the car is in specific gears?",
+          "Does the issue occur when the transmission is cold, warm, or both?",
+          "For manual transmissions: Is the clutch pedal functioning normally?",
+          "For automatic transmissions: Does it ever get stuck in a particular gear?"
+        ];
+      }
+      // Electrical system issues
+      else if (issueDescriptionLower.includes("electric") || issueDescriptionLower.includes("light") || 
+               issueDescriptionLower.includes("battery") || issueDescriptionLower.includes("alternator") ||
+               issueDescriptionLower.includes("fuse") || issueDescriptionLower.includes("power window")) {
+        return [
+          "Which specific electrical components are affected?",
+          "Does the issue happen consistently or intermittently?",
+          "Have you checked the battery voltage and connections?",
+          "Have you inspected related fuses in the fuse box?",
+          "Does the problem occur only when using certain accessories?",
+          "Have you noticed dimming lights or other electrical issues?",
+          "When was the last time your car's battery or alternator was checked?"
+        ];
+      }
+      // Suspension/steering issues
+      else if (issueDescriptionLower.includes("steering") || issueDescriptionLower.includes("suspension") || 
+               issueDescriptionLower.includes("bumpy") || issueDescriptionLower.includes("alignment") ||
+               issueDescriptionLower.includes("wheel") || issueDescriptionLower.includes("shock")) {
+        return [
+          "Do you feel vibrations in the steering wheel?",
+          "Does the car pull to one side during normal driving?",
+          "Do you hear any unusual noises when going over bumps?",
+          "Have you noticed uneven tire wear?",
+          "Does the steering feel loose or have excessive play?",
+          "When was the last wheel alignment or suspension check?",
+          "Does the ride feel unusually hard, soft, or bouncy?"
         ];
       }
       
@@ -336,78 +383,351 @@ REQUIRED OUTCOME:
         "What make, model, and year is your car?",
         "What is the current mileage on your vehicle?",
         "When did you first notice the problem?",
-        "Does the issue happen all the time or only under certain conditions?",
-        "Have you had any recent repairs or maintenance done on the vehicle?"
+        "Does the issue happen all the time or only under certain conditions (weather, speed, etc.)?",
+        "Have you had any recent repairs or maintenance done on the vehicle?",
+        "Are there any warning lights or messages on the dashboard?",
+        "Have you noticed any unusual sounds, smells, or physical sensations when driving?"
       ];
     }
-    else if (productTypeLower.includes("chair")) {
-      if (issueDescriptionLower.includes("broken") || issueDescriptionLower.includes("crack")) {
+    
+    // FURNITURE DIAGNOSTICS
+    else if (productTypeLower.includes("chair") || productTypeLower.includes("sofa") || 
+             productTypeLower.includes("furniture") || productTypeLower.includes("table")) {
+      // Broken furniture issues
+      if (issueDescriptionLower.includes("broken") || issueDescriptionLower.includes("crack") || 
+          issueDescriptionLower.includes("snap") || issueDescriptionLower.includes("split")) {
         return [
-          "Which specific part of the chair is broken?",
-          "Do you hear any sounds when sitting on the chair?",
-          "Did the chair break suddenly or gradually over time?"
+          "Which specific part of the furniture is broken or cracked?",
+          "Do you hear any sounds (cracking, creaking) when using the furniture?",
+          "Did it break suddenly due to an event, or gradually over time?",
+          "What material is the broken part made of (wood, metal, plastic, etc.)?",
+          "Approximately how old is the furniture?",
+          "Has the furniture been exposed to extreme conditions (humidity, heat, etc.)?",
+          "Have you attempted any repairs already?"
         ];
-      } else if (issueDescriptionLower.includes("wobble") || issueDescriptionLower.includes("unstable")) {
+      } 
+      // Stability issues
+      else if (issueDescriptionLower.includes("wobble") || issueDescriptionLower.includes("unstable") || 
+               issueDescriptionLower.includes("balance") || issueDescriptionLower.includes("uneven") ||
+               issueDescriptionLower.includes("tilt")) {
         return [
-          "Are all the legs of equal length?",
-          "Does the wobbling happen on all floor types?",
-          "Have you tried tightening any screws or bolts on the chair?"
+          "Are all the legs of equal length, or is there a gap under one of them?",
+          "Does the wobbling happen on all floor types or just certain surfaces?",
+          "Have you tried tightening any screws, bolts, or fasteners?",
+          "Has the furniture been disassembled and reassembled previously?",
+          "Is the furniture level, or is the floor possibly uneven?",
+          "Are there any visible signs of damage to the base or legs?",
+          "Does the wobbling occur only when weight is applied in specific areas?"
         ];
       }
+      // Upholstery issues
+      else if (issueDescriptionLower.includes("fabric") || issueDescriptionLower.includes("upholstery") || 
+               issueDescriptionLower.includes("cushion") || issueDescriptionLower.includes("leather") ||
+               issueDescriptionLower.includes("stain") || issueDescriptionLower.includes("tear")) {
+        return [
+          "What type of upholstery material is affected (leather, fabric, etc.)?",
+          "Is the issue a stain, tear, wear, or something else?",
+          "How large is the affected area?",
+          "Have you attempted to clean or repair the area already?",
+          "How old is the furniture?",
+          "Is the issue in a high-use area of the furniture?",
+          "For cushions: have they lost their shape or firmness?"
+        ];
+      }
+      
+      // General furniture questions
+      return [
+        "What type of furniture is it (office chair, dining table, sofa, etc.)?",
+        "What material is the furniture primarily made of?",
+        "How old is the furniture?",
+        "Has it been moved or relocated recently?",
+        "Is this furniture regularly used or more decorative?",
+        "Was it purchased assembled or did you assemble it yourself?",
+        "Has it been exposed to unusual conditions (high humidity, direct sunlight, etc.)?"
+      ];
     } 
-    else if (productTypeLower.includes("phone") || productTypeLower.includes("smartphone")) {
-      if (issueDescriptionLower.includes("screen") || issueDescriptionLower.includes("display")) {
+    
+    // SMARTPHONE DIAGNOSTICS
+    else if (productTypeLower.includes("phone") || productTypeLower.includes("smartphone") || 
+             productTypeLower.includes("iphone") || productTypeLower.includes("android")) {
+      // Screen issues
+      if (issueDescriptionLower.includes("screen") || issueDescriptionLower.includes("display") || 
+          issueDescriptionLower.includes("crack") || issueDescriptionLower.includes("touch")) {
         return [
-          "Is the screen physically cracked or just not displaying correctly?",
-          "Can you still use the touchscreen functionality?",
-          "Did you drop the phone before the issue started?"
+          "Is the screen physically cracked, or just having display issues?",
+          "Are there visible lines, discoloration, or dead pixels on the screen?",
+          "Can you still use the touchscreen functionality? If not, completely or partially?",
+          "Did you drop the phone before the issue started?",
+          "Did the issue start suddenly or develop gradually?",
+          "Have you tried restarting the phone or resetting any settings?",
+          "Does the issue persist in safe mode (for Android devices)?"
         ];
-      } else if (issueDescriptionLower.includes("battery") || issueDescriptionLower.includes("charging")) {
+      } 
+      // Battery/charging issues
+      else if (issueDescriptionLower.includes("battery") || issueDescriptionLower.includes("charging") || 
+               issueDescriptionLower.includes("power") || issueDescriptionLower.includes("won't turn on") ||
+               issueDescriptionLower.includes("dies quickly")) {
         return [
-          "How long does your battery currently last?",
-          "Have you tried using different charging cables or adapters?",
-          "Does the phone get unusually hot while charging?"
+          "How long does your battery currently last compared to when it was new?",
+          "Have you tried using different charging cables, adapters, or outlets?",
+          "Does the phone get unusually hot while charging or during use?",
+          "Does the battery percentage drop suddenly or display incorrectly?",
+          "Are there any specific apps that seem to drain the battery faster?",
+          "How old is your phone and when did this issue begin?",
+          "Have you installed any recent updates before the issue started?"
         ];
       }
-    }
-    else if (productTypeLower.includes("laptop") || productTypeLower.includes("computer")) {
-      if (issueDescriptionLower.includes("slow") || issueDescriptionLower.includes("performance")) {
+      // Software/performance issues
+      else if (issueDescriptionLower.includes("slow") || issueDescriptionLower.includes("freeze") || 
+               issueDescriptionLower.includes("crash") || issueDescriptionLower.includes("app") ||
+               issueDescriptionLower.includes("update") || issueDescriptionLower.includes("hang")) {
         return [
-          "When did your laptop start slowing down?",
-          "How much free storage space do you have available?",
-          "Are there specific programs that cause the slowdown?"
+          "Which specific apps or functions are affected by the slowdown/freezing?",
+          "When did your phone start having these performance issues?",
+          "How much storage space is available on your device?",
+          "Have you tried closing background apps or restarting the device?",
+          "Did this issue start after an operating system update or app installation?",
+          "Have you cleared the cache or app data for problematic apps?",
+          "Does the problem occur in safe mode (for Android devices)?"
         ];
-      } else if (issueDescriptionLower.includes("keyboard") || issueDescriptionLower.includes("key")) {
+      }
+      // Camera issues
+      else if (issueDescriptionLower.includes("camera") || issueDescriptionLower.includes("photo") || 
+               issueDescriptionLower.includes("picture") || issueDescriptionLower.includes("blurry") ||
+               issueDescriptionLower.includes("focus")) {
+        return [
+          "Which camera is affected (front, back, or both)?",
+          "What specific issues are you experiencing (blurry photos, camera not opening, etc.)?",
+          "Have you tried clearing the camera app cache/data?",
+          "Does the issue occur in all lighting conditions?",
+          "Is the camera lens clean and free from scratches?",
+          "Does the issue happen with third-party camera apps as well?",
+          "Have you dropped your phone recently or exposed it to moisture?"
+        ];
+      }
+      
+      // General phone questions
+      return [
+        "What model of phone do you have and which operating system version?",
+        "When did you purchase the phone?",
+        "Have you installed any new apps or updates before the issue started?",
+        "Have you tried basic troubleshooting like restarting the device?",
+        "Is your phone in a case? If so, have you tried removing it?",
+        "Has your phone been exposed to water, extreme temperatures, or been dropped recently?",
+        "Have you noticed any other issues besides the main problem you're reporting?"
+      ];
+    }
+    
+    // COMPUTER/LAPTOP DIAGNOSTICS
+    else if (productTypeLower.includes("laptop") || productTypeLower.includes("computer") || 
+             productTypeLower.includes("pc") || productTypeLower.includes("mac")) {
+      // Performance issues
+      if (issueDescriptionLower.includes("slow") || issueDescriptionLower.includes("performance") || 
+          issueDescriptionLower.includes("freeze") || issueDescriptionLower.includes("lag") ||
+          issueDescriptionLower.includes("hang")) {
+        return [
+          "When did your computer start slowing down?",
+          "How much free storage space do you have available?",
+          "Are there specific programs or situations that cause the slowdown?",
+          "Have you checked for malware or viruses recently?",
+          "How much RAM does your computer have?",
+          "Have you tried restarting or resetting your computer?",
+          "Does the problem persist in safe mode?",
+          "Have you checked Task Manager (Windows) or Activity Monitor (Mac) to see what's using resources?"
+        ];
+      } 
+      // Keyboard issues
+      else if (issueDescriptionLower.includes("keyboard") || issueDescriptionLower.includes("key") || 
+               issueDescriptionLower.includes("typing") || issueDescriptionLower.includes("stuck")) {
         return [
           "Which specific keys are affected?",
+          "Do the keys physically feel different, or just not register when pressed?",
           "Have you tried cleaning the keyboard?",
-          "Did you spill any liquid on the keyboard recently?"
+          "Did you spill any liquid on the keyboard recently?",
+          "Does the issue persist with an external keyboard?",
+          "Have you updated your keyboard drivers recently?",
+          "For laptop keyboards: are there any visible signs of damage or wear?"
         ];
       }
+      // Display issues
+      else if (issueDescriptionLower.includes("screen") || issueDescriptionLower.includes("display") || 
+               issueDescriptionLower.includes("monitor") || issueDescriptionLower.includes("flicker") ||
+               issueDescriptionLower.includes("blue screen") || issueDescriptionLower.includes("BSOD")) {
+        return [
+          "What specific display issues are you experiencing (blank screen, flickering, distorted colors)?",
+          "Does the issue persist with an external monitor?",
+          "Have you updated your graphics drivers recently?",
+          "Does the problem occur immediately at startup or after the computer has been running?",
+          "Have you checked display connections and cables?",
+          "Do you see any error messages before or during the display issue?",
+          "Have you adjusted display settings recently?"
+        ];
+      }
+      // Overheating/noise issues
+      else if (issueDescriptionLower.includes("hot") || issueDescriptionLower.includes("overheat") || 
+               issueDescriptionLower.includes("fan") || issueDescriptionLower.includes("noise") ||
+               issueDescriptionLower.includes("temperature") || issueDescriptionLower.includes("loud")) {
+        return [
+          "When does the overheating or noise occur (during specific tasks or all the time)?",
+          "Have you cleaned the fan vents and internal cooling system recently?",
+          "Is your computer placed on a hard, flat surface that allows proper ventilation?",
+          "Have you used temperature monitoring software to check actual temperatures?",
+          "Does the fan run constantly or intermittently?",
+          "Have you noticed decreased performance when the computer gets hot?",
+          "How old is your computer? Has this issue developed gradually or suddenly?"
+        ];
+      }
+      // Connection/WiFi issues
+      else if (issueDescriptionLower.includes("wifi") || issueDescriptionLower.includes("internet") || 
+               issueDescriptionLower.includes("network") || issueDescriptionLower.includes("connection") ||
+               issueDescriptionLower.includes("bluetooth") || issueDescriptionLower.includes("wireless")) {
+        return [
+          "Is the issue with WiFi, Bluetooth, or another type of connection?",
+          "Does the problem occur on all networks or just specific ones?",
+          "Have you tried restarting your router and computer?",
+          "Have you checked if other devices can connect to the same network?",
+          "Have you updated network drivers recently?",
+          "Do you see any error messages when trying to connect?",
+          "Does the connection drop intermittently or fail to connect at all?"
+        ];
+      }
+      
+      // General computer questions
+      return [
+        "What brand and model is your computer/laptop?", 
+        "What operating system and version are you using?",
+        "How old is the computer?",
+        "Have you installed any new software or hardware recently?",
+        "When did this issue start, and was there any specific event that triggered it?",
+        "Have you attempted any troubleshooting steps already?",
+        "Do you keep your operating system and drivers updated regularly?"
+      ];
     }
     
-    // If we can't determine specific questions, use product-specific general questions
-    if (productTypeLower.includes("chair")) {
+    // APPLIANCE DIAGNOSTICS (New category)
+    else if (productTypeLower.includes("appliance") || productTypeLower.includes("refrigerator") || 
+             productTypeLower.includes("washer") || productTypeLower.includes("dryer") ||
+             productTypeLower.includes("dishwasher") || productTypeLower.includes("oven") ||
+             productTypeLower.includes("microwave") || productTypeLower.includes("stove")) {
+      // Refrigerator issues
+      if (productTypeLower.includes("refrigerator") || productTypeLower.includes("fridge")) {
+        return [
+          "Is the refrigerator not cooling properly, making noise, or having another issue?",
+          "Have you checked the temperature settings?",
+          "Is there adequate airflow around the refrigerator?",
+          "When was the last time you cleaned the coils?",
+          "Are there any unusual sounds (buzzing, clicking, etc.)?",
+          "Is the issue with the refrigerator section, freezer section, or both?",
+          "Have you noticed any water leakage or ice buildup?"
+        ];
+      }
+      // Washer/dryer issues
+      else if (productTypeLower.includes("washer") || productTypeLower.includes("dryer") ||
+               productTypeLower.includes("laundry")) {
+        return [
+          "What specific issue are you experiencing (not starting, noise, leaking, etc.)?",
+          "Have you checked for error codes on the display?",
+          "Is the appliance properly leveled on the floor?",
+          "Have you cleaned any filters or lint traps recently?",
+          "Does the issue happen with every cycle or only specific ones?",
+          "For washers: Have you noticed any leaks or water drainage issues?",
+          "For dryers: Are clothes taking longer than normal to dry?"
+        ];
+      }
+      // Dishwasher issues
+      else if (productTypeLower.includes("dishwasher")) {
+        return [
+          "What's the specific issue (not cleaning properly, leaking, not draining, etc.)?",
+          "Have you checked for and cleaned any food debris in filters or spray arms?",
+          "Are you using the appropriate detergent for your dishwasher?",
+          "Have you checked for any error codes on the display?",
+          "Is water entering the dishwasher properly during the cycle?",
+          "Are there any unusual sounds during operation?",
+          "Has the issue developed gradually or suddenly?"
+        ];
+      }
+      // Cooking appliance issues
+      else if (productTypeLower.includes("oven") || productTypeLower.includes("stove") ||
+               productTypeLower.includes("microwave") || productTypeLower.includes("range")) {
+        return [
+          "Which part of the appliance is malfunctioning?",
+          "For ovens: Is it not heating, heating unevenly, or not maintaining temperature?",
+          "For stoves: Are all burners affected or just specific ones?",
+          "For microwaves: Is it not heating, making unusual sounds, or having display issues?",
+          "Have you checked for any error codes on the display?",
+          "When did this issue start?",
+          "Have you already attempted any troubleshooting or repairs?"
+        ];
+      }
+      
+      // General appliance questions
       return [
-        "What type of chair is it (office, dining, etc.)?",
-        "What material is the chair made of?",
-        "How old is the chair?"
-      ];
-    } else if (productTypeLower.includes("phone")) {
-      return [
-        "What model of phone do you have?",
-        "When did you purchase the phone?",
-        "Have you installed any new apps before the issue started?"
-      ];
-    } else if (productTypeLower.includes("laptop")) {
-      return [
-        "What brand and model is your laptop?", 
-        "What operating system are you using?",
-        "Have you installed any new software recently?"
+        "What brand and model is your appliance?",
+        "How old is the appliance?",
+        "When did you first notice the issue?",
+        "Have you checked the power supply and connections?",
+        "Have you consulted the owner's manual for troubleshooting steps?",
+        "Are there any unusual sounds, smells, or visible issues?",
+        "Has the appliance received any maintenance or repairs previously?"
       ];
     }
     
-    // Return default questions if nothing specific matches
+    // ELECTRONICS DIAGNOSTICS (Additional category)
+    else if (productTypeLower.includes("tv") || productTypeLower.includes("speaker") || 
+             productTypeLower.includes("headphone") || productTypeLower.includes("tablet") ||
+             productTypeLower.includes("console") || productTypeLower.includes("camera")) {
+      // TV issues
+      if (productTypeLower.includes("tv") || productTypeLower.includes("television")) {
+        return [
+          "What specific issue are you experiencing (no picture, no sound, picture quality, etc.)?",
+          "Have you checked all cable connections?",
+          "Does the issue occur with all input sources or just specific ones?",
+          "Have you tried a factory reset?",
+          "Are there any visible issues on the screen (dead pixels, lines, discoloration)?",
+          "Does the remote control work properly?",
+          "When did this issue start, and was there a specific event that triggered it?"
+        ];
+      }
+      // Audio device issues
+      else if (productTypeLower.includes("speaker") || productTypeLower.includes("headphone") ||
+               productTypeLower.includes("sound") || productTypeLower.includes("audio")) {
+        return [
+          "Is the issue with sound quality, connectivity, power, or something else?",
+          "Does the issue happen with all audio sources or just specific ones?",
+          "For wireless devices: have you tried re-pairing the device?",
+          "Have you checked audio settings and volume levels?",
+          "Is the audio distorted, intermittent, or completely absent?",
+          "For headphones: do both ears have the same issue?",
+          "Have you tried different audio cables (if applicable)?"
+        ];
+      }
+      // Gaming console issues
+      else if (productTypeLower.includes("console") || productTypeLower.includes("playstation") ||
+               productTypeLower.includes("xbox") || productTypeLower.includes("nintendo")) {
+        return [
+          "What specific issue are you experiencing with your console?",
+          "Are there any error codes or messages displayed?",
+          "Have you checked all cable connections?",
+          "Does the issue occur with all games or just specific ones?",
+          "Have you tried resetting or power cycling the console?",
+          "Is there adequate ventilation around the console?",
+          "When did this issue start? Did it follow a system update or new game installation?"
+        ];
+      }
+      
+      // General electronics questions
+      return [
+        "What brand and model is your device?",
+        "How old is the device?",
+        "When did you first notice the issue?",
+        "Have you checked all power and connection cables?",
+        "Have you tried resetting or restarting the device?",
+        "Is the device receiving power correctly?",
+        "Has the device been exposed to water, extreme temperatures, or physical damage?"
+      ];
+    }
+    
+    // If nothing else matches, return enhanced default questions
     return defaultQuestions;
   };
 
@@ -431,6 +751,11 @@ REQUIRED OUTCOME:
       });
     }
     
+    // Note if audio was provided
+    if (audioRecording) {
+      enhancedDescription += "\n\nAudio recording of the issue has been provided.";
+    }
+    
     // Update the form with enhanced description
     form.setValue('issueDescription', enhancedDescription, { shouldValidate: true });
     
@@ -438,7 +763,8 @@ REQUIRED OUTCOME:
     setIsSubmittingForm(true);
     mutation.mutate({
       ...form.getValues(),
-      issueDescription: enhancedDescription
+      issueDescription: enhancedDescription,
+      audioUrl: audioRecording || ""
     });
   };
 
@@ -578,6 +904,7 @@ REQUIRED OUTCOME:
             form.reset();
             setImagePreview(null);
             setMultipleImages([]);
+            setAudioRecording(null);
             setRepairRequestId(null);
             setImageAnalysisResult(null);
             setUserAnswers({});
@@ -900,6 +1227,38 @@ REQUIRED OUTCOME:
                     </div>
                   )}
                 </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Audio Upload Component */}
+        <FormField
+          control={form.control}
+          name="audioUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  <span>Add Sound Recording</span>
+                  <span className="ml-2 text-xs text-muted-foreground">(Optional - helpful for mechanical issues)</span>
+                </div>
+              </FormLabel>
+              <FormControl>
+                <AudioUpload
+                  onAudioCaptured={(audioData) => {
+                    setAudioRecording(audioData);
+                    field.onChange(audioData);
+                  }}
+                  onAudioRemoved={() => {
+                    setAudioRecording(null);
+                    field.onChange("");
+                  }}
+                  existingAudio={audioRecording || ""}
+                  className="w-full"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
