@@ -106,11 +106,12 @@ async function trackDiagnosticAnalytics(
 /**
  * Generate a cache key based on input parameters
  */
-function generateCacheKey(productType: string, issueDescription: string): string {
+function generateCacheKey(productType: string, issueDescription: string, audioUrl?: string): string {
   // Create a simple hash by combining product type and issue description
   const normalizedProductType = productType.trim().toLowerCase();
   const normalizedIssueDescription = issueDescription.trim().toLowerCase();
-  return `${normalizedProductType}:${normalizedIssueDescription}`;
+  // Add audio indicator to the cache key if audio is provided
+  return `${normalizedProductType}:${normalizedIssueDescription}${audioUrl ? ':audio' : ''}`;
 }
 
 /**
@@ -257,8 +258,8 @@ function getPrewrittenResponse(productType: string, issueDescription: string): R
 /**
  * Helper function to get diagnostic response with optimized settings
  */
-async function getDiagnosticResponse(productType: string, issueDescription: string, systemPrompt: string): Promise<RepairDiagnostic> {
-  const cacheKey = `${productType}-${issueDescription}`;
+async function getDiagnosticResponse(productType: string, issueDescription: string, systemPrompt: string, audioUrl?: string): Promise<RepairDiagnostic> {
+  const cacheKey = `${productType}-${issueDescription}${audioUrl ? '-audio' : ''}`;
   
   // Check cache first with product category matching
   const cachedResponse = await getCachedResponse(cacheKey);
@@ -282,6 +283,15 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
     }
   }
 
+  // Prepare enhanced context if audio recording is provided
+  let userContent = `Analyze: ${productType} with issue: ${issueDescription}.`;
+  
+  if (audioUrl) {
+    userContent += ` There is an audio recording of the issue which contains sound patterns that may help diagnose the problem. Consider any abnormal sounds, clicking, grinding, or irregular operational noises in your analysis.`;
+  }
+  
+  userContent += ` Be brief and ensure valid JSON format.`;
+  
   // Optimized API call
   const response = await Promise.race([
     openai.chat.completions.create({
@@ -293,7 +303,7 @@ async function getDiagnosticResponse(productType: string, issueDescription: stri
         },
         { 
           role: "user", 
-          content: `Analyze: ${productType} with issue: ${issueDescription}. Be brief and ensure valid JSON format.` 
+          content: userContent 
         }
       ],
       temperature: 0.2,
@@ -630,13 +640,13 @@ ISSUE-SPECIFIC DIAGNOSTIC REQUIREMENTS:
   }
 }
 
-export async function generateRepairDiagnostic(productType: string, issueDescription: string, repairRequestId?: number): Promise<RepairDiagnostic> {
+export async function generateRepairDiagnostic(productType: string, issueDescription: string, repairRequestId?: number, audioUrl?: string): Promise<RepairDiagnostic> {
   try {
-    console.log("Starting diagnostic generation for:", { productType, issueDescription });
+    console.log("Starting diagnostic generation for:", { productType, issueDescription, hasAudio: !!audioUrl });
     const startTime = Date.now();
 
     // Try to get from cache first
-    const cacheKey = generateCacheKey(productType, issueDescription);
+    const cacheKey = generateCacheKey(productType, issueDescription, audioUrl);
     const cachedResult = diagnosticCache.get(cacheKey);
     
     // If we have a valid cache entry, return it
@@ -786,7 +796,7 @@ Return your analysis in this EXACT JSON format:
 }`;
 
     // Get diagnostic response through helper function
-    const result = await getDiagnosticResponse(productType, issueDescription, systemPrompt);
+    const result = await getDiagnosticResponse(productType, issueDescription, systemPrompt, audioUrl);
   
     // Track analytics if repairRequestId is provided
     if (repairRequestId) {

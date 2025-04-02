@@ -482,18 +482,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }, 15000); // 15 second timeout
 
     try {
-      const { productType, issueDescription, repairRequestId } = req.body;
+      const { productType, issueDescription, repairRequestId, audioUrl } = req.body;
       if (!productType || !issueDescription) {
         clearTimeout(timeout);
         res.status(400).json({ error: "Product type and issue description are required" });
         return;
       }
 
-      console.log("Generating repair diagnostic for:", { productType, issueDescription, repairRequestId });
+      console.log("Generating repair diagnostic for:", { productType, issueDescription, repairRequestId, hasAudio: !!audioUrl });
       
       try {
         const diagnostic = await Promise.race([
-          generateRepairDiagnostic(productType, issueDescription, repairRequestId),
+          generateRepairDiagnostic(productType, issueDescription, repairRequestId, audioUrl),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error("Operation timeout")), 12000)
           )

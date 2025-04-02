@@ -37,13 +37,15 @@ interface DiagnosticAnalysisProps {
   productType: string;
   issueDescription: string;
   repairRequestId?: number;
+  audioUrl?: string; // Add audio recording URL
   onDiagnosticComplete?: (data: RepairDiagnostic) => void;
 }
 
 export function DiagnosticAnalysisNew({ 
   productType, 
   issueDescription, 
-  repairRequestId, 
+  repairRequestId,
+  audioUrl,
   onDiagnosticComplete 
 }: DiagnosticAnalysisProps) {
   // Simple state management
@@ -104,7 +106,8 @@ export function DiagnosticAnalysisNew({
           body: JSON.stringify({
             productType,
             issueDescription,
-            repairRequestId
+            repairRequestId,
+            audioUrl: audioUrl || ""
           })
         });
 
@@ -140,7 +143,7 @@ export function DiagnosticAnalysisNew({
     }
 
     fetchDiagnosticData();
-  }, [productType, issueDescription, repairRequestId, loading, trackInteraction, onDiagnosticComplete]);
+  }, [productType, issueDescription, repairRequestId, audioUrl, loading, trackInteraction, onDiagnosticComplete]);
 
   // Handle feedback submission
   const handleFeedback = (helpful: boolean) => {

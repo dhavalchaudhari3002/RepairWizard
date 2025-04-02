@@ -888,6 +888,7 @@ REQUIRED OUTCOME:
           productType={productType}
           issueDescription={issueDescription}
           repairRequestId={repairRequestId || undefined}
+          audioUrl={audioRecording || undefined}
           onDiagnosticComplete={handleDiagnosticComplete}
         />
         <RepairGuidance data={{ 
