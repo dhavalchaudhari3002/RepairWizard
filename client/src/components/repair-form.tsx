@@ -77,7 +77,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
   // Check if we have enough information to proceed
   useEffect(() => {
     // If we have image analysis and user has answered all questions or no questions were needed
-    if (imageAnalysisResult) {
+    if (imageAnalysisResult && imageAnalysisResult.additional_questions) {
       if (imageAnalysisResult.additional_questions.length === 0 || 
           Object.keys(userAnswers).length >= imageAnalysisResult.additional_questions.length) {
         setConfirmationReady(true);
@@ -655,7 +655,7 @@ REQUIRED OUTCOME:
                 </div>
                 
                 {/* Clarification Questions */}
-                {imageAnalysisResult && imageAnalysisResult.additional_questions.length > 0 && (
+                {imageAnalysisResult && imageAnalysisResult.additional_questions && imageAnalysisResult.additional_questions.length > 0 && (
                   <Card className="border-blue-200">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -685,7 +685,7 @@ REQUIRED OUTCOME:
                 )}
                 
                 {/* Recommendations if any */}
-                {imageAnalysisResult && imageAnalysisResult.recommendations.length > 0 && (
+                {imageAnalysisResult && imageAnalysisResult.recommendations && imageAnalysisResult.recommendations.length > 0 && (
                   <div>
                     <h3 className="text-base font-medium mb-2 flex items-center gap-2">
                       <Stethoscope className="h-4 w-4 text-green-500" />
