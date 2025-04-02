@@ -288,7 +288,44 @@ REQUIRED OUTCOME:
     ];
     
     // Product-specific questions
-    if (productTypeLower.includes("chair")) {
+    if (productTypeLower.includes("car") || productTypeLower.includes("vehicle") || productTypeLower.includes("auto")) {
+      if (issueDescriptionLower.includes("brake") || issueDescriptionLower.includes("break") || 
+          issueDescriptionLower.includes("stop")) {
+        return [
+          "Do you hear any unusual sounds when applying the brakes?",
+          "Does the brake pedal feel soft or spongy when pressed?",
+          "Does the car pull to one side when braking?",
+          "Have you checked the brake fluid level?",
+          "When was the last time you had your brakes serviced?"
+        ];
+      } else if (issueDescriptionLower.includes("engine") || issueDescriptionLower.includes("start")) {
+        return [
+          "Does the engine turn over but not start?",
+          "Are there any warning lights on the dashboard?",
+          "Have you checked the battery connections?",
+          "Have you had any fuel or electrical issues recently?",
+          "When was your last oil change?"
+        ];
+      } else if (issueDescriptionLower.includes("transmission") || issueDescriptionLower.includes("gear")) {
+        return [
+          "Is there any unusual shifting or delay between gears?",
+          "Have you noticed any fluid leaks under your car?",
+          "Does the transmission make grinding or whining noises?",
+          "Do you feel vibrations when the car is in specific gears?",
+          "What specific symptoms occur when shifting gears?"
+        ];
+      }
+      
+      // General car questions if specific issue wasn't matched
+      return [
+        "What make, model, and year is your car?",
+        "What is the current mileage on your vehicle?",
+        "When did you first notice the problem?",
+        "Does the issue happen all the time or only under certain conditions?",
+        "Have you had any recent repairs or maintenance done on the vehicle?"
+      ];
+    }
+    else if (productTypeLower.includes("chair")) {
       if (issueDescriptionLower.includes("broken") || issueDescriptionLower.includes("crack")) {
         return [
           "Which specific part of the chair is broken?",
