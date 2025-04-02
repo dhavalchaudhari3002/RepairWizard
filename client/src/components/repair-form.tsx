@@ -105,7 +105,7 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
     
     try {
       // If no image is uploaded, we'll proceed with text-based analysis only
-      if (!imagePreview && multipleImages.length === 0) {
+      if (!imagePreview && (!multipleImages || multipleImages.length === 0)) {
         console.log("No image uploaded, proceeding with text-based analysis only");
         
         // Generate more specific questions based on the product type
@@ -173,7 +173,7 @@ REQUIRED OUTCOME:
       };
 
       // If we have multiple images, use imageUrls instead of imageUrl
-      if (multipleImages.length > 1) {
+      if (multipleImages && multipleImages.length > 1) {
         Object.assign(requestPayload, { 
           imageUrls: multipleImages,
           // Keep imageUrl for backwards compatibility (first image)
@@ -559,7 +559,7 @@ REQUIRED OUTCOME:
             </CardTitle>
             <CardDescription>
               We've analyzed your {productType} issue 
-              {multipleImages.length > 0 
+              {multipleImages && multipleImages.length > 0 
                 ? multipleImages.length > 1 
                   ? ` based on ${multipleImages.length} uploaded images` 
                   : " based on your uploaded image"
@@ -582,7 +582,7 @@ REQUIRED OUTCOME:
               <div className="space-y-6">
                 {/* Image and Analysis */}
                 <div className="flex flex-col md:flex-row gap-4">
-                  {multipleImages.length > 0 && (
+                  {multipleImages && multipleImages.length > 0 && (
                     <div className={`${multipleImages.length > 1 ? 'md:w-1/2' : 'md:w-1/3'}`}>
                       {/* Show primary image larger */}
                       <div className="relative mb-2">
@@ -601,7 +601,7 @@ REQUIRED OUTCOME:
                       </div>
                       
                       {/* Show additional images as thumbnails */}
-                      {multipleImages.length > 1 && (
+                      {multipleImages && multipleImages.length > 1 && (
                         <div className="flex gap-1 flex-wrap">
                           {multipleImages.slice(0, 3).map((img, idx) => {
                             if (typeof imagePreview === 'string' && img === imagePreview) {
@@ -627,7 +627,7 @@ REQUIRED OUTCOME:
                     </div>
                   )}
                   
-                  <div className={`${multipleImages.length > 0 ? 'md:w-2/3' : 'w-full'}`}>
+                  <div className={`${multipleImages && multipleImages.length > 0 ? 'md:w-2/3' : 'w-full'}`}>
                     <h3 className="text-lg font-medium mb-2">Issue Analysis</h3>
                     <Alert>
                       <Brain className="h-4 w-4" />
@@ -793,7 +793,7 @@ REQUIRED OUTCOME:
               <FormControl>
                 <div className="space-y-4">
                   {/* Multiple Images Preview */}
-                  {multipleImages.length > 0 && (
+                  {multipleImages && multipleImages.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {multipleImages.map((image, index) => (
                         <div key={index} className="relative inline-block">
@@ -837,11 +837,11 @@ REQUIRED OUTCOME:
                       onClick={() => document.getElementById('file-upload')?.click()}
                     >
                       <ImagePlus className="h-4 w-4 mr-2" />
-                      {multipleImages.length > 0 ? `Add Another Image (${multipleImages.length})` : "Upload Image"}
+                      {multipleImages && multipleImages.length > 0 ? `Add Another Image (${multipleImages.length})` : "Upload Image"}
                     </Button>
                   </div>
                   
-                  {multipleImages.length === 0 && (
+                  {(!multipleImages || multipleImages.length === 0) && (
                     <div className="text-sm text-muted-foreground space-y-2">
                       <p>Upload multiple images to help us diagnose your issue more accurately</p>
                       <p>Different angles and closeups of the problem area are most helpful</p>
@@ -881,13 +881,13 @@ REQUIRED OUTCOME:
           disabled={isAnalyzingImage}
         >
           {isAnalyzingImage ? (
-            multipleImages.length > 0 
+            multipleImages && multipleImages.length > 0 
               ? `Analyzing ${multipleImages.length} ${multipleImages.length === 1 ? 'Image' : 'Images'} & Issue...` 
               : "Analyzing Issue..."
           ) : (
             <>
               <ArrowRight className="mr-2 h-4 w-4" />
-              {multipleImages.length > 0 
+              {multipleImages && multipleImages.length > 0 
                 ? `Continue with ${multipleImages.length} ${multipleImages.length === 1 ? 'Image' : 'Images'}` 
                 : "Continue with Text Analysis"}
             </>
