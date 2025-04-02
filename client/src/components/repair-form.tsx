@@ -560,7 +560,7 @@ REQUIRED OUTCOME:
             <CardDescription>
               We've analyzed your {productType} issue 
               {multipleImages && multipleImages.length > 0 
-                ? multipleImages.length > 1 
+                ? multipleImages && multipleImages.length > 1 
                   ? ` based on ${multipleImages.length} uploaded images` 
                   : " based on your uploaded image"
                 : " based on your description"
@@ -583,11 +583,11 @@ REQUIRED OUTCOME:
                 {/* Image and Analysis */}
                 <div className="flex flex-col md:flex-row gap-4">
                   {multipleImages && multipleImages.length > 0 && (
-                    <div className={`${multipleImages.length > 1 ? 'md:w-1/2' : 'md:w-1/3'}`}>
+                    <div className={`${multipleImages && multipleImages.length > 1 ? 'md:w-1/2' : 'md:w-1/3'}`}>
                       {/* Show primary image larger */}
                       <div className="relative mb-2">
                         <img 
-                          src={typeof imagePreview === 'string' ? imagePreview : multipleImages[0]} 
+                          src={typeof imagePreview === 'string' ? imagePreview : (multipleImages && multipleImages.length > 0 ? multipleImages[0] : '')} 
                           alt="Primary uploaded issue" 
                           className="rounded-lg max-h-[200px] w-full object-cover"
                         />
@@ -603,7 +603,7 @@ REQUIRED OUTCOME:
                       {/* Show additional images as thumbnails */}
                       {multipleImages && multipleImages.length > 1 && (
                         <div className="flex gap-1 flex-wrap">
-                          {multipleImages.slice(0, 3).map((img, idx) => {
+                          {multipleImages && multipleImages.slice(0, 3).map((img, idx) => {
                             if (typeof imagePreview === 'string' && img === imagePreview) {
                               return null; // Skip the primary image
                             }
@@ -617,7 +617,7 @@ REQUIRED OUTCOME:
                               </div>
                             );
                           })}
-                          {multipleImages.length > 4 && (
+                          {multipleImages && multipleImages.length > 4 && (
                             <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
                               +{multipleImages.length - 4} more
                             </div>
