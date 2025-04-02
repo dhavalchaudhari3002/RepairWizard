@@ -132,7 +132,22 @@ export function RepairForm({ onSubmit, onResetForm }: RepairFormProps) {
           }
           
           const data = await res.json();
-          setImageAnalysisResult(data);
+          console.log("API response for text analysis:", data);
+          
+          // Always ensure we have the additional questions even if API doesn't return them
+          const enhancedData = {
+            ...data,
+            detected_issue: data.detected_issue || issueDescription,
+            confidence: data.confidence || 0.7,
+            // Use our local questions if the API doesn't return any
+            additional_questions: (data.additional_questions && Array.isArray(data.additional_questions) && 
+                                data.additional_questions.length > 0) ? 
+                                data.additional_questions : additionalQuestions,
+            recommendations: data.recommendations || []
+          };
+          
+          console.log("Enhanced data with questions:", enhancedData);
+          setImageAnalysisResult(enhancedData);
         } catch (error) {
           console.error("Text analysis failed, using fallback method:", error);
           
