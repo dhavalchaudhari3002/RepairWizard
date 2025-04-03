@@ -32,12 +32,12 @@ interface RepairGuide {
 
 interface RepairGuideProps {
   productType: string;
-  issue: string;
+  issueDescription: string;
   repairRequestId?: number;
-  diagnosticData?: RepairDiagnostic | null;
+  diagnostic?: RepairDiagnostic | null;
 }
 
-export function RepairGuide({ productType, issue, repairRequestId, diagnosticData }: RepairGuideProps) {
+export function RepairGuide({ productType, issueDescription, repairRequestId, diagnostic }: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
   }, [guide, currentStep, productType, repairRequestId, trackGuideAbandonment]);
 
   const generateGuide = async () => {
-    if (!productType || !issue) {
+    if (!productType || !issueDescription) {
       toast({
         title: "Missing Information",
         description: "Product type and issue description are required.",
@@ -111,19 +111,19 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
     setLoading(true);
     try {
       // Include diagnostic data and answered questions in the request if available
-      const diagnosticInfo = diagnosticData ? {
-        possibleCauses: diagnosticData.possibleCauses,
-        likelySolutions: diagnosticData.likelySolutions,
-        safetyWarnings: diagnosticData.safetyWarnings,
+      const diagnosticInfo = diagnostic ? {
+        possibleCauses: diagnostic.possibleCauses,
+        likelySolutions: diagnostic.likelySolutions,
+        safetyWarnings: diagnostic.safetyWarnings,
         // Also include any answered questions for more personalized guide generation
-        answeredQuestions: diagnosticData.answeredQuestions || []
+        answeredQuestions: diagnostic.answeredQuestions || []
       } : null;
       
       console.log("Attempting to generate guide for:", { 
         productType, 
-        issue, 
+        issueDescription, 
         repairRequestId,
-        hasDiagnosticData: !!diagnosticData
+        hasDiagnosticData: !!diagnostic
       });
       
       const response = await apiRequest(
@@ -131,7 +131,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
         "/api/repair-guides",
         { 
           productType, 
-          issue, 
+          issue: issueDescription, 
           repairRequestId,
           diagnosticInfo
         }
@@ -180,7 +180,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
 
   // Regenerate the guide with updated answered questions
   const regenerateGuideWithAnswers = async () => {
-    if (!productType || !issue || !repairRequestId) {
+    if (!productType || !issueDescription || !repairRequestId) {
       return;
     }
 
@@ -188,7 +188,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
     try {
       // Combine diagnostic data with the latest answered questions
       const combinedQuestions = [
-        ...(diagnosticData?.answeredQuestions || []),
+        ...(diagnostic?.answeredQuestions || []),
         ...answeredQuestions
       ];
       
@@ -199,9 +199,9 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
       
       // Create diagnostic info with all available data
       const enhancedDiagnosticInfo = {
-        possibleCauses: diagnosticData?.possibleCauses || [],
-        likelySolutions: diagnosticData?.likelySolutions || [],
-        safetyWarnings: diagnosticData?.safetyWarnings || [],
+        possibleCauses: diagnostic?.possibleCauses || [],
+        likelySolutions: diagnostic?.likelySolutions || [],
+        safetyWarnings: diagnostic?.safetyWarnings || [],
         answeredQuestions: uniqueQuestions
       };
       
@@ -215,7 +215,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
         "/api/repair-guides",
         { 
           productType, 
-          issue, 
+          issue: issueDescription, 
           repairRequestId,
           diagnosticInfo: enhancedDiagnosticInfo
         }
@@ -295,7 +295,7 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
         <CardContent className="pt-6">
           <Button
             onClick={generateGuide}
-            disabled={loading || !productType || !issue}
+            disabled={loading || !productType || !issueDescription}
             className="w-full font-medium text-primary-foreground bg-primary hover:bg-primary/90"
           >
             {loading ? (
@@ -481,10 +481,10 @@ export function RepairGuide({ productType, issue, repairRequestId, diagnosticDat
                   </div>
                   <RepairQuestions 
                     productType={productType} 
-                    issueDescription={issue}
+                    issueDescription={issueDescription}
                     currentStep={currentStep}
                     repairRequestId={repairRequestId}
-                    specificQuestions={diagnosticData?.specificQuestions}
+                    specificQuestions={diagnostic?.specificQuestions}
                     onAnswersUpdated={(answers) => {
                       // When answers are updated, save them and offer to regenerate the guide
                       if (answers.length > 0 && repairRequestId) {

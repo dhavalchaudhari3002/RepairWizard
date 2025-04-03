@@ -14,12 +14,15 @@ import {
   CheckCircle2, 
   AlertTriangle,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Wrench,
+  ArrowRight
 } from "lucide-react";
 import { useInteractionTracking } from "@/hooks/use-interaction-tracking";
 import { RepairQuestions } from "./repair-questions";
 import { AnsweredQuestion } from "./repair-questions";
 import DiagnosticQuestionTree, { DiagnosticAnswers } from "./diagnostic-question-tree";
+import { RepairGuide } from "./repair-guide";
 
 // Define the RepairDiagnostic interface
 export interface RepairDiagnostic {
@@ -57,6 +60,7 @@ export function DiagnosticAnalysisNew({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   const [diagnosticTreeAnswers, setDiagnosticTreeAnswers] = useState<DiagnosticAnswers | null>(null);
+  const [showRepairGuide, setShowRepairGuide] = useState(false);
   
   const { toast } = useToast();
   const { trackInteraction } = useInteractionTracking();
@@ -166,6 +170,25 @@ export function DiagnosticAnalysisNew({
       description: "Thank you for your feedback!",
     });
   };
+  
+  // Handle generating repair guide from diagnostic data
+  const handleGenerateRepairGuide = () => {
+    if (!diagnostic) return;
+    
+    // Track that the user requested a repair guide
+    trackInteraction({
+      interactionType: "repair_guide_requested",
+      metadata: {
+        productType,
+        issueDescription: issueDescription.substring(0, 100),
+        fromDiagnostic: true
+      },
+      repairRequestId
+    });
+    
+    // Show the repair guide component
+    setShowRepairGuide(true);
+  };
 
   // Retry fetching data
   const handleRetry = () => {
@@ -271,206 +294,233 @@ export function DiagnosticAnalysisNew({
 
   // Success state - Display the diagnostic results
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              Diagnostic Analysis
-            </CardTitle>
-            <Badge variant="outline" className="ml-2">AI-powered</Badge>
-          </div>
-        </div>
-        <CardDescription>
-          Expert analysis of your {productType} issue
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger value="steps">Troubleshooting</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="analysis" className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Symptoms</h3>
-              <p className="text-muted-foreground">{safeData.symptomInterpretation}</p>
+    <>
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Diagnostic Analysis
+              </CardTitle>
+              <Badge variant="outline" className="ml-2">AI-powered</Badge>
             </div>
+          </div>
+          <CardDescription>
+            Expert analysis of your {productType} issue
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              <TabsTrigger value="steps">Troubleshooting</TabsTrigger>
+            </TabsList>
             
-            {/* Show specific questions if available */}
-            {safeData.specificQuestions && safeData.specificQuestions.length > 0 && (
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-                <h3 className="text-base font-medium flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-primary" />
-                  Key Questions to Find Root Cause
-                </h3>
-                
-                {/* Display the interactive questions component */}
-                <div className="mt-2 mb-2">
-                  <div className="border border-primary/10 rounded-lg overflow-hidden">
-                    <div className="p-3 bg-white dark:bg-gray-950">
-                      <h4 className="text-sm font-medium mb-2">Ask these questions to improve the diagnosis:</h4>
-                      <div className="space-y-1">
-                        {answeredQuestions.filter(q => q.isSpecificQuestion).length > 0 && (
-                          <div className="text-xs text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>
-                              {answeredQuestions.filter(q => q.isSpecificQuestion).length} of {safeData.specificQuestions.length} questions answered
-                            </span>
-                          </div>
-                        )}
-                        <div className="rounded-md overflow-hidden">
-                          {/* This embeds our repair-questions component */}
-                          <div className="p-3 bg-gray-50 dark:bg-gray-900">
-                            <div className="text-xs text-muted-foreground mb-3">
-                              Use the question input below to ask the specific questions listed above
+            <TabsContent value="analysis" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Symptoms</h3>
+                <p className="text-muted-foreground">{safeData.symptomInterpretation}</p>
+              </div>
+              
+              {/* Show specific questions if available */}
+              {safeData.specificQuestions && safeData.specificQuestions.length > 0 && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                  <h3 className="text-base font-medium flex items-center gap-2">
+                    <HelpCircle className="h-4 w-4 text-primary" />
+                    Key Questions to Find Root Cause
+                  </h3>
+                  
+                  {/* Display the interactive questions component */}
+                  <div className="mt-2 mb-2">
+                    <div className="border border-primary/10 rounded-lg overflow-hidden">
+                      <div className="p-3 bg-white dark:bg-gray-950">
+                        <h4 className="text-sm font-medium mb-2">Ask these questions to improve the diagnosis:</h4>
+                        <div className="space-y-1">
+                          {answeredQuestions.filter(q => q.isSpecificQuestion).length > 0 && (
+                            <div className="text-xs text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>
+                                {answeredQuestions.filter(q => q.isSpecificQuestion).length} of {safeData.specificQuestions.length} questions answered
+                              </span>
                             </div>
-                            {/* Use the RepairQuestions component */}
-                            <RepairQuestions
-                              productType={productType}
-                              issueDescription={issueDescription}
-                              repairRequestId={repairRequestId}
-                              specificQuestions={safeData.specificQuestions}
-                              onAnswersUpdated={handleAnswersUpdated}
-                            />
+                          )}
+                          <div className="rounded-md overflow-hidden">
+                            {/* This embeds our repair-questions component */}
+                            <div className="p-3 bg-gray-50 dark:bg-gray-900">
+                              <div className="text-xs text-muted-foreground mb-3">
+                                Use the question input below to ask the specific questions listed above
+                              </div>
+                              {/* Use the RepairQuestions component */}
+                              <RepairQuestions
+                                productType={productType}
+                                issueDescription={issueDescription}
+                                repairRequestId={repairRequestId}
+                                specificQuestions={safeData.specificQuestions}
+                                onAnswersUpdated={handleAnswersUpdated}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+              
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="causes">
+                  <AccordionTrigger className="text-base font-medium">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-yellow-500" />
+                      Possible Causes
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-2 ml-6 list-disc">
+                      {safeData.possibleCauses.map((cause, i) => (
+                        <li key={i} className="text-muted-foreground">{cause}</li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="info-gaps">
+                  <AccordionTrigger className="text-base font-medium">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-blue-500" />
+                      Information Gaps
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-2 ml-6 list-disc">
+                      {safeData.informationGaps.map((gap, i) => (
+                        <li key={i} className="text-muted-foreground">{gap}</li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="solutions">
+                  <AccordionTrigger className="text-base font-medium">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Likely Solutions
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-2 ml-6 list-disc">
+                      {safeData.likelySolutions.map((solution, i) => (
+                        <li key={i} className="text-muted-foreground">{solution}</li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="warnings">
+                  <AccordionTrigger className="text-base font-medium">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                      Safety Warnings
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-2 ml-6 list-disc">
+                      {safeData.safetyWarnings.map((warning, i) => (
+                        <li key={i} className="text-muted-foreground">{warning}</li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </TabsContent>
             
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="causes">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-500" />
-                    Possible Causes
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 ml-6 list-disc">
-                    {safeData.possibleCauses.map((cause, i) => (
-                      <li key={i} className="text-muted-foreground">{cause}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
+            <TabsContent value="steps" className="pt-4">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Diagnostic Steps</h3>
+                <div className="space-y-3">
+                  {safeData.diagnosticSteps.map((step, i) => (
+                    <div key={i} className="flex gap-3 p-3 rounded-md border">
+                      <div className="bg-primary/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-primary text-sm font-medium">
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm">{step}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               
-              <AccordionItem value="info-gaps">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <HelpCircle className="h-4 w-4 text-blue-500" />
-                    Information Gaps
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 ml-6 list-disc">
-                    {safeData.informationGaps.map((gap, i) => (
-                      <li key={i} className="text-muted-foreground">{gap}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              
-              <AccordionItem value="solutions">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Likely Solutions
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 ml-6 list-disc">
-                    {safeData.likelySolutions.map((solution, i) => (
-                      <li key={i} className="text-muted-foreground">{solution}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              
-              <AccordionItem value="warnings">
-                <AccordionTrigger className="text-base font-medium">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                    Safety Warnings
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 ml-6 list-disc">
-                    {safeData.safetyWarnings.map((warning, i) => (
-                      <li key={i} className="text-muted-foreground">{warning}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </TabsContent>
+              <Alert className="mt-6 border-yellow-500/50 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <AlertTitle>Safety First</AlertTitle>
+                <AlertDescription className="text-sm">
+                  Always prioritize your safety. If you're not comfortable with these steps, 
+                  consider seeking professional help.
+                </AlertDescription>
+              </Alert>
+            </TabsContent>
+          </Tabs>
           
-          <TabsContent value="steps" className="pt-4">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Diagnostic Steps</h3>
-              <div className="space-y-3">
-                {safeData.diagnosticSteps.map((step, i) => (
-                  <div key={i} className="flex gap-3 p-3 rounded-md border">
-                    <div className="bg-primary/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-primary text-sm font-medium">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm">{step}</p>
-                    </div>
-                  </div>
-                ))}
+          {!feedbackSubmitted && (
+            <div className="pt-4 border-t flex flex-col items-center space-y-2">
+              <p className="text-sm text-muted-foreground">Was this diagnosis helpful?</p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleFeedback(true)}
+                  className="flex items-center gap-1"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  Yes
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleFeedback(false)}
+                  className="flex items-center gap-1"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  No
+                </Button>
               </div>
             </div>
-            
-            <Alert className="mt-6 border-yellow-500/50 bg-yellow-500/10">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <AlertTitle>Safety First</AlertTitle>
-              <AlertDescription className="text-sm">
-                Always prioritize your safety. If you're not comfortable with these steps, 
-                consider seeking professional help.
-              </AlertDescription>
-            </Alert>
-          </TabsContent>
-        </Tabs>
-        
-        {!feedbackSubmitted && (
-          <div className="pt-4 border-t flex flex-col items-center space-y-2">
-            <p className="text-sm text-muted-foreground">Was this diagnosis helpful?</p>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleFeedback(true)}
-                className="flex items-center gap-1"
-              >
-                <ThumbsUp className="h-4 w-4" />
-                Yes
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleFeedback(false)}
-                className="flex items-center gap-1"
-              >
-                <ThumbsDown className="h-4 w-4" />
-                No
-              </Button>
+          )}
+          
+          {feedbackSubmitted && (
+            <div className="pt-4 border-t text-center">
+              <p className="text-sm text-muted-foreground">Thanks for your feedback!</p>
             </div>
+          )}
+          
+          {/* Generate Repair Guide Button */}
+          <div className="pt-4 border-t">
+            <Button 
+              onClick={handleGenerateRepairGuide}
+              className="w-full flex items-center justify-center gap-2"
+              disabled={!diagnostic}
+            >
+              <Wrench className="h-4 w-4" />
+              Generate Repair Guide
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-        
-        {feedbackSubmitted && (
-          <div className="pt-4 border-t text-center">
-            <p className="text-sm text-muted-foreground">Thanks for your feedback!</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      {/* Display the Repair Guide component when requested */}
+      {showRepairGuide && diagnostic && (
+        <div className="mt-4">
+          <RepairGuide 
+            productType={productType}
+            issueDescription={issueDescription}
+            repairRequestId={repairRequestId}
+            diagnostic={diagnostic}
+          />
+        </div>
+      )}
+    </>
   );
 }
