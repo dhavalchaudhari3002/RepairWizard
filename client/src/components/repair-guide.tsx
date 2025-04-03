@@ -110,6 +110,7 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     }
 
     setLoading(true);
+    setGenerationAttempted(true);
     try {
       // Include diagnostic data and answered questions in the request if available
       const diagnosticInfo = diagnostic ? {
@@ -186,6 +187,7 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     }
 
     setLoading(true);
+    setGenerationAttempted(true);
     try {
       // Combine diagnostic data with the latest answered questions
       const combinedQuestions = [
@@ -295,8 +297,30 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     // Initialize the component (empty to avoid automatic generation)
   }, []);
 
+  // Only show loading indicator if generation was attempted
+  if (loading && generationAttempted) {
+    return (
+      <div className="flex items-center justify-center p-6">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2" />
+        <span>Generating guide, please wait...</span>
+      </div>
+    );
+  }
+  
+  // Show "Generate Guide" button if no guide and not loading
   if (!guide) {
-    return null;
+    return (
+      <div className="flex items-center justify-center p-6">
+        <Button 
+          onClick={generateGuide} 
+          className="flex items-center gap-2"
+          disabled={loading}
+        >
+          <Wrench className="h-4 w-4" />
+          Generate Repair Guide
+        </Button>
+      </div>
+    );
   }
 
   const step = guide.steps[currentStep];

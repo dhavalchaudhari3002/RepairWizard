@@ -65,9 +65,9 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
         <CardContent>
           <RepairGuide 
             productType={data.productType} 
-            issue={data.issueDescription || 'General repair guidance needed'}
+            issueDescription={data.issueDescription || 'General repair guidance needed'}
             repairRequestId={data.repairRequestId}
-            diagnosticData={data.diagnosticData}
+            diagnostic={data.diagnosticData}
           />
         </CardContent>
       </Card>
