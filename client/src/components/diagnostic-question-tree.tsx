@@ -56,7 +56,10 @@ export default function DiagnosticQuestionTree({
     queryKey: ['/api/diagnostic-trees', productCategory, subCategory],
     queryFn: async ({ queryKey }) => {
       try {
-        const response = await apiRequest(`/api/diagnostic-trees?category=${productCategory}${subCategory ? `&subcategory=${subCategory}` : ''}`);
+        const response = await apiRequest(
+          'GET',
+          `/api/diagnostic-trees?category=${productCategory}${subCategory ? `&subcategory=${subCategory}` : ''}`
+        );
         if (response.ok) {
           return await response.json();
         } else {

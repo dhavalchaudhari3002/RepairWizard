@@ -288,9 +288,8 @@ export function DiagnosticAnalysisNew({
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger value="diagnostic">Structured Diagnostic</TabsTrigger>
             <TabsTrigger value="steps">Troubleshooting</TabsTrigger>
           </TabsList>
           
@@ -410,69 +409,6 @@ export function DiagnosticAnalysisNew({
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </TabsContent>
-
-          <TabsContent value="diagnostic" className="pt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Structured Diagnostic Questions</h3>
-                <Badge variant="outline" className="bg-primary/5">Interactive</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Answer these questions to help pinpoint the exact issue with your {productType}.
-                This interactive diagnostic tree will guide you through relevant questions based on your specific problem.
-              </p>
-              
-              <div className="border rounded-lg p-4 bg-card">
-                <DiagnosticQuestionTree
-                  productCategory={productType}
-                  onComplete={(diagnosticAnswers: DiagnosticAnswers) => {
-                    console.log('Diagnostic question tree completed with answers:', diagnosticAnswers);
-                    // Update the diagnostic data with the new answers if needed
-                    if (diagnostic && onDiagnosticComplete) {
-                      const updatedDiagnostic = {
-                        ...diagnostic,
-                        // Add the answers to the diagnostic data
-                        // We could convert the answers to a format compatible with answeredQuestions
-                        answeredQuestions: [
-                          ...(diagnostic.answeredQuestions || []),
-                          // Add new answered questions from the diagnostic tree
-                          ...Object.entries(diagnosticAnswers.answers).map(([question, answer]) => ({
-                            question,
-                            answer: Array.isArray(answer) ? answer.join(', ') : answer.toString(),
-                            timestamp: Date.now(),
-                            isSpecificQuestion: true
-                          }))
-                        ]
-                      };
-                      
-                      setDiagnostic(updatedDiagnostic);
-                      onDiagnosticComplete(updatedDiagnostic);
-                      
-                      // Track that structured questions were answered
-                      trackInteraction({
-                        interactionType: "diagnostic_questions_answered",
-                        metadata: {
-                          productType,
-                          questionCount: diagnosticAnswers.questionPath.length,
-                          isStructuredDiagnostic: true
-                        },
-                        repairRequestId
-                      });
-                    }
-                  }}
-                />
-              </div>
-              
-              <Alert className="mt-4">
-                <HelpCircle className="h-4 w-4" />
-                <AlertTitle>How it works</AlertTitle>
-                <AlertDescription className="text-sm">
-                  This diagnostic tree adapts based on your answers. Each response helps narrow down 
-                  the possible issues with your device, leading to more accurate repair recommendations.
-                </AlertDescription>
-              </Alert>
-            </div>
           </TabsContent>
           
           <TabsContent value="steps" className="pt-4">
