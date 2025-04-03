@@ -41,6 +41,7 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [generationAttempted, setGenerationAttempted] = useState(false);
   const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   const { toast } = useToast();
   const [_, navigate] = useLocation();
@@ -289,12 +290,10 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     window.open(`https://www.youtube.com/results?search_query=${searchQuery}`, '_blank');
   };
 
-  // Generate guide when component mounts
+  // Component will only show the guide when the "Generate Repair Guide" button is clicked
   useEffect(() => {
-    if (!guide && !loading) {
-      generateGuide();
-    }
-  }, [guide, loading, generateGuide]);
+    // Initialize the component (empty to avoid automatic generation)
+  }, []);
 
   if (!guide) {
     return (
