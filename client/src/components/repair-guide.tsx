@@ -289,12 +289,12 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     window.open(`https://www.youtube.com/results?search_query=${searchQuery}`, '_blank');
   };
 
-  // Auto-generate guide when diagnostic data is available
+  // Generate guide when component mounts
   useEffect(() => {
-    if (diagnostic && !guide && !loading) {
+    if (!guide && !loading) {
       generateGuide();
     }
-  }, [diagnostic]);
+  }, [guide, loading, generateGuide]);
 
   if (!guide) {
     return (

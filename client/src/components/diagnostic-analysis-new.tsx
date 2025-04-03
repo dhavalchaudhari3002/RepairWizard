@@ -171,24 +171,24 @@ export function DiagnosticAnalysisNew({
     });
   };
   
-  // Display repair guide when diagnostic is available
-  useEffect(() => {
-    if (diagnostic && !showRepairGuide) {
-      // Track that diagnostic questions led to a guide
-      trackInteraction({
-        interactionType: "questions_led_to_guide",
-        metadata: {
-          productType,
-          issueDescription: issueDescription.substring(0, 100),
-          questionCount: diagnostic.specificQuestions?.length || 0
-        },
-        repairRequestId
-      });
-      
-      // Show the repair guide component
-      setShowRepairGuide(true);
-    }
-  }, [diagnostic, issueDescription, productType, repairRequestId, showRepairGuide, trackInteraction]);
+  // Handle generating repair guide from diagnostic data
+  const handleGenerateRepairGuide = () => {
+    if (!diagnostic) return;
+    
+    // Track that diagnostic questions led to a guide
+    trackInteraction({
+      interactionType: "questions_led_to_guide",
+      metadata: {
+        productType,
+        issueDescription: issueDescription.substring(0, 100),
+        questionCount: diagnostic.specificQuestions?.length || 0
+      },
+      repairRequestId
+    });
+    
+    // Show the repair guide component
+    setShowRepairGuide(true);
+  };
 
   // Retry fetching data
   const handleRetry = () => {
@@ -495,13 +495,25 @@ export function DiagnosticAnalysisNew({
             </div>
           )}
           
-          {/* Instructions for Repair Guide */}
+          {/* Generate Repair Guide Button */}
           <div className="pt-4 border-t">
-            <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
-              <Wrench className="h-4 w-4 text-primary" />
-              <span>Scroll down to view your detailed repair guide</span>
-              <ArrowRight className="h-4 w-4 text-primary" />
-            </div>
+            {!showRepairGuide ? (
+              <Button 
+                onClick={handleGenerateRepairGuide}
+                className="w-full flex items-center justify-center gap-2"
+                disabled={!diagnostic}
+              >
+                <Wrench className="h-4 w-4" />
+                Generate Repair Guide
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
+                <Wrench className="h-4 w-4 text-primary" />
+                <span>Scroll down to view your detailed repair guide</span>
+                <ArrowRight className="h-4 w-4 text-primary" />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
