@@ -141,6 +141,9 @@ export function DiagnosticAnalysisNew({
           },
           repairRequestId
         });
+        
+        // Automatically show the repair guide when diagnostic data is available
+        setShowRepairGuide(true);
       } catch (err) {
         console.error("Error fetching diagnostic data:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -495,19 +498,9 @@ export function DiagnosticAnalysisNew({
             </div>
           )}
           
-          {/* Generate Repair Guide Button */}
+          {/* Repair Guide Navigation Help */}
           <div className="pt-4 border-t">
-            {!showRepairGuide ? (
-              <Button 
-                onClick={handleGenerateRepairGuide}
-                className="w-full flex items-center justify-center gap-2"
-                disabled={!diagnostic}
-              >
-                <Wrench className="h-4 w-4" />
-                Generate Repair Guide
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            ) : (
+            {showRepairGuide && (
               <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
                 <Wrench className="h-4 w-4 text-primary" />
                 <span>Scroll down to view your detailed repair guide</span>
