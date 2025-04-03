@@ -1085,13 +1085,13 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
         
         // Ensure we have all required fields
         const validatedResult: ImageAnalysisResult = {
-          detected_issue: parsedResult.detected_issue || "Unable to determine issue from image",
-          confidence: typeof parsedResult.confidence === 'number' ? parsedResult.confidence : 0.5,
-          additional_questions: Array.isArray(parsedResult.additional_questions) ? parsedResult.additional_questions : [
+          detected_issue: parsedResult?.detected_issue || "Unable to determine issue from image",
+          confidence: typeof parsedResult?.confidence === 'number' ? parsedResult.confidence : 0.5,
+          additional_questions: Array.isArray(parsedResult?.additional_questions) ? parsedResult.additional_questions : [
             "Can you describe the issue in more detail?",
             "When did you first notice this problem?"
           ],
-          recommendations: Array.isArray(parsedResult.recommendations) ? parsedResult.recommendations : []
+          recommendations: Array.isArray(parsedResult?.recommendations) ? parsedResult.recommendations : []
         };
         
         console.log("Image analysis result:", validatedResult);
