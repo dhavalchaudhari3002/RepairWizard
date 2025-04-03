@@ -186,6 +186,70 @@ export function useInteractionTracking() {
     });
   }, [trackInteraction]);
 
+  /**
+   * Track diagnostic generation
+   */
+  const trackDiagnosticGenerated = useCallback((
+    repairRequestId: number,
+    productType: string,
+    metadata?: { issueDescription: string }
+  ) => {
+    return trackInteraction({
+      repairRequestId,
+      productType,
+      interactionType: 'diagnostic_generated',
+      metadata
+    });
+  }, [trackInteraction]);
+
+  /**
+   * Track diagnostic feedback (if it was helpful)
+   */
+  const trackDiagnosticFeedback = useCallback((
+    repairRequestId: number,
+    productType: string,
+    metadata: { helpful: boolean }
+  ) => {
+    return trackInteraction({
+      repairRequestId,
+      productType,
+      interactionType: 'diagnostic_feedback',
+      metadata
+    });
+  }, [trackInteraction]);
+
+  /**
+   * Track when specific diagnostic questions are answered
+   */
+  const trackDiagnosticQuestionsAnswered = useCallback((
+    repairRequestId: number,
+    productType: string,
+    metadata: { questionCount: number }
+  ) => {
+    return trackInteraction({
+      repairRequestId,
+      productType,
+      interactionType: 'diagnostic_questions_answered',
+      metadata
+    });
+  }, [trackInteraction]);
+
+  /**
+   * Track when questions led to a guide
+   */
+  const trackQuestionsLedToGuide = useCallback((
+    repairRequestId: number,
+    productType: string,
+    metadata: { questionCount: number }
+  ) => {
+    return trackInteraction({
+      repairRequestId,
+      productType,
+      interactionType: 'questions_led_to_guide',
+      metadata
+    });
+  }, [trackInteraction]);
+
   return {
     trackInteraction,
     trackGuideView,
@@ -196,6 +260,10 @@ export function useInteractionTracking() {
     trackGuideAbandonment,
     trackProductClick,
     trackVideoSearch,
-    trackGuideUpdatedWithAnswers
+    trackGuideUpdatedWithAnswers,
+    trackDiagnosticGenerated,
+    trackDiagnosticFeedback,
+    trackDiagnosticQuestionsAnswered,
+    trackQuestionsLedToGuide
   };
 }

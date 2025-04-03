@@ -175,13 +175,13 @@ export function DiagnosticAnalysisNew({
   const handleGenerateRepairGuide = () => {
     if (!diagnostic) return;
     
-    // Track that the user requested a repair guide
+    // Track that diagnostic questions led to a guide
     trackInteraction({
-      interactionType: "repair_guide_requested",
+      interactionType: "questions_led_to_guide",
       metadata: {
         productType,
         issueDescription: issueDescription.substring(0, 100),
-        fromDiagnostic: true
+        questionCount: diagnostic.specificQuestions?.length || 0
       },
       repairRequestId
     });

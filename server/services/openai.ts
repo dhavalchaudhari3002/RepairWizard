@@ -1060,18 +1060,38 @@ Ensure your answers avoid oversimplified suggestions like "just replace the comp
         const cleanContent = content.replace(/```json\n|\n```/g, '');
         console.log("Attempting to parse JSON from:", cleanContent);
         
-        // Parse the JSON response for image analysis
-        const result = JSON.parse(cleanContent);
+        let parsedResult;
+        try {
+          // Parse the JSON response for image analysis
+          parsedResult = JSON.parse(cleanContent);
+        } catch (parseError) {
+          console.error("Failed to parse JSON response from OpenAI:", parseError);
+          
+          // Fallback to text-based response if JSON parsing fails
+          return {
+            detected_issue: "Failed to analyze image. Using text description only.",
+            confidence: 0.4,
+            additional_questions: [
+              "Can you provide more details about the specific issue?",
+              "When did you first notice this problem?",
+              "Have you tried any troubleshooting steps already?"
+            ],
+            recommendations: [
+              "Provide more specific details about the issue",
+              "If possible, try to use text descriptions instead of images"
+            ]
+          };
+        }
         
         // Ensure we have all required fields
         const validatedResult: ImageAnalysisResult = {
-          detected_issue: result.detected_issue || "Unable to determine issue from image",
-          confidence: typeof result.confidence === 'number' ? result.confidence : 0.5,
-          additional_questions: Array.isArray(result.additional_questions) ? result.additional_questions : [
+          detected_issue: parsedResult.detected_issue || "Unable to determine issue from image",
+          confidence: typeof parsedResult.confidence === 'number' ? parsedResult.confidence : 0.5,
+          additional_questions: Array.isArray(parsedResult.additional_questions) ? parsedResult.additional_questions : [
             "Can you describe the issue in more detail?",
             "When did you first notice this problem?"
           ],
-          recommendations: Array.isArray(result.recommendations) ? result.recommendations : []
+          recommendations: Array.isArray(parsedResult.recommendations) ? parsedResult.recommendations : []
         };
         
         console.log("Image analysis result:", validatedResult);
