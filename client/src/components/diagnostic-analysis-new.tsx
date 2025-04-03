@@ -60,7 +60,7 @@ export function DiagnosticAnalysisNew({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   const [diagnosticTreeAnswers, setDiagnosticTreeAnswers] = useState<DiagnosticAnswers | null>(null);
-  const [showRepairGuide, setShowRepairGuide] = useState(false);
+  const [showRepairGuide, setShowRepairGuide] = useState(true);
   
   const { toast } = useToast();
   const { trackInteraction } = useInteractionTracking();
