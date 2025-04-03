@@ -377,6 +377,33 @@ export default function DiagnosticQuestionTree({
               </div>
             )}
             
+            {/* Complementary media suggestion */}
+            {!currentQuestion.followupAudioPrompt && imageUrl && !audioUrl && (
+              <div className="mt-6 p-4 bg-muted/30 rounded-md border border-muted">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <MicIcon className="h-4 w-4 text-primary" />
+                  Sound helps diagnose problems better
+                </h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Adding a recording of the sound your {subCategory || productCategory} makes can help us diagnose the issue more accurately.
+                </p>
+                <AudioUpload onAudioCaptured={handleAudioUpload} existingAudio={audioUrl} />
+              </div>
+            )}
+            
+            {!currentQuestion.followupImagePrompt && audioUrl && !imageUrl && (
+              <div className="mt-6 p-4 bg-muted/30 rounded-md border border-muted">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                  A picture is worth a thousand words
+                </h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Adding a photo of your {subCategory || productCategory} will help us identify the issue more precisely.
+                </p>
+                <ImageUpload onImageUploaded={handleImageUpload} initialImageUrl={imageUrl} />
+              </div>
+            )}
+            
             {/* Optional notes field */}
             <div className="mt-6">
               <h4 className="text-sm font-medium mb-2">Additional notes (optional)</h4>
