@@ -43,6 +43,7 @@ interface DiagnosticAnalysisProps {
   repairRequestId?: number;
   audioUrl?: string; // Add audio recording URL
   onDiagnosticComplete?: (data: RepairDiagnostic) => void;
+  showRepairGuideButton?: boolean; // Control if repair guide button should be shown
 }
 
 export function DiagnosticAnalysisNew({ 
@@ -50,7 +51,8 @@ export function DiagnosticAnalysisNew({
   issueDescription, 
   repairRequestId,
   audioUrl,
-  onDiagnosticComplete 
+  onDiagnosticComplete,
+  showRepairGuideButton = false // Default to false to avoid duplicate buttons
 }: DiagnosticAnalysisProps) {
   // Simple state management
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,7 @@ export function DiagnosticAnalysisNew({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [answeredQuestions, setAnsweredQuestions] = useState<AnsweredQuestion[]>([]);
   const [diagnosticTreeAnswers, setDiagnosticTreeAnswers] = useState<DiagnosticAnswers | null>(null);
+  // Don't show repair guide by default - this avoids duplicate repair guides when used with RepairGuidance
   const [showRepairGuide, setShowRepairGuide] = useState(false);
   
   const { toast } = useToast();
@@ -142,8 +145,8 @@ export function DiagnosticAnalysisNew({
           repairRequestId
         });
         
-        // Automatically show the repair guide when diagnostic data is available
-        setShowRepairGuide(true);
+        // No longer automatically showing repair guide from DiagnosticAnalysis
+        // since it's now handled by RepairGuidance component
       } catch (err) {
         console.error("Error fetching diagnostic data:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -498,14 +501,26 @@ export function DiagnosticAnalysisNew({
             </div>
           )}
           
-          {/* Repair Guide Navigation Help */}
+          {/* Repair Guide Navigation Help or Button */}
           <div className="pt-4 border-t">
-            {showRepairGuide && (
+            {showRepairGuide ? (
               <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
                 <Wrench className="h-4 w-4 text-primary" />
                 <span>Scroll down to view your detailed repair guide</span>
                 <ArrowRight className="h-4 w-4 text-primary" />
               </div>
+            ) : (
+              showRepairGuideButton && (
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={handleGenerateRepairGuide} 
+                    className="flex items-center gap-2"
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Generate Repair Guide
+                  </Button>
+                </div>
+              )
             )}
           </div>
         </CardContent>
