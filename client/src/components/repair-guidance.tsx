@@ -5,11 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle2, Wrench } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { RepairGuide } from "./repair-guide";
 import { RepairDiagnostic } from "./diagnostic-analysis-new";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface RepairGuidanceData {
   productType: string;
@@ -21,9 +19,6 @@ interface RepairGuidanceData {
 }
 
 export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
-  // State to control whether to show the repair guide
-  // If we already have diagnostic data, automatically show the guide
-  const [showGuide, setShowGuide] = useState(!!data.diagnosticData);
 
   return (
     <div className="space-y-6">
@@ -68,24 +63,13 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
           <CardDescription>Step-by-step repair instructions</CardDescription>
         </CardHeader>
         <CardContent>
-          {!showGuide ? (
-            <div className="flex justify-center items-center p-6">
-              <Button 
-                onClick={() => setShowGuide(true)} 
-                className="flex items-center gap-2"
-              >
-                <Wrench className="h-4 w-4" />
-                Generate Repair Guide
-              </Button>
-            </div>
-          ) : (
-            <RepairGuide 
-              productType={data.productType} 
-              issueDescription={data.issueDescription || 'General repair guidance needed'}
-              repairRequestId={data.repairRequestId}
-              diagnostic={data.diagnosticData}
-            />
-          )}
+          <RepairGuide 
+            productType={data.productType} 
+            issueDescription={data.issueDescription || 'General repair guidance needed'}
+            repairRequestId={data.repairRequestId}
+            diagnostic={data.diagnosticData}
+            autoGenerate={true} // Auto-generate the guide without showing a button
+          />
         </CardContent>
       </Card>
     </div>

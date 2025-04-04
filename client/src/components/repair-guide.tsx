@@ -35,9 +35,16 @@ interface RepairGuideProps {
   issueDescription: string;
   repairRequestId?: number;
   diagnostic?: RepairDiagnostic | null;
+  autoGenerate?: boolean; // Add this prop to control automatic generation
 }
 
-export function RepairGuide({ productType, issueDescription, repairRequestId, diagnostic }: RepairGuideProps) {
+export function RepairGuide({ 
+  productType, 
+  issueDescription, 
+  repairRequestId, 
+  diagnostic, 
+  autoGenerate = false 
+}: RepairGuideProps) {
   const [guide, setGuide] = useState<RepairGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -292,10 +299,12 @@ export function RepairGuide({ productType, issueDescription, repairRequestId, di
     window.open(`https://www.youtube.com/results?search_query=${searchQuery}`, '_blank');
   };
 
-  // Component will only show the guide when the "Generate Repair Guide" button is clicked
+  // Auto-generate guide if autoGenerate is true
   useEffect(() => {
-    // Initialize the component (empty to avoid automatic generation)
-  }, []);
+    if (autoGenerate && !guide && !loading && !generationAttempted) {
+      generateGuide();
+    }
+  }, [autoGenerate, guide, loading, generationAttempted]);
 
   // Only show loading indicator if generation was attempted
   if (loading && generationAttempted) {
