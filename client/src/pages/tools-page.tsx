@@ -10,35 +10,35 @@ const phoneRepairTools = [
     description: "Professional toolkit with precision bits for repairing smartphones, tablets, and laptops",
     price: 69.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=iFixit+Kit",
-    amazonUrl: "https://www.amazon.com/iFixit-Pro-Tech-Toolkit-Electronics/dp/B01GF0KV6G?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/iFixit-Pro-Tech-Toolkit-Electronics/dp/B01GF0KV6G?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Anti-Static Wrist Strap",
     description: "Prevents static discharge that can damage sensitive electronic components during repair",
     price: 6.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wrist+Strap",
-    amazonUrl: "https://www.amazon.com/Wristband-Bracelet-Grounding-Discharge-Prevention/dp/B08CXQN86W?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Wristband-Bracelet-Grounding-Discharge-Prevention/dp/B08CXQN86W?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Phone Screen Opening Tools",
     description: "Set of plastic pry tools and suction cups for safely opening smartphone screens",
     price: 11.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Opening+Tools",
-    amazonUrl: "https://www.amazon.com/Opening-Precision-Screwdriver-Non-Abrasive-Smartphones/dp/B01N4HS7QW?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Opening-Precision-Screwdriver-Non-Abrasive-Smartphones/dp/B01N4HS7QW?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Magnetic Screw Mat",
     description: "Keeps tiny screws organized during phone disassembly and repair",
     price: 13.95,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screw+Mat",
-    amazonUrl: "https://www.amazon.com/Magnetic-Project-Cellphone-Disassembly-Technicians/dp/B06Y5GVQPR?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Magnetic-Project-Cellphone-Disassembly-Technicians/dp/B06Y5GVQPR?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Heat Gun",
     description: "Used for softening adhesive when removing screens, batteries, and other components",
     price: 22.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Heat+Gun",
-    amazonUrl: "https://www.amazon.com/Wagner-Spraytech-0503008-Heat-Ultra/dp/B00004TUCV?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Wagner-Spraytech-0503008-Heat-Ultra/dp/B00004TUCV?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   }
 ];
 
@@ -49,35 +49,35 @@ const laptopRepairTools = [
     description: "45-in-1 screwdriver set with magnetic tips for laptop, tablet, and electronics repair",
     price: 16.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Precision+Set",
-    amazonUrl: "https://www.amazon.com/Precision-Screwdriver-Magnetic-Electronics-Cellphone/dp/B08PF6H7QN?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Precision-Screwdriver-Magnetic-Electronics-Cellphone/dp/B08PF6H7QN?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Spudger Tool Set",
     description: "Nylon pry tools for safely separating components without causing damage",
     price: 8.95,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Spudger+Tools",
-    amazonUrl: "https://www.amazon.com/Plastic-Spudger-Opening-Tablets-MacBook/dp/B00KKVPZKE?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Plastic-Spudger-Opening-Tablets-MacBook/dp/B00KKVPZKE?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Anti-Static Gloves",
     description: "Prevents static discharge that can damage sensitive laptop components",
     price: 12.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=ESD+Gloves",
-    amazonUrl: "https://www.amazon.com/Static-Resistant-Gloves-Computer-Working/dp/B087C2K85D?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Static-Resistant-Gloves-Computer-Working/dp/B087C2K85D?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Thermal Paste",
     description: "High performance thermal compound for CPU and GPU cooling",
     price: 8.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Thermal+Paste",
-    amazonUrl: "https://www.amazon.com/ARCTIC-MX-4-Compound-Performance-Interface/dp/B0795DP124?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/ARCTIC-MX-4-Compound-Performance-Interface/dp/B0795DP124?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Compressed Air Duster",
     description: "For removing dust from fans, keyboards, and hard-to-reach places",
     price: 9.99,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Air+Duster",
-    amazonUrl: "https://www.amazon.com/Compressed-Computer-Keyboard-Electronics-Compressed-Air/dp/B07SHJZ797?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Compressed-Computer-Keyboard-Electronics-Compressed-Air/dp/B07SHJZ797?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   }
 ];
 
@@ -88,35 +88,35 @@ const woodworkingTools = [
     description: "Compact, lightweight design fits into tight areas with LED light ring",
     price: 99.00,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Cordless+Drill",
-    amazonUrl: "https://www.amazon.com/DEWALT-DCD771C2-20V-Lithium-Ion-Compact/dp/B00ET5VMTU?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/DEWALT-DCD771C2-20V-Lithium-Ion-Compact/dp/B00ET5VMTU?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "WEN Random Orbit Sander",
     description: "5-inch random orbital sander with dust collector for smooth finishing",
     price: 35.27,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Orbit+Sander",
-    amazonUrl: "https://www.amazon.com/WEN-6301-Random-Orbital-Sander/dp/B00BD5G9VA?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/WEN-6301-Random-Orbital-Sander/dp/B00BD5G9VA?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "IRWIN QUICK-GRIP Clamps",
     description: "4-pack of one-handed bar clamps for securing workpieces",
     price: 34.97,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Quick+Clamps",
-    amazonUrl: "https://www.amazon.com/IRWIN-QUICK-GRIP-1964758-One-Handed-Special/dp/B001DSY4QO?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/IRWIN-QUICK-GRIP-1964758-One-Handed-Special/dp/B001DSY4QO?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "Titebond Ultimate Wood Glue",
     description: "Waterproof wood adhesive with superior bond strength",
     price: 7.47,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wood+Glue",
-    amazonUrl: "https://www.amazon.com/Titebond-1416-Ultimate-Glue-16-Ounce/dp/B0002YQ3KA?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/Titebond-1416-Ultimate-Glue-16-Ounce/dp/B0002YQ3KA?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   },
   {
     name: "CRAFTSMAN Circular Saw",
     description: "7-1/4-inch corded circular saw for precise, powerful cutting",
     price: 49.98,
     imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Circular+Saw",
-    amazonUrl: "https://www.amazon.com/CRAFTSMAN-CMES500-Circular-Laser-Guide/dp/B07TT4Q7LB?tag=youraffiliateID-20"
+    amazonUrl: "https://www.amazon.com/CRAFTSMAN-CMES500-Circular-Laser-Guide/dp/B07TT4Q7LB?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
   }
 ];
 
@@ -168,35 +168,35 @@ function findRecommendedTools(toolNames: string[]): Tool[] {
       description: "40-piece socket set with ratchet, perfect for car and home repairs",
       price: 24.97,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Socket+Set",
-      amazonUrl: "https://www.amazon.com/DEWALT-Socket-Set-SAE-Piece/dp/B000GTSOYM?tag=youraffiliateID-20"
+      amazonUrl: "https://www.amazon.com/DEWALT-Socket-Set-SAE-Piece/dp/B000GTSOYM?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
     },
     "pliers": {
       name: "IRWIN VISE-GRIP Pliers Set",
       description: "3-piece pliers set including needle nose, diagonal, and slip joint pliers",
       price: 19.98,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Pliers+Set",
-      amazonUrl: "https://www.amazon.com/Tools-VISE-GRIP-Original-3-Piece-2078705/dp/B07MDLT6SK?tag=youraffiliateID-20"
+      amazonUrl: "https://www.amazon.com/Tools-VISE-GRIP-Original-3-Piece-2078705/dp/B07MDLT6SK?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
     },
     "car jack": {
       name: "Torin Big Red Hydraulic Floor Jack",
       description: "3 ton capacity steel floor jack for vehicle maintenance",
       price: 44.99,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Floor+Jack",
-      amazonUrl: "https://www.amazon.com/Torin-Hydraulic-Trolley-Floor-Capacity/dp/B0028JQYVE?tag=youraffiliateID-20"
+      amazonUrl: "https://www.amazon.com/Torin-Hydraulic-Trolley-Floor-Capacity/dp/B0028JQYVE?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
     },
     "wrench": {
       name: "TEKTON Wrench Set",
       description: "30-piece combination wrench set with storage pouch",
       price: 52.99,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Wrench+Set",
-      amazonUrl: "https://www.amazon.com/TEKTON-Combination-Wrench-30-Piece-WRN53190/dp/B00I5THC4C?tag=youraffiliateID-20"
+      amazonUrl: "https://www.amazon.com/TEKTON-Combination-Wrench-30-Piece-WRN53190/dp/B00I5THC4C?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
     },
     "screwdriver": {
       name: "CRAFTSMAN Screwdriver Set",
       description: "12-piece set with various sizes and types for all-purpose repairs",
       price: 39.97,
       imageUrl: "https://placehold.co/200x200/e2e8f0/1e293b?text=Screwdriver+Set",
-      amazonUrl: "https://www.amazon.com/CRAFTSMAN-Screwdriver-Slotted-Cushion-CMHT65048/dp/B07ZYTBKYS?tag=youraffiliateID-20"
+      amazonUrl: "https://www.amazon.com/CRAFTSMAN-Screwdriver-Slotted-Cushion-CMHT65048/dp/B07ZYTBKYS?&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl"
     }
   };
 
@@ -238,7 +238,7 @@ function findRecommendedTools(toolNames: string[]): Tool[] {
         description: `Essential tool for your repair project`,
         price: 19.99,
         imageUrl: `https://placehold.co/200x200/e2e8f0/1e293b?text=${encodeURIComponent(toolName)}`,
-        amazonUrl: `https://www.amazon.com/s?k=${encodeURIComponent(toolName)}&tag=youraffiliateID-20`
+        amazonUrl: `https://www.amazon.com/s?k=${encodeURIComponent(toolName)}&&linkCode=ll2&tag=reusehubaffil-20&linkId=643164c6dcf4b98514d6e482e7980f17&language=en_US&ref_=as_li_ss_tl`
       });
     }
   });
