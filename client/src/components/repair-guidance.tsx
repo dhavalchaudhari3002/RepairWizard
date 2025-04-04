@@ -68,7 +68,7 @@ export function RepairGuidance({ data }: { data: RepairGuidanceData }) {
             issueDescription={data.issueDescription || 'General repair guidance needed'}
             repairRequestId={data.repairRequestId}
             diagnostic={data.diagnosticData}
-            autoGenerate={true} // Auto-generate the guide without showing a button
+            autoGenerate={false} // Don't auto-generate the guide, let user click the button
           />
         </CardContent>
       </Card>
