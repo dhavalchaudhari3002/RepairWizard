@@ -27,6 +27,7 @@ import {
 import { createBasicDiagnosticTree, treeToDbFormat } from "./utils/diagnostic-tree";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { googleCloudStorage } from "./services/google-cloud-storage";
 
 declare module 'express-session' {
   interface SessionData {
@@ -819,6 +820,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to initialize ML-based repair cost API:", error);
     console.log("Application will continue with rule-based estimation only");
   }
+
+  // Google Cloud Storage routes
+  app.get("/api/cloud-storage/status", (req, res) => {
+    try {
+      const isConfigured = googleCloudStorage.isConfigured();
+      res.json({
+        status: isConfigured ? "configured" : "not_configured",
+        message: isConfigured 
+          ? "Google Cloud Storage is properly configured" 
+          : "Google Cloud Storage is not configured. Please check your environment variables."
+      });
+    } catch (error) {
+      console.error("Error checking Google Cloud Storage status:", error);
+      res.status(500).json({ 
+        status: "error", 
+        message: "Failed to check Google Cloud Storage status",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // File upload endpoint
+  app.post("/api/cloud-storage/upload", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      if (!req.body.file) {
+        return res.status(400).json({ error: "No file data provided" });
+      }
+
+      // Extract file data from the request
+      // Client should send base64 encoded data
+      const { file, contentType, fileName, folder } = req.body;
+      
+      if (!file || !contentType) {
+        return res.status(400).json({ 
+          error: "File data and content type are required" 
+        });
+      }
+
+      // Convert base64 to buffer
+      let fileBuffer;
+      try {
+        // Handle data URIs (e.g., "data:image/jpeg;base64,/9j/4AAQSkZJRg...")
+        const base64Data = file.includes('base64,') 
+          ? file.split('base64,')[1] 
+          : file;
+          
+        fileBuffer = Buffer.from(base64Data, 'base64');
+      } catch (error) {
+        console.error("Error decoding base64 data:", error);
+        return res.status(400).json({ error: "Invalid file data" });
+      }
+
+      // Upload to Google Cloud Storage
+      const url = await googleCloudStorage.uploadFile(fileBuffer, {
+        contentType,
+        customName: fileName,
+        folder: folder || `user_${req.user.id}`,
+        isPublic: true
+      });
+
+      res.json({ 
+        success: true, 
+        url,
+        message: "File uploaded successfully" 
+      });
+    } catch (error) {
+      console.error("Error uploading file to Google Cloud Storage:", error);
+      res.status(500).json({ 
+        error: "Failed to upload file", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // File deletion endpoint
+  app.delete("/api/cloud-storage/files", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "File URL is required" });
+      }
+
+      await googleCloudStorage.deleteFile(url);
+      res.json({ 
+        success: true, 
+        message: "File deleted successfully" 
+      });
+    } catch (error) {
+      console.error("Error deleting file from Google Cloud Storage:", error);
+      res.status(500).json({ 
+        error: "Failed to delete file", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   console.log("All routes registered successfully");
   return httpServer;
