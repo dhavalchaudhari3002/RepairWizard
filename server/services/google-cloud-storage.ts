@@ -16,6 +16,8 @@ class GoogleCloudStorageService {
   private storage: Storage;
   private bucketName: string;
   private isReady: boolean = false;
+  // Add a static property to track which folder IDs have been processed
+  private static processedFolderIds = new Set<number>();
   
   /**
    * Check if Google Cloud Storage is properly configured and accessible
@@ -442,10 +444,6 @@ class GoogleCloudStorageService {
       throw new Error('Google Cloud Storage is not configured');
     }
     
-    // Add explicit tracking of which folder IDs have already been processed
-    // This is a more defensive approach to prevent duplicate folder creation
-    static processedFolderIds = new Set<number>();
-    
     // If this session has already been processed, skip folder creation
     if (GoogleCloudStorageService.processedFolderIds.has(sessionId)) {
       console.log(`Folder structure for session #${sessionId} was already created in this server process, skipping repeated creation`);
@@ -525,6 +523,10 @@ class GoogleCloudStorageService {
           // Continue with other folders rather than aborting completely
         }
       }
+      
+      // Mark this session as processed to avoid duplicate folder creation in the same server process
+      GoogleCloudStorageService.processedFolderIds.add(sessionId);
+      console.log(`Marked session #${sessionId} as processed to prevent duplicate folder creation`);
       
       return baseFolder;
     } catch (error) {
