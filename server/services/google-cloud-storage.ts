@@ -16,8 +16,9 @@ class GoogleCloudStorageService {
   private storage: Storage;
   private bucketName: string;
   private isReady: boolean = false;
-  // Add a static property to track which folder IDs have been processed
+  // Add static properties to track which folder IDs have been processed and are currently being processed
   private static processedFolderIds = new Set<number>();
+  private static folderCreationInProgress = new Map<number, Promise<string>>();
   
   /**
    * Check if Google Cloud Storage is properly configured and accessible
