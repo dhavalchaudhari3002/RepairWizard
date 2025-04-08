@@ -20,6 +20,7 @@ import ToolsPage from '@/pages/tools-page';
 import UploadImagePage from '@/pages/upload-image-page';
 import VerificationPage from '@/pages/verification-page';
 import CloudStoragePage from '@/pages/cloud-storage-page';
+import { RepairJourneyPage } from '@/pages/repair-journey-page';
 
 // Protected route wrapper
 import { ProtectedRoute } from '@/lib/protected-route';
@@ -69,6 +70,7 @@ export default function App() {
                       <Route path="/upload-image" component={UploadImagePage} />
                       <Route path="/verification" component={VerificationPage} />
                       <Route path="/cloud-storage" component={() => <ProtectedRoute component={CloudStoragePage} />} />
+                      <Route path="/repair-journey" component={() => <ProtectedRoute component={RepairJourneyPage} />} />
                       <Route component={NotFound} />
                     </Switch>
                   </main>

@@ -210,11 +210,182 @@ class GoogleCloudStorageService {
   }
 
   /**
+   * Save JSON data to Google Cloud Storage
+   * @param data - The data to save
+   * @param options - Upload options like folder, custom name, etc.
+   * @returns The public URL of the saved JSON file
+   */
+  async saveJsonData(data: any, options: UploadOptions = {}): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+
+    // Convert data to JSON string and then to buffer
+    const jsonString = JSON.stringify(data, null, 2);
+    const fileBuffer = Buffer.from(jsonString, 'utf-8');
+    
+    // Default content type for JSON
+    const contentType = options.contentType || 'application/json';
+    
+    // Default file extension for JSON
+    let customName = options.customName || this.generateFileName();
+    if (!customName.endsWith('.json')) {
+      customName += '.json';
+    }
+    
+    // Upload with modified options
+    return this.uploadFile(fileBuffer, {
+      ...options,
+      contentType,
+      customName
+    });
+  }
+
+  /**
    * Check if the service is properly configured
    * @returns Boolean indicating if the service is ready to use
    */
   isConfigured(): boolean {
     return this.isReady && !!this.bucketName;
+  }
+  
+  /**
+   * Upload a base64 encoded image to Google Cloud Storage
+   * @param base64Data - The base64 encoded image data
+   * @param options - Upload options like folder, custom name, etc.
+   * @returns The public URL of the uploaded image
+   */
+  async uploadBase64Image(base64Data: string, options: UploadOptions = {}): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    // Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+    let actualBase64Data = base64Data;
+    if (base64Data.includes(';base64,')) {
+      const contentType = base64Data.split(';')[0].split(':')[1];
+      actualBase64Data = base64Data.split(',')[1];
+      options.contentType = options.contentType || contentType;
+    }
+    
+    // Convert base64 to buffer
+    const fileBuffer = Buffer.from(actualBase64Data, 'base64');
+    
+    // Determine file extension based on content type if not specified
+    if (options.contentType && !options.customName) {
+      const extension = this.getExtensionFromContentType(options.contentType);
+      const generatedName = this.generateFileName();
+      options.customName = `${generatedName}${extension}`;
+    }
+    
+    // Upload the file
+    return this.uploadFile(fileBuffer, options);
+  }
+  
+  /**
+   * Get file extension from content type
+   * @param contentType - The content type (MIME type)
+   * @returns Appropriate file extension including the dot
+   */
+  private getExtensionFromContentType(contentType: string): string {
+    const extensionMap: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+      'application/pdf': '.pdf',
+      'application/json': '.json',
+      'text/plain': '.txt',
+      'text/html': '.html',
+      'text/css': '.css',
+      'text/javascript': '.js',
+    };
+    
+    return extensionMap[contentType] || '.bin';
+  }
+  
+  /**
+   * Creates the necessary folder structure for a repair journey
+   * @param sessionId - The ID of the repair session
+   * @returns The folder path created
+   */
+  async createRepairJourneyFolderStructure(sessionId: number): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    const baseFolder = `repair_sessions/${sessionId}`;
+    const subFolders = ['diagnostics', 'issue_confirmation', 'repair_guide', 'uploads'];
+    
+    try {
+      // Creating an empty file in each folder to ensure the folder structure exists
+      for (const subFolder of subFolders) {
+        const folderPath = `${baseFolder}/${subFolder}`;
+        const placeholderFile = `${folderPath}/.folder`;
+        const emptyBuffer = Buffer.from('');
+        
+        await this.uploadFile(emptyBuffer, {
+          folder: folderPath,
+          customName: '.folder',
+          contentType: 'application/x-empty'
+        });
+        
+        console.log(`Created folder structure: ${folderPath}`);
+      }
+      
+      return baseFolder;
+    } catch (error) {
+      console.error('Error creating repair journey folder structure:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Save repair journey data, organizing it by stage
+   * @param sessionId - The ID of the repair session
+   * @param stage - The stage of the repair journey (diagnostics, issue_confirmation, repair_guide)
+   * @param data - The data to save
+   * @param customFileName - Optional custom file name (default is based on timestamp)
+   * @returns The URL of the saved data
+   */
+  async saveRepairJourneyData(
+    sessionId: number, 
+    stage: string, 
+    data: any, 
+    customFileName?: string
+  ): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    // Validate stage name
+    const validStages = ['diagnostics', 'issue_confirmation', 'repair_guide', 'uploads'];
+    if (!validStages.includes(stage)) {
+      throw new Error(`Invalid stage: ${stage}. Must be one of: ${validStages.join(', ')}`);
+    }
+    
+    // Add metadata to the data object
+    const dataWithMetadata = {
+      ...data,
+      _metadata: {
+        sessionId,
+        stage,
+        timestamp: new Date().toISOString(),
+      }
+    };
+    
+    // Generate file name
+    const fileName = customFileName || `${stage}_${Date.now()}.json`;
+    const folder = `repair_sessions/${sessionId}/${stage}`;
+    
+    // Save the data
+    return this.saveJsonData(dataWithMetadata, {
+      folder,
+      customName: fileName,
+      isPublic: false
+    });
   }
 }
 

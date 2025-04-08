@@ -1,181 +1,137 @@
 /**
- * Google Cloud Storage API integration
- * Handles file uploads and management
+ * Converts a file to base64 encoded string for sending to the server
+ * @param file The file to convert
+ * @returns A Promise resolving to the base64 encoded string
  */
-
-interface CloudStorageStatus {
-  status: 'configured' | 'not_configured' | 'error';
-  message: string;
-  error?: string;
-}
-
-interface UploadFileOptions {
-  contentType: string;
-  fileName?: string;
-  folder?: string;
-}
-
-interface UploadFileResponse {
-  success: boolean;
-  url?: string;
-  message: string;
-  error?: string;
-}
-
-interface DeleteFileResponse {
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
-/**
- * Check if Google Cloud Storage is properly configured
- */
-export async function checkCloudStorageStatus(): Promise<CloudStorageStatus> {
-  try {
-    const response = await fetch('/api/cloud-storage/status');
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        status: 'error',
-        message: errorData.message || 'Failed to check Cloud Storage status',
-        error: errorData.error
-      };
-    }
-    return await response.json();
-  } catch (error) {
-    return {
-      status: 'error',
-      message: 'Failed to connect to the Cloud Storage service',
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
-
-/**
- * Upload a file to Google Cloud Storage
- * @param file - The file to upload (either File object or base64 string)
- * @param options - Upload options
- */
-export async function uploadFile(
-  file: File | string,
-  options: UploadFileOptions
-): Promise<UploadFileResponse> {
-  try {
-    // Check if the input is a File object or a base64 string
-    let fileData: string;
-    let contentType = options.contentType;
-    
-    if (typeof file === 'string') {
-      // It's already a base64 string or data URL
-      fileData = file;
-    } else {
-      // Convert File to base64
-      fileData = await fileToBase64(file);
-      // If content type wasn't specified, use the file's type
-      if (!contentType) {
-        contentType = file.type;
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        // The result includes the data URL prefix (e.g., "data:image/png;base64,")
+        // We need to strip this prefix for backend processing
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      } else {
+        reject(new Error('Failed to convert file to base64'));
       }
+    };
+    reader.onerror = error => reject(error);
+  });
+};
+
+/**
+ * Converts a base64 encoded string back to a Blob object
+ * @param base64 The base64 encoded string
+ * @param contentType The content type of the file
+ * @returns A Blob representation of the data
+ */
+export const base64ToBlob = (base64: string, contentType: string): Blob => {
+  const byteCharacters = atob(base64);
+  const byteArrays = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+    const slice = byteCharacters.slice(offset, offset + 1024);
+    
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
     }
     
-    const response = await fetch('/api/cloud-storage/upload', {
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  
+  return new Blob(byteArrays, { type: contentType });
+};
+
+/**
+ * Creates a downloadable URL from a base64 encoded string
+ * @param base64 The base64 encoded string
+ * @param contentType The content type of the file
+ * @returns A URL that can be used to download or display the file
+ */
+export const base64ToUrl = (base64: string, contentType: string): string => {
+  const blob = base64ToBlob(base64, contentType);
+  return URL.createObjectURL(blob);
+};
+
+/**
+ * Calculate file size in KB or MB from a base64 string
+ * @param base64 The base64 encoded string
+ * @returns A formatted string showing the file size
+ */
+export const getBase64FileSize = (base64: string): string => {
+  const sizeInBytes = (base64.length * 3) / 4;
+  if (sizeInBytes < 1024) {
+    return `${Math.round(sizeInBytes)} B`;
+  } else if (sizeInBytes < 1024 * 1024) {
+    return `${Math.round(sizeInBytes / 1024)} KB`;
+  } else {
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+};
+
+/**
+ * Fetch a list of repair session files from the server
+ * @param sessionId The ID of the repair session
+ * @returns Promise resolving to an array of file objects
+ */
+export const fetchRepairSessionFiles = async (sessionId: number) => {
+  try {
+    const response = await fetch(`/api/repair-journey/${sessionId}/files`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch files');
+    }
+    const data = await response.json();
+    return data.files || [];
+  } catch (error) {
+    console.error('Error fetching repair session files:', error);
+    return [];
+  }
+};
+
+/**
+ * Upload a file to Google Cloud Storage via the server API
+ * @param sessionId The ID of the repair session
+ * @param file The file to upload
+ * @param filePurpose The purpose of the file in the repair process
+ * @param stepName Optional name of the repair step this file is associated with
+ * @returns Promise resolving to the uploaded file data
+ */
+export const uploadFileToCloudStorage = async (
+  sessionId: number,
+  file: File,
+  filePurpose: string,
+  stepName?: string
+) => {
+  try {
+    // Convert file to base64
+    const base64Data = await fileToBase64(file);
+    
+    const response = await fetch(`/api/repair-journey/${sessionId}/files`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        file: fileData,
-        contentType,
-        fileName: options.fileName,
-        folder: options.folder
+        file: base64Data,
+        contentType: file.type,
+        fileName: file.name,
+        filePurpose,
+        stepName: stepName || undefined,
       }),
     });
     
     if (!response.ok) {
       const errorData = await response.json();
-      return {
-        success: false,
-        message: errorData.error || 'Failed to upload file',
-        error: errorData.details || 'Unknown error'
-      };
+      throw new Error(errorData.error || 'Failed to upload file');
     }
     
     return await response.json();
   } catch (error) {
-    return {
-      success: false,
-      message: 'Failed to upload file',
-      error: error instanceof Error ? error.message : String(error)
-    };
+    console.error('Error uploading file to cloud storage:', error);
+    throw error;
   }
-}
-
-/**
- * Delete a file from Google Cloud Storage
- * @param url - The URL of the file to delete
- */
-export async function deleteFile(url: string): Promise<DeleteFileResponse> {
-  try {
-    const response = await fetch('/api/cloud-storage/files', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        message: errorData.error || 'Failed to delete file',
-        error: errorData.details || 'Unknown error'
-      };
-    }
-    
-    return await response.json();
-  } catch (error) {
-    return {
-      success: false,
-      message: 'Failed to delete file',
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
-
-/**
- * Convert a File object to base64 string
- * @param file - The file to convert
- */
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-}
-
-/**
- * Convert a base64 string to a File object
- * @param base64 - The base64 string to convert
- * @param filename - The name for the new file
- * @param contentType - The content type of the file
- */
-export function base64ToFile(
-  base64: string,
-  filename: string,
-  contentType: string
-): File {
-  const arr = base64.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || contentType;
-  const bstr = atob(arr[arr.length - 1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  
-  return new File([u8arr], filename, { type: mime });
-}
+};

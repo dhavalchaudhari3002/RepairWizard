@@ -477,3 +477,50 @@ export const insertStorageFileSchema = createInsertSchema(storageFiles)
 
 export type StorageFile = typeof storageFiles.$inferSelect;
 export type InsertStorageFile = z.infer<typeof insertStorageFileSchema>;
+
+// Repair Sessions table to track complete repair journeys
+export const repairSessions = pgTable("repair_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  deviceType: text("device_type").notNull(),
+  deviceBrand: text("device_brand").notNull(),
+  deviceModel: text("device_model"),
+  issueDescription: text("issue_description").notNull(),
+  symptoms: text("symptoms").array(),
+  diagnosticResults: jsonb("diagnostic_results"),
+  issueConfirmation: jsonb("issue_confirmation"),
+  repairGuide: jsonb("repair_guide"),
+  status: text("status").notNull().default("started"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Create insert schema for repair sessions
+export const insertRepairSessionSchema = createInsertSchema(repairSessions)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+
+// Repair Session Files table to link files to repair sessions
+export const repairSessionFiles = pgTable("repair_session_files", {
+  id: serial("id").primaryKey(),
+  repairSessionId: integer("repair_session_id").references(() => repairSessions.id).notNull(),
+  storageFileId: integer("storage_file_id").references(() => storageFiles.id).notNull(),
+  filePurpose: text("file_purpose").notNull(),
+  stepName: text("step_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Create insert schema for repair session files
+export const insertRepairSessionFileSchema = createInsertSchema(repairSessionFiles)
+  .omit({
+    id: true,
+    createdAt: true,
+  });
+
+export type RepairSession = typeof repairSessions.$inferSelect;
+export type InsertRepairSession = z.infer<typeof insertRepairSessionSchema>;
+export type RepairSessionFile = typeof repairSessionFiles.$inferSelect;
+export type InsertRepairSessionFile = z.infer<typeof insertRepairSessionFileSchema>;

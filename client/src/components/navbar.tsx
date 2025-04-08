@@ -15,7 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff, ShoppingCart, BarChart, Cloud } from "lucide-react";
+import { Bell, Menu, User, AlertTriangle, Wrench, Settings, BellOff, ShoppingCart, BarChart, Cloud, Hammer } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
@@ -157,6 +157,12 @@ export function NavBar() {
                   <Link href="/cloud-storage" className="flex items-center gap-2">
                     <Cloud className="h-4 w-4" />
                     Cloud Storage
+                  </Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                  <Link href="/repair-journey" className="flex items-center gap-2">
+                    <Hammer className="h-4 w-4" />
+                    Repair Journey
                   </Link>
                 </Button>
               </>
@@ -345,6 +351,13 @@ export function NavBar() {
                           <Link href="/cloud-storage" className="flex items-center gap-2 justify-center">
                             <Cloud className="h-4 w-4" />
                             Cloud Storage
+                          </Link>
+                        </Button>
+                        
+                        <Button variant="ghost" asChild>
+                          <Link href="/repair-journey" className="flex items-center gap-2 justify-center">
+                            <Hammer className="h-4 w-4" />
+                            Repair Journey
                           </Link>
                         </Button>
 

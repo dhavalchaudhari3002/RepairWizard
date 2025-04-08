@@ -6,9 +6,17 @@ import { storage } from "./storage";
 import { 
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
+  insertRepairSessionSchema,
+  insertRepairSessionFileSchema,
   storageFiles,
+  repairSessions,
+  repairSessionFiles,
   type User,
-  type InsertUserInteraction
+  type InsertUserInteraction,
+  type RepairSession,
+  type InsertRepairSession,
+  type RepairSessionFile,
+  type InsertRepairSessionFile
 } from "@shared/schema";
 import { generateMockEstimate } from "./mock-data";
 import { getRepairAnswer, generateRepairGuide, generateRepairDiagnostic, type RepairDiagnostic } from "./services/openai";
@@ -27,7 +35,7 @@ import {
 } from "./ml-services/repair-cost-model";
 import { createBasicDiagnosticTree, treeToDbFormat } from "./utils/diagnostic-tree";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { googleCloudStorage } from "./services/google-cloud-storage";
 
 declare module 'express-session' {
@@ -821,6 +829,543 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to initialize ML-based repair cost API:", error);
     console.log("Application will continue with rule-based estimation only");
   }
+  
+  // Repair Journey API with Google Cloud Storage Integration
+  app.post("/api/repair-journey/start", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      // Validate required fields
+      const { deviceType, deviceBrand, deviceModel, issueDescription, symptoms } = req.body;
+      
+      if (!deviceType || !deviceBrand || !issueDescription) {
+        return res.status(400).json({ 
+          error: "Missing required fields (deviceType, deviceBrand, issueDescription)" 
+        });
+      }
+
+      // Create repair session in database
+      const repairSession = await db.insert(repairSessions).values({
+        userId: req.user.id,
+        deviceType,
+        deviceBrand,
+        deviceModel: deviceModel || null,
+        issueDescription,
+        symptoms: Array.isArray(symptoms) ? symptoms : [],
+        status: 'started',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      // Save initial data to Google Cloud Storage
+      const initialData = {
+        sessionId: repairSession[0].id,
+        userId: req.user.id,
+        deviceInfo: {
+          type: deviceType,
+          brand: deviceBrand,
+          model: deviceModel
+        },
+        issue: {
+          description: issueDescription,
+          symptoms: Array.isArray(symptoms) ? symptoms : []
+        },
+        status: 'started',
+        createdAt: new Date().toISOString()
+      };
+
+      // Save to Google Cloud Storage in the repair-sessions folder
+      const dataUrl = await googleCloudStorage.saveJsonData(initialData, {
+        folder: `repair-sessions/${repairSession[0].id}`,
+        customName: 'initial-submission.json'
+      });
+
+      res.status(201).json({
+        success: true,
+        sessionId: repairSession[0].id,
+        message: "Repair session started successfully",
+        dataUrl
+      });
+    } catch (error) {
+      console.error("Error starting repair journey:", error);
+      res.status(500).json({ 
+        error: "Failed to start repair journey", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/repair-journey/:sessionId/diagnosis", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Verify repair session exists and belongs to user
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Extract diagnosis data
+      const { diagnosticResults } = req.body;
+      
+      if (!diagnosticResults) {
+        return res.status(400).json({ error: "Missing diagnostic results" });
+      }
+
+      // Update repair session in database
+      await db.update(repairSessions)
+        .set({
+          diagnosticResults,
+          status: 'diagnosed',
+          updatedAt: new Date()
+        })
+        .where(eq(repairSessions.id, sessionId));
+
+      // Save diagnosis data to Google Cloud Storage
+      const diagnosisData = {
+        sessionId,
+        userId: req.user.id,
+        diagnosticResults,
+        timestamp: new Date().toISOString()
+      };
+
+      // Save to Google Cloud Storage
+      const dataUrl = await googleCloudStorage.saveJsonData(diagnosisData, {
+        folder: `repair-sessions/${sessionId}`,
+        customName: 'diagnosis-results.json'
+      });
+
+      res.json({
+        success: true,
+        sessionId,
+        message: "Diagnosis saved successfully",
+        dataUrl
+      });
+    } catch (error) {
+      console.error("Error saving diagnosis data:", error);
+      res.status(500).json({ 
+        error: "Failed to save diagnosis data", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/repair-journey/:sessionId/issue-confirmation", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Verify repair session exists and belongs to user
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Extract issue confirmation data
+      const { issueConfirmation } = req.body;
+      
+      if (!issueConfirmation) {
+        return res.status(400).json({ error: "Missing issue confirmation data" });
+      }
+
+      // Update repair session in database
+      await db.update(repairSessions)
+        .set({
+          issueConfirmation,
+          status: 'confirmed',
+          updatedAt: new Date()
+        })
+        .where(eq(repairSessions.id, sessionId));
+
+      // Save issue confirmation data to Google Cloud Storage
+      const confirmationData = {
+        sessionId,
+        userId: req.user.id,
+        issueConfirmation,
+        timestamp: new Date().toISOString()
+      };
+
+      // Save to Google Cloud Storage
+      const dataUrl = await googleCloudStorage.saveJsonData(confirmationData, {
+        folder: `repair-sessions/${sessionId}`,
+        customName: 'issue-confirmation.json'
+      });
+
+      res.json({
+        success: true,
+        sessionId,
+        message: "Issue confirmation saved successfully",
+        dataUrl
+      });
+    } catch (error) {
+      console.error("Error saving issue confirmation data:", error);
+      res.status(500).json({ 
+        error: "Failed to save issue confirmation data", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/repair-journey/:sessionId/repair-guide", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Verify repair session exists and belongs to user
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Extract repair guide data
+      const { repairGuide } = req.body;
+      
+      if (!repairGuide) {
+        return res.status(400).json({ error: "Missing repair guide data" });
+      }
+
+      // Update repair session in database
+      await db.update(repairSessions)
+        .set({
+          repairGuide,
+          status: 'guide_generated',
+          updatedAt: new Date()
+        })
+        .where(eq(repairSessions.id, sessionId));
+
+      // Save repair guide data to Google Cloud Storage
+      const guideData = {
+        sessionId,
+        userId: req.user.id,
+        repairGuide,
+        timestamp: new Date().toISOString()
+      };
+
+      // Save to Google Cloud Storage
+      const dataUrl = await googleCloudStorage.saveJsonData(guideData, {
+        folder: `repair-sessions/${sessionId}`,
+        customName: 'repair-guide.json'
+      });
+
+      res.json({
+        success: true,
+        sessionId,
+        message: "Repair guide saved successfully",
+        dataUrl
+      });
+    } catch (error) {
+      console.error("Error saving repair guide data:", error);
+      res.status(500).json({ 
+        error: "Failed to save repair guide data", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/repair-journey/:sessionId/files", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Verify repair session exists and belongs to user
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Extract file data from the request
+      if (!req.body.file || !req.body.contentType || !req.body.filePurpose) {
+        return res.status(400).json({ 
+          error: "Missing required fields (file, contentType, filePurpose)" 
+        });
+      }
+
+      const { file, contentType, fileName, filePurpose, stepName } = req.body;
+      
+      // Convert base64 to buffer
+      let fileBuffer;
+      try {
+        const base64Data = file.includes('base64,') 
+          ? file.split('base64,')[1] 
+          : file;
+          
+        fileBuffer = Buffer.from(base64Data, 'base64');
+      } catch (error) {
+        console.error("Error decoding base64 data:", error);
+        return res.status(400).json({ error: "Invalid file data" });
+      }
+
+      const actualFileName = fileName || `file_${Date.now()}`;
+      const folder = `repair-sessions/${sessionId}/${filePurpose}`;
+
+      // Upload to Google Cloud Storage
+      const url = await googleCloudStorage.uploadFile(fileBuffer, {
+        contentType,
+        customName: actualFileName,
+        folder,
+        isPublic: true
+      });
+
+      // Save file info to database
+      const storageFile = await storage.createStorageFile({
+        userId: req.user.id,
+        fileName: actualFileName,
+        originalName: fileName || "unnamed",
+        fileUrl: url,
+        fileSize: fileBuffer.length,
+        contentType,
+        folder,
+        metadata: {
+          uploadedAt: new Date().toISOString(),
+          purpose: filePurpose,
+          stepName: stepName || null,
+          sessionId
+        }
+      });
+
+      // Link file to repair session
+      await db.insert(repairSessionFiles).values({
+        repairSessionId: sessionId,
+        storageFileId: storageFile.id,
+        filePurpose,
+        stepName: stepName || null,
+        createdAt: new Date()
+      });
+
+      res.json({ 
+        success: true, 
+        url,
+        fileId: storageFile.id,
+        fileName: actualFileName,
+        filePurpose,
+        sessionId,
+        message: "File uploaded and linked to repair session successfully" 
+      });
+    } catch (error) {
+      console.error("Error uploading file for repair session:", error);
+      res.status(500).json({ 
+        error: "Failed to upload file", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/repair-journey/:sessionId/files", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Verify repair session exists and belongs to user
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Get files for the repair session
+      const sessionFiles = await db.select({
+        id: repairSessionFiles.id,
+        fileId: storageFiles.id,
+        fileName: storageFiles.fileName,
+        originalName: storageFiles.originalName,
+        fileUrl: storageFiles.fileUrl,
+        contentType: storageFiles.contentType,
+        fileSize: storageFiles.fileSize,
+        filePurpose: repairSessionFiles.filePurpose,
+        stepName: repairSessionFiles.stepName,
+        createdAt: repairSessionFiles.createdAt
+      })
+      .from(repairSessionFiles)
+      .innerJoin(
+        storageFiles,
+        eq(repairSessionFiles.storageFileId, storageFiles.id)
+      )
+      .where(eq(repairSessionFiles.repairSessionId, sessionId));
+      
+      res.json({ 
+        success: true, 
+        sessionId,
+        files: sessionFiles,
+        count: sessionFiles.length
+      });
+    } catch (error) {
+      console.error("Error getting repair session files:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve repair session files", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/repair-journey/:sessionId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      // Get the repair session with files
+      const session = await db.select().from(repairSessions)
+        .where(and(
+          eq(repairSessions.id, sessionId),
+          eq(repairSessions.userId, req.user.id)
+        )).limit(1);
+
+      if (!session || session.length === 0) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+
+      // Get files for the repair session
+      const sessionFiles = await db.select({
+        id: repairSessionFiles.id,
+        fileId: storageFiles.id,
+        fileName: storageFiles.fileName,
+        fileUrl: storageFiles.fileUrl,
+        contentType: storageFiles.contentType,
+        filePurpose: repairSessionFiles.filePurpose,
+        stepName: repairSessionFiles.stepName
+      })
+      .from(repairSessionFiles)
+      .innerJoin(
+        storageFiles,
+        eq(repairSessionFiles.storageFileId, storageFiles.id)
+      )
+      .where(eq(repairSessionFiles.repairSessionId, sessionId));
+      
+      // Combine session data with files
+      const sessionData = {
+        ...session[0],
+        files: sessionFiles
+      };
+
+      res.json({
+        success: true,
+        session: sessionData
+      });
+    } catch (error) {
+      console.error("Error retrieving repair journey data:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve repair journey data", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/repair-journeys", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Get all repair sessions for the user
+      const sessions = await db.select().from(repairSessions)
+        .where(eq(repairSessions.userId, req.user.id))
+        .orderBy(desc(repairSessions.createdAt));
+      
+      res.json({
+        success: true,
+        sessions,
+        count: sessions.length
+      });
+    } catch (error) {
+      console.error("Error retrieving repair journeys:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve repair journeys", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // Google Cloud Storage routes
   app.get("/api/cloud-storage/status", (req, res) => {
@@ -1047,6 +1592,456 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error deleting file from Google Cloud Storage:", error);
       res.status(500).json({ 
         error: "Failed to delete file", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Repair Journey Management API
+  
+  // Start a new repair journey
+  app.post("/api/repair-journey/start", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      
+      // Validate input data
+      const { deviceType, deviceBrand, deviceModel, issueDescription, symptoms } = req.body;
+      
+      if (!deviceType || !deviceBrand || !issueDescription) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      // Create the repair session in the database
+      const session = await storage.createRepairSession({
+        userId: user.id,
+        deviceType,
+        deviceBrand,
+        deviceModel: deviceModel || null,
+        issueDescription,
+        symptoms: symptoms || [],
+        status: "started",
+      });
+      
+      // Store the initial data in Google Cloud Storage for persistent record
+      const jsonData = {
+        sessionId: session.id,
+        userId: user.id,
+        deviceType,
+        deviceBrand,
+        deviceModel: deviceModel || null,
+        issueDescription,
+        symptoms: symptoms || [],
+        status: "started",
+        createdAt: new Date().toISOString(),
+        stage: "initial"
+      };
+      
+      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
+        folder: `repair_sessions/${session.id}`,
+        customName: "initial_data.json",
+        isPublic: false
+      });
+      
+      // Update the session with the storage URL
+      await storage.updateRepairSession(session.id, {
+        metadataUrl: storageUrl
+      });
+      
+      res.status(200).json({
+        success: true,
+        sessionId: session.id,
+        message: "Repair journey started successfully"
+      });
+    } catch (error) {
+      console.error("Error starting repair journey:", error);
+      res.status(500).json({
+        error: "Failed to start repair journey",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get all repair journeys for the current user
+  app.get("/api/repair-journeys", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessions = await storage.getRepairSessionsByUserId(user.id);
+      
+      res.status(200).json({
+        success: true,
+        sessions
+      });
+    } catch (error) {
+      console.error("Error fetching repair journeys:", error);
+      res.status(500).json({
+        error: "Failed to fetch repair journeys",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get a specific repair journey by ID
+  app.get("/api/repair-journey/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to access this repair session" });
+      }
+      
+      // Get all files associated with this session
+      const files = await storage.getRepairSessionFiles(sessionId);
+      
+      // Return the session data with files
+      res.status(200).json({
+        success: true,
+        session: {
+          ...session,
+          files
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching repair journey:", error);
+      res.status(500).json({
+        error: "Failed to fetch repair journey",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add diagnostic results to a repair journey
+  app.post("/api/repair-journey/:id/diagnosis", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to update this repair session" });
+      }
+      
+      // Validate diagnostic data
+      const { diagnosticResults } = req.body;
+      
+      if (!diagnosticResults) {
+        return res.status(400).json({ error: "Missing diagnostic results" });
+      }
+      
+      // Update the session with diagnostic results
+      await storage.updateRepairSession(sessionId, {
+        diagnosticResults,
+        status: "diagnosed"
+      });
+      
+      // Store the diagnostic data in Google Cloud Storage
+      const jsonData = {
+        sessionId,
+        userId: user.id,
+        diagnosticResults,
+        timestamp: new Date().toISOString(),
+        stage: "diagnosis"
+      };
+      
+      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
+        folder: `repair_sessions/${sessionId}`,
+        customName: "diagnostic_results.json",
+        isPublic: false
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Diagnostic results saved successfully"
+      });
+    } catch (error) {
+      console.error("Error updating repair journey with diagnosis:", error);
+      res.status(500).json({
+        error: "Failed to update repair journey with diagnosis",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add issue confirmation to a repair journey
+  app.post("/api/repair-journey/:id/issue-confirmation", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to update this repair session" });
+      }
+      
+      // Validate issue confirmation data
+      const { issueConfirmation } = req.body;
+      
+      if (!issueConfirmation) {
+        return res.status(400).json({ error: "Missing issue confirmation" });
+      }
+      
+      // Update the session with issue confirmation
+      await storage.updateRepairSession(sessionId, {
+        issueConfirmation,
+        status: "confirmed"
+      });
+      
+      // Store the issue confirmation in Google Cloud Storage
+      const jsonData = {
+        sessionId,
+        userId: user.id,
+        issueConfirmation,
+        timestamp: new Date().toISOString(),
+        stage: "confirmation"
+      };
+      
+      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
+        folder: `repair_sessions/${sessionId}`,
+        customName: "issue_confirmation.json",
+        isPublic: false
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Issue confirmation saved successfully"
+      });
+    } catch (error) {
+      console.error("Error updating repair journey with issue confirmation:", error);
+      res.status(500).json({
+        error: "Failed to update repair journey with issue confirmation",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add repair guide to a repair journey
+  app.post("/api/repair-journey/:id/repair-guide", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to update this repair session" });
+      }
+      
+      // Validate repair guide data
+      const { repairGuide } = req.body;
+      
+      if (!repairGuide) {
+        return res.status(400).json({ error: "Missing repair guide" });
+      }
+      
+      // Update the session with repair guide
+      await storage.updateRepairSession(sessionId, {
+        repairGuide,
+        status: "guide_generated"
+      });
+      
+      // Store the repair guide in Google Cloud Storage
+      const jsonData = {
+        sessionId,
+        userId: user.id,
+        repairGuide,
+        timestamp: new Date().toISOString(),
+        stage: "guide"
+      };
+      
+      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
+        folder: `repair_sessions/${sessionId}`,
+        customName: "repair_guide.json",
+        isPublic: false
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Repair guide saved successfully"
+      });
+    } catch (error) {
+      console.error("Error updating repair journey with repair guide:", error);
+      res.status(500).json({
+        error: "Failed to update repair journey with repair guide",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Upload files to a repair journey
+  app.post("/api/repair-journey/:id/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to update this repair session" });
+      }
+      
+      // Validate file data
+      const { file, contentType, fileName, filePurpose, stepName } = req.body;
+      
+      if (!file || !contentType || !fileName || !filePurpose) {
+        return res.status(400).json({ error: "Missing required file information" });
+      }
+      
+      // Decode the base64 file data
+      const fileBuffer = Buffer.from(file, 'base64');
+      
+      // Generate folder path based on the file purpose
+      let folder = `repair_sessions/${sessionId}/files`;
+      if (filePurpose) {
+        folder += `/${filePurpose}`;
+      }
+      
+      // Upload the file to Google Cloud Storage
+      const fileUrl = await googleCloudStorage.uploadFile(fileBuffer, {
+        folder,
+        customName: fileName,
+        contentType,
+        isPublic: true // Make files public so they can be viewed in the UI
+      });
+      
+      // Save the file reference in the database
+      const fileRecord = await storage.createRepairSessionFile({
+        sessionId,
+        userId: user.id,
+        fileName,
+        fileUrl,
+        contentType,
+        filePurpose,
+        stepName: stepName || null,
+        uploadedAt: new Date()
+      });
+      
+      res.status(200).json({
+        success: true,
+        file: fileRecord,
+        message: "File uploaded successfully"
+      });
+    } catch (error) {
+      console.error("Error uploading file to repair journey:", error);
+      res.status(500).json({
+        error: "Failed to upload file",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get files for a repair journey
+  app.get("/api/repair-journey/:id/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as Express.User;
+      const sessionId = parseInt(req.params.id);
+      
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+      
+      const session = await storage.getRepairSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Repair session not found" });
+      }
+      
+      // Check if the session belongs to the current user
+      if (session.userId !== user.id) {
+        return res.status(403).json({ error: "You do not have permission to access this repair session" });
+      }
+      
+      // Get all files for this session
+      const files = await storage.getRepairSessionFiles(sessionId);
+      
+      res.status(200).json({
+        success: true,
+        files
+      });
+    } catch (error) {
+      console.error("Error fetching files for repair journey:", error);
+      res.status(500).json({
+        error: "Failed to fetch files",
         details: error instanceof Error ? error.message : String(error)
       });
     }

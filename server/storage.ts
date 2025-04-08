@@ -9,6 +9,8 @@ import {
   failurePatterns,
   repairHistory,
   storageFiles,
+  repairSessions,
+  repairSessionFiles,
   type User, 
   type RepairRequest, 
   type Notification,
@@ -25,7 +27,11 @@ import {
   type RepairHistory,
   type InsertRepairHistory,
   type StorageFile,
-  type InsertStorageFile
+  type InsertStorageFile,
+  type RepairSession,
+  type InsertRepairSession,
+  type RepairSessionFile,
+  type InsertRepairSessionFile
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -103,6 +109,19 @@ export interface IStorage {
   getStorageFileByUrl(url: string): Promise<StorageFile | undefined>;
   deleteStorageFile(id: number): Promise<void>;
   deleteStorageFileByUrl(url: string): Promise<void>;
+  
+  // Repair Journey Management
+  createRepairSession(sessionData: InsertRepairSession): Promise<RepairSession>;
+  getRepairSession(id: number): Promise<RepairSession | undefined>;
+  getRepairSessionsByUserId(userId: number): Promise<RepairSession[]>;
+  updateRepairSession(id: number, data: Partial<RepairSession>): Promise<RepairSession>;
+  deleteRepairSession(id: number): Promise<void>;
+  
+  // Repair Session Files
+  createRepairSessionFile(fileData: any): Promise<RepairSessionFile>;
+  getRepairSessionFile(id: number): Promise<RepairSessionFile | undefined>;
+  getRepairSessionFiles(sessionId: number): Promise<RepairSessionFile[]>;
+  deleteRepairSessionFile(id: number): Promise<void>;
 
   // Session store
   sessionStore: session.Store;
@@ -924,6 +943,142 @@ export class DatabaseStorage implements IStorage {
         .where(eq(storageFiles.fileUrl, url));
     } catch (error) {
       console.error("Error in deleteStorageFileByUrl:", error);
+      throw error;
+    }
+  }
+  
+  // Repair Journey Management Methods
+  
+  async createRepairSession(sessionData: InsertRepairSession): Promise<RepairSession> {
+    try {
+      console.log("Creating repair session in database:", sessionData);
+      const [session] = await db
+        .insert(repairSessions)
+        .values(sessionData)
+        .returning();
+      
+      console.log("Repair session created successfully:", { id: session.id });
+      return session;
+    } catch (error) {
+      console.error("Error in createRepairSession:", error);
+      throw error;
+    }
+  }
+  
+  async getRepairSession(id: number): Promise<RepairSession | undefined> {
+    try {
+      const [session] = await db
+        .select()
+        .from(repairSessions)
+        .where(eq(repairSessions.id, id));
+      
+      return session;
+    } catch (error) {
+      console.error("Error in getRepairSession:", error);
+      throw error;
+    }
+  }
+  
+  async getRepairSessionsByUserId(userId: number): Promise<RepairSession[]> {
+    try {
+      return await db
+        .select()
+        .from(repairSessions)
+        .where(eq(repairSessions.userId, userId))
+        .orderBy(desc(repairSessions.createdAt));
+    } catch (error) {
+      console.error("Error in getRepairSessionsByUserId:", error);
+      throw error;
+    }
+  }
+  
+  async updateRepairSession(id: number, data: Partial<RepairSession>): Promise<RepairSession> {
+    try {
+      const [updatedSession] = await db
+        .update(repairSessions)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(repairSessions.id, id))
+        .returning();
+      
+      return updatedSession;
+    } catch (error) {
+      console.error("Error in updateRepairSession:", error);
+      throw error;
+    }
+  }
+  
+  async deleteRepairSession(id: number): Promise<void> {
+    try {
+      // Delete any associated files first
+      await db
+        .delete(repairSessionFiles)
+        .where(eq(repairSessionFiles.repairSessionId, id));
+      
+      // Then delete the session
+      await db
+        .delete(repairSessions)
+        .where(eq(repairSessions.id, id));
+      
+      console.log("Repair session and related files deleted successfully:", id);
+    } catch (error) {
+      console.error("Error in deleteRepairSession:", error);
+      throw error;
+    }
+  }
+  
+  // Repair Session Files Methods
+  
+  async createRepairSessionFile(fileData: any): Promise<RepairSessionFile> {
+    try {
+      const [file] = await db
+        .insert(repairSessionFiles)
+        .values(fileData)
+        .returning();
+      
+      return file;
+    } catch (error) {
+      console.error("Error in createRepairSessionFile:", error);
+      throw error;
+    }
+  }
+  
+  async getRepairSessionFile(id: number): Promise<RepairSessionFile | undefined> {
+    try {
+      const [file] = await db
+        .select()
+        .from(repairSessionFiles)
+        .where(eq(repairSessionFiles.id, id));
+      
+      return file;
+    } catch (error) {
+      console.error("Error in getRepairSessionFile:", error);
+      throw error;
+    }
+  }
+  
+  async getRepairSessionFiles(sessionId: number): Promise<RepairSessionFile[]> {
+    try {
+      return await db
+        .select()
+        .from(repairSessionFiles)
+        .where(eq(repairSessionFiles.repairSessionId, sessionId))
+        .orderBy(desc(repairSessionFiles.createdAt));
+    } catch (error) {
+      console.error("Error in getRepairSessionFiles:", error);
+      throw error;
+    }
+  }
+  
+  async deleteRepairSessionFile(id: number): Promise<void> {
+    try {
+      await db
+        .delete(repairSessionFiles)
+        .where(eq(repairSessionFiles.id, id));
+    } catch (error) {
+      console.error("Error in deleteRepairSessionFile:", error);
       throw error;
     }
   }
