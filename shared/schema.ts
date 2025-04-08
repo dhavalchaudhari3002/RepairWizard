@@ -453,3 +453,27 @@ export type InsertFailurePattern = z.infer<typeof insertFailurePatternSchema>;
 
 export type RepairHistory = typeof repairHistory.$inferSelect;
 export type InsertRepairHistory = z.infer<typeof insertRepairHistorySchema>;
+
+// Storage files table to track uploaded files
+export const storageFiles = pgTable("storage_files", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size").notNull(),
+  contentType: text("content_type").notNull(),
+  folder: text("folder").notNull(),
+  metadata: jsonb("metadata").default({}).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Create insert schema for storage files
+export const insertStorageFileSchema = createInsertSchema(storageFiles)
+  .omit({
+    id: true,
+    createdAt: true,
+  });
+
+export type StorageFile = typeof storageFiles.$inferSelect;
+export type InsertStorageFile = z.infer<typeof insertStorageFileSchema>;

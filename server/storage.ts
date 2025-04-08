@@ -8,6 +8,7 @@ import {
   diagnosticQuestionTrees,
   failurePatterns,
   repairHistory,
+  storageFiles,
   type User, 
   type RepairRequest, 
   type Notification,
@@ -22,7 +23,9 @@ import {
   type FailurePattern,
   type InsertFailurePattern,
   type RepairHistory,
-  type InsertRepairHistory
+  type InsertRepairHistory,
+  type StorageFile,
+  type InsertStorageFile
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -92,6 +95,14 @@ export interface IStorage {
   createRepairHistory(history: InsertRepairHistory): Promise<RepairHistory>;
   getRepairHistoryByRequestId(repairRequestId: number): Promise<RepairHistory | undefined>;
   updateRepairHistory(id: number, data: Partial<RepairHistory>): Promise<RepairHistory>;
+  
+  // Storage Files
+  createStorageFile(file: InsertStorageFile): Promise<StorageFile>;
+  getStorageFilesByUser(userId: number): Promise<StorageFile[]>;
+  getStorageFile(id: number): Promise<StorageFile | undefined>;
+  getStorageFileByUrl(url: string): Promise<StorageFile | undefined>;
+  deleteStorageFile(id: number): Promise<void>;
+  deleteStorageFileByUrl(url: string): Promise<void>;
 
   // Session store
   sessionStore: session.Store;
@@ -838,6 +849,81 @@ export class DatabaseStorage implements IStorage {
       return history;
     } catch (error) {
       console.error("Error in updateRepairHistory:", error);
+      throw error;
+    }
+  }
+
+  // Storage Files Implementation
+  async createStorageFile(fileData: InsertStorageFile): Promise<StorageFile> {
+    try {
+      const [file] = await db
+        .insert(storageFiles)
+        .values(fileData)
+        .returning();
+      return file;
+    } catch (error) {
+      console.error("Error in createStorageFile:", error);
+      throw error;
+    }
+  }
+
+  async getStorageFilesByUser(userId: number): Promise<StorageFile[]> {
+    try {
+      return await db
+        .select()
+        .from(storageFiles)
+        .where(eq(storageFiles.userId, userId))
+        .orderBy(desc(storageFiles.createdAt));
+    } catch (error) {
+      console.error("Error in getStorageFilesByUser:", error);
+      throw error;
+    }
+  }
+
+  async getStorageFile(id: number): Promise<StorageFile | undefined> {
+    try {
+      const [file] = await db
+        .select()
+        .from(storageFiles)
+        .where(eq(storageFiles.id, id));
+      return file;
+    } catch (error) {
+      console.error("Error in getStorageFile:", error);
+      throw error;
+    }
+  }
+
+  async getStorageFileByUrl(url: string): Promise<StorageFile | undefined> {
+    try {
+      const [file] = await db
+        .select()
+        .from(storageFiles)
+        .where(eq(storageFiles.fileUrl, url));
+      return file;
+    } catch (error) {
+      console.error("Error in getStorageFileByUrl:", error);
+      throw error;
+    }
+  }
+
+  async deleteStorageFile(id: number): Promise<void> {
+    try {
+      await db
+        .delete(storageFiles)
+        .where(eq(storageFiles.id, id));
+    } catch (error) {
+      console.error("Error in deleteStorageFile:", error);
+      throw error;
+    }
+  }
+
+  async deleteStorageFileByUrl(url: string): Promise<void> {
+    try {
+      await db
+        .delete(storageFiles)
+        .where(eq(storageFiles.fileUrl, url));
+    } catch (error) {
+      console.error("Error in deleteStorageFileByUrl:", error);
       throw error;
     }
   }

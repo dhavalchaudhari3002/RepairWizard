@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { 
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
+  storageFiles,
   type User,
   type InsertUserInteraction
 } from "@shared/schema";
@@ -882,23 +883,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid file data" });
       }
 
+      const actualFolder = folder || `user_${req.user.id}`;
+      const actualFileName = fileName || `file_${Date.now()}`;
+
       // Upload to Google Cloud Storage
       const url = await googleCloudStorage.uploadFile(fileBuffer, {
         contentType,
-        customName: fileName,
-        folder: folder || `user_${req.user.id}`,
+        customName: actualFileName,
+        folder: actualFolder,
         isPublic: true
       });
+
+      // Save file info to database
+      try {
+        // Use storage interface to create the file record
+        await storage.createStorageFile({
+          userId: req.user.id,
+          fileName: actualFileName,
+          originalName: fileName || "unknown",
+          fileUrl: url,
+          fileSize: fileBuffer.length,
+          contentType: contentType,
+          folder: actualFolder,
+          metadata: {
+            uploadedAt: new Date().toISOString(),
+            uploadedFrom: req.headers['user-agent'] || 'unknown'
+          }
+        });
+        
+        console.log(`File record saved to database: ${url}`);
+      } catch (dbError) {
+        console.error("Error saving file info to database:", dbError);
+        // We continue even if database storage fails - the file is still in GCS
+      }
 
       res.json({ 
         success: true, 
         url,
+        fileName: actualFileName,
+        contentType,
+        fileSize: fileBuffer.length,
         message: "File uploaded successfully" 
       });
     } catch (error) {
       console.error("Error uploading file to Google Cloud Storage:", error);
       res.status(500).json({ 
         error: "Failed to upload file", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Get user's uploaded files
+  app.get("/api/cloud-storage/files", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      // Get files for the authenticated user
+      const files = await storage.getStorageFilesByUser(req.user.id);
+      
+      res.json({ 
+        success: true, 
+        files,
+        count: files.length
+      });
+    } catch (error) {
+      console.error("Error getting user files:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve files", 
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get a specific file by ID
+  app.get("/api/cloud-storage/files/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!googleCloudStorage.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Google Cloud Storage is not configured" 
+        });
+      }
+
+      const fileId = parseInt(req.params.id);
+      if (isNaN(fileId)) {
+        return res.status(400).json({ error: "Invalid file ID" });
+      }
+      
+      // Get file by ID
+      const file = await storage.getStorageFile(fileId);
+      
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Ensure user can only access their own files
+      if (file.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json({ 
+        success: true, 
+        file
+      });
+    } catch (error) {
+      console.error("Error getting file details:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve file details", 
         details: error instanceof Error ? error.message : String(error)
       });
     }
@@ -922,7 +1025,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "File URL is required" });
       }
 
+      // Delete from Google Cloud Storage
       await googleCloudStorage.deleteFile(url);
+      
+      // Delete from database
+      try {
+        // Use storage interface to delete the file record
+        await storage.deleteStorageFileByUrl(url);
+          
+        console.log(`File record deleted from database: ${url}`);
+      } catch (dbError) {
+        console.error("Error deleting file info from database:", dbError);
+        // We continue even if database deletion fails - the file is still removed from GCS
+      }
+
       res.json({ 
         success: true, 
         message: "File deleted successfully" 
