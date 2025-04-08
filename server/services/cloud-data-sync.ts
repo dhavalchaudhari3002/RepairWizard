@@ -125,9 +125,37 @@ export class CloudDataSyncService {
         }
       };
 
-      // Step 6: Try to store the complete journey in Google Cloud Storage
+      // Step 6: Create the folder structure for this repair session
+      try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
+      } catch (folderError: any) {
+        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      }
+
+      // Step 7: Try to store the complete journey in Google Cloud Storage
       let metadataUrl: string;
       try {
+        // Store a separate file for the session summary
+        const sessionSummary = {
+          id: repairSession.id,
+          status: repairSession.status,
+          deviceType: repairSession.deviceType,
+          deviceBrand: repairSession.deviceBrand,
+          deviceModel: repairSession.deviceModel,
+          issueDescription: repairSession.issueDescription,
+          createdAt: repairSession.createdAt,
+          updatedAt: repairSession.updatedAt,
+        };
+        
+        // Save the initial submission data
+        await googleCloudStorage.saveRepairJourneyData(
+          sessionId,
+          'submission',
+          sessionSummary,
+          `repair_request_${Date.now()}.json`
+        );
+        
+        // Save the complete journey data
         metadataUrl = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'complete_journey',
@@ -142,7 +170,7 @@ export class CloudDataSyncService {
         console.log(`Saved repair session #${sessionId} to local storage: ${metadataUrl}`);
       }
 
-      // Step 7: Update the repair session with the metadata URL
+      // Step 8: Update the repair session with the metadata URL
       await db
         .update(repairSessions)
         .set({ metadataUrl })
@@ -170,7 +198,15 @@ export class CloudDataSyncService {
    */
   async storeDiagnosticData(sessionId: number, diagnosticData: any): Promise<string> {
     try {
+      // Create repair journey folder structure if it doesn't exist yet
       try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
+      } catch (folderError) {
+        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      }
+
+      try {
+        // Store in a dedicated diagnostics folder with an organized filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'diagnostics',
@@ -204,7 +240,15 @@ export class CloudDataSyncService {
    */
   async storeIssueConfirmationData(sessionId: number, issueData: any): Promise<string> {
     try {
+      // Create repair journey folder structure if it doesn't exist yet
       try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
+      } catch (folderError) {
+        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      }
+
+      try {
+        // Store in a dedicated issue_confirmation folder with an organized filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'issue_confirmation',
@@ -238,7 +282,15 @@ export class CloudDataSyncService {
    */
   async storeRepairGuideData(sessionId: number, repairGuideData: any): Promise<string> {
     try {
+      // Create repair journey folder structure if it doesn't exist yet
       try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
+      } catch (folderError: any) {
+        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      }
+
+      try {
+        // Store in a dedicated repair_guide folder with an organized filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'repair_guide',
@@ -276,12 +328,20 @@ export class CloudDataSyncService {
     }
     
     try {
+      // Create repair journey folder structure if it doesn't exist yet
       try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(interaction.repairRequestId);
+      } catch (folderError: any) {
+        console.log(`Note: Folder structure may already exist for session #${interaction.repairRequestId}: ${folderError.message}`);
+      }
+
+      try {
+        // Store in a dedicated interactions folder with an organized filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           interaction.repairRequestId,
           'interactions',
           interaction,
-          `interaction_${interaction.id}_${Date.now()}.json`
+          `interaction_${interaction.id}_${interaction.interactionType}_${Date.now()}.json`
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
         return url;

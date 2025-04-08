@@ -404,7 +404,16 @@ class GoogleCloudStorageService {
     }
     
     const baseFolder = `repair_sessions/${sessionId}`;
-    const subFolders = ['diagnostics', 'issue_confirmation', 'repair_guide', 'uploads'];
+    const subFolders = [
+      'submission',         // Initial repair request submission
+      'diagnostics',        // Diagnostic analysis data
+      'questions',          // Question-answer interactions
+      'issue_confirmation', // Confirmed issue data
+      'repair_guide',       // Repair guide data
+      'interactions',       // User interactions
+      'uploads',            // User uploaded files
+      'complete_journey'    // Complete journey data
+    ];
     
     try {
       // Creating an empty file in each folder to ensure the folder structure exists
@@ -448,7 +457,16 @@ class GoogleCloudStorageService {
     }
     
     // Validate stage name
-    const validStages = ['diagnostics', 'issue_confirmation', 'repair_guide', 'uploads'];
+    const validStages = [
+      'submission',
+      'diagnostics',
+      'questions',
+      'issue_confirmation',
+      'repair_guide',
+      'interactions',
+      'uploads',
+      'complete_journey'
+    ];
     if (!validStages.includes(stage)) {
       throw new Error(`Invalid stage: ${stage}. Must be one of: ${validStages.join(', ')}`);
     }
