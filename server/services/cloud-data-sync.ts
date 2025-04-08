@@ -126,10 +126,12 @@ export class CloudDataSyncService {
       };
 
       // Step 6: Create the folder structure for this repair session
+      // The improved createRepairJourneyFolderStructure method handles existing folders properly
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
-      } catch (folderError: any) {
-        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      } catch (folderError) {
+        // Non-critical error, continue with storing the session data
+        console.log(`Note: Issue with folder structure for repair session #${sessionId}, but will continue with sync`);
       }
 
       // Step 7: Try to store the complete journey in Google Cloud Storage
@@ -198,11 +200,12 @@ export class CloudDataSyncService {
    */
   async storeDiagnosticData(sessionId: number, diagnosticData: any): Promise<string> {
     try {
-      // Create repair journey folder structure if it doesn't exist yet
+      // The improved createRepairJourneyFolderStructure method handles existing folders properly
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
-      } catch (folderError) {
-        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      } catch (folderError: any) {
+        // Non-critical error, continue with storing the diagnostic data
+        console.log(`Note: Issue with folder structure for session #${sessionId}, but will continue with diagnostic storage: ${folderError?.message || 'Unknown error'}`);
       }
 
       try {
@@ -240,11 +243,12 @@ export class CloudDataSyncService {
    */
   async storeIssueConfirmationData(sessionId: number, issueData: any): Promise<string> {
     try {
-      // Create repair journey folder structure if it doesn't exist yet
+      // The improved createRepairJourneyFolderStructure method handles existing folders properly
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
-      } catch (folderError) {
-        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      } catch (folderError: any) {
+        // Non-critical error, continue with storing the issue confirmation data
+        console.log(`Note: Issue with folder structure for session #${sessionId}, but will continue with issue confirmation storage: ${folderError?.message || 'Unknown error'}`);
       }
 
       try {
@@ -282,11 +286,12 @@ export class CloudDataSyncService {
    */
   async storeRepairGuideData(sessionId: number, repairGuideData: any): Promise<string> {
     try {
-      // Create repair journey folder structure if it doesn't exist yet
+      // The improved createRepairJourneyFolderStructure method handles existing folders properly
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
       } catch (folderError: any) {
-        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+        // Non-critical error, continue with storing the repair guide data
+        console.log(`Note: Issue with folder structure for session #${sessionId}, but will continue with repair guide storage: ${folderError?.message || 'Unknown error'}`);
       }
 
       try {
@@ -340,11 +345,13 @@ export class CloudDataSyncService {
         return existingSubmissionFile.fileUrl;
       }
       
-      // Create repair journey folder structure if it doesn't exist yet
+      // Create repair journey folder structure only once - the improved GoogleCloudStorage class
+      // will handle checking for existing folders internally
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
       } catch (folderError: any) {
-        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+        // Handle as a non-critical error - we'll still try to save the data
+        console.log(`Note: Issue with folder structure for session #${sessionId}, but will continue with submission storage: ${folderError?.message || 'Unknown error'}`);
       }
 
       try {
@@ -400,11 +407,12 @@ export class CloudDataSyncService {
     }
     
     try {
-      // Create repair journey folder structure if it doesn't exist yet
+      // The improved createRepairJourneyFolderStructure method handles existing folders properly
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(interaction.repairRequestId);
       } catch (folderError: any) {
-        console.log(`Note: Folder structure may already exist for session #${interaction.repairRequestId}: ${folderError.message}`);
+        // Non-critical error, continue with storing the interaction data
+        console.log(`Note: Issue with folder structure for interaction data, but will continue with storage: ${folderError?.message || 'Unknown error'}`);
       }
 
       try {

@@ -455,34 +455,60 @@ class GoogleCloudStorageService {
     ];
     
     try {
-      // Check if the base folder already exists by listing files with its prefix
+      // Check if any folders for this session already exist using a more thorough check
+      // We'll verify each subfolder to be extra safe
       const bucket = this.storage.bucket(this.bucketName);
-      const [existingFiles] = await bucket.getFiles({
-        prefix: `${baseFolder}/`,
-        maxResults: 1
-      });
       
-      // If files exist, this folder structure already exists
-      if (existingFiles && existingFiles.length > 0) {
-        console.log(`Folder structure for repair session #${sessionId} already exists, skipping creation`);
-        return baseFolder;
+      // Check if the base folder exists by checking for at least one file/folder in each structure
+      let folderExists = false;
+      try {
+        const [existingFiles] = await bucket.getFiles({
+          prefix: `${baseFolder}/`,
+          maxResults: 5 // Check a few files to be sure
+        });
+        
+        // If we found files in the base folder, assume the structure exists
+        if (existingFiles && existingFiles.length > 0) {
+          console.log(`Folder structure for repair session #${sessionId} already exists with ${existingFiles.length} files, skipping creation`);
+          return baseFolder;
+        }
+      } catch (checkError: any) {
+        // If the check fails, we'll assume the folder doesn't exist and try to create it
+        console.log(`Folder check failed for session #${sessionId}, will attempt creation: ${checkError?.message || 'Unknown error'}`);
       }
       
       console.log(`Creating folder structure for repair session #${sessionId}`);
       
       // Creating an empty file in each folder to ensure the folder structure exists
+      // Using a separate try/catch for each folder to ensure partial success if one fails
       for (const subFolder of subFolders) {
-        const folderPath = `${baseFolder}/${subFolder}`;
-        const placeholderFile = `${folderPath}/.folder`;
-        const emptyBuffer = Buffer.from('');
-        
-        await this.uploadFile(emptyBuffer, {
-          folder: folderPath,
-          customName: '.folder',
-          contentType: 'application/x-empty'
-        });
-        
-        console.log(`Created folder structure: ${folderPath}`);
+        try {
+          const folderPath = `${baseFolder}/${subFolder}`;
+          
+          // Double-check if this specific subfolder exists to avoid duplicate creation
+          const [subFolderFiles] = await bucket.getFiles({
+            prefix: `${folderPath}/`,
+            maxResults: 1
+          });
+          
+          if (subFolderFiles && subFolderFiles.length > 0) {
+            console.log(`Subfolder ${folderPath} already exists, skipping`);
+            continue;
+          }
+          
+          // Create placeholder file to establish folder
+          const emptyBuffer = Buffer.from('');
+          await this.uploadFile(emptyBuffer, {
+            folder: folderPath,
+            customName: '.folder',
+            contentType: 'application/x-empty'
+          });
+          
+          console.log(`Created folder structure: ${folderPath}`);
+        } catch (subFolderError: any) {
+          console.warn(`Error creating subfolder for session #${sessionId}, continuing with others: ${subFolderError?.message || 'Unknown error'}`);
+          // Continue with other folders rather than aborting completely
+        }
       }
       
       return baseFolder;
