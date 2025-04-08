@@ -38,6 +38,7 @@ import { createBasicDiagnosticTree, treeToDbFormat } from "./utils/diagnostic-tr
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 import { googleCloudStorage } from "./services/google-cloud-storage";
+import { cloudDataSync } from "./services/cloud-data-sync";
 
 declare module 'express-session' {
   interface SessionData {
@@ -251,8 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save repair request data to Google Cloud Storage
       try {
-        // Import cloudDataSync to avoid circular dependencies
-        const { cloudDataSync } = require('./services/cloud-data-sync');
+        // No need to import - using global import at top of file
         
         // Store repair request data in cloud storage
         const repairRequestData = {
@@ -504,8 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save repair guide to Google Cloud Storage if we have a repair request ID
       if (repairRequestId) {
         try {
-          // Import cloudDataSync to avoid circular dependencies
-          const { cloudDataSync } = require('./services/cloud-data-sync');
+          // No need to import - using global import at top of file
           
           // Store guide data in cloud storage
           const guideData = {
@@ -602,8 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Save diagnostic data to Google Cloud Storage
         if (repairRequestId) {
           try {
-            // Import cloudDataSync to avoid circular dependencies
-            const { cloudDataSync } = require('./services/cloud-data-sync');
+            // No need to import - using global import at top of file
             
             // Store diagnostic data in cloud storage
             const diagnosticData = {
