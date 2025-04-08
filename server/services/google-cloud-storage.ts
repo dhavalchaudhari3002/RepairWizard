@@ -451,6 +451,31 @@ class GoogleCloudStorageService {
       return `repair_sessions/${sessionId}`;
     }
     
+    // Critical section: check if there's already a folder creation in progress for this session ID
+    if (GoogleCloudStorageService.folderCreationInProgress.has(sessionId)) {
+      console.log(`Folder creation for session #${sessionId} is already in progress, reusing the existing promise`);
+      // Reuse the existing promise to avoid duplicate creation
+      return GoogleCloudStorageService.folderCreationInProgress.get(sessionId) as Promise<string>;
+    }
+    
+    // Create a new promise for this folder creation and track it
+    const folderCreationPromise = this._createFolderStructure(sessionId);
+    
+    // Store the promise so concurrent requests can reuse it
+    GoogleCloudStorageService.folderCreationInProgress.set(sessionId, folderCreationPromise);
+    
+    try {
+      // Wait for the folder creation to complete
+      const result = await folderCreationPromise;
+      return result;
+    } finally {
+      // Clean up the promise from the map once it's done (success or failure)
+      GoogleCloudStorageService.folderCreationInProgress.delete(sessionId);
+    }
+  }
+  
+  // Private method to do the actual folder creation work
+  private async _createFolderStructure(sessionId: number): Promise<string> {
     const baseFolder = `repair_sessions/${sessionId}`;
     const subFolders = [
       'submission',         // Initial repair request submission
@@ -470,7 +495,6 @@ class GoogleCloudStorageService {
       console.log(`Checking if folder structure for repair session #${sessionId} already exists...`);
       
       // Check if the base folder exists by checking for at least one file/folder in the structure
-      let folderExists = false;
       try {
         const [existingFiles] = await bucket.getFiles({
           prefix: `${baseFolder}/`,
@@ -568,6 +592,10 @@ class GoogleCloudStorageService {
     if (!validStages.includes(stage)) {
       throw new Error(`Invalid stage: ${stage}. Must be one of: ${validStages.join(', ')}`);
     }
+    
+    // Ensure folder structure exists first
+    // This will reuse existing folders or create them if needed, with deduplication built in
+    await this.createRepairJourneyFolderStructure(sessionId);
     
     // Add metadata to the data object
     const dataWithMetadata = {
