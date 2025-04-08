@@ -19,6 +19,7 @@ class GoogleCloudStorageService {
 
   constructor() {
     this.bucketName = process.env.GCS_BUCKET_NAME || '';
+    console.log(`Google Cloud Storage initializing with bucket: ${this.bucketName}`);
     
     try {
       // Check if required environment variables are set
@@ -27,6 +28,11 @@ class GoogleCloudStorageService {
         this.storage = new Storage();
         return;
       }
+      
+      console.log(`GCS_PROJECT_ID exists: ${!!process.env.GCS_PROJECT_ID}`);
+      console.log(`GCS_BUCKET_NAME exists: ${!!process.env.GCS_BUCKET_NAME}`);
+      console.log(`GCS_CREDENTIALS exists: ${!!process.env.GCS_CREDENTIALS}`);
+      
 
       // Initialize Google Cloud Storage client
       if (process.env.GCS_CREDENTIALS) {
@@ -102,20 +108,29 @@ class GoogleCloudStorageService {
     
     // Upload the file
     try {
-      await file.save(fileBuffer, {
-        metadata: {
-          contentType: options.contentType,
-        },
-      });
-      
-      // Make the file public if requested
-      if (options.isPublic) {
-        await file.makePublic();
+      console.log(`Attempting to upload file: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
+      try {
+        await file.save(fileBuffer, {
+          metadata: {
+            contentType: options.contentType,
+          },
+        });
+        console.log(`File saved successfully to: ${filePath}`);
+        
+        // Make the file public if requested
+        if (options.isPublic) {
+          await file.makePublic();
+          console.log(`File made public: ${filePath}`);
+        }
+        
+        // Return the public URL
+        const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
+        console.log(`Generated public URL: ${publicUrl}`);
+        return publicUrl;
+      } catch (uploadError) {
+        console.error('Detailed upload error:', uploadError);
+        throw uploadError;
       }
-      
-      // Return the public URL
-      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-      return publicUrl;
     } catch (error) {
       console.error('Error uploading file to Google Cloud Storage:', error);
       throw error;
