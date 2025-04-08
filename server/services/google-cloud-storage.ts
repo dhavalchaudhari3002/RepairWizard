@@ -442,6 +442,16 @@ class GoogleCloudStorageService {
       throw new Error('Google Cloud Storage is not configured');
     }
     
+    // Add explicit tracking of which folder IDs have already been processed
+    // This is a more defensive approach to prevent duplicate folder creation
+    static processedFolderIds = new Set<number>();
+    
+    // If this session has already been processed, skip folder creation
+    if (GoogleCloudStorageService.processedFolderIds.has(sessionId)) {
+      console.log(`Folder structure for session #${sessionId} was already created in this server process, skipping repeated creation`);
+      return `repair_sessions/${sessionId}`;
+    }
+    
     const baseFolder = `repair_sessions/${sessionId}`;
     const subFolders = [
       'submission',         // Initial repair request submission
@@ -455,11 +465,12 @@ class GoogleCloudStorageService {
     ];
     
     try {
-      // Check if any folders for this session already exist using a more thorough check
-      // We'll verify each subfolder to be extra safe
+      // Get all existing base folders in the repair_sessions directory
       const bucket = this.storage.bucket(this.bucketName);
       
-      // Check if the base folder exists by checking for at least one file/folder in each structure
+      console.log(`Checking if folder structure for repair session #${sessionId} already exists...`);
+      
+      // Check if the base folder exists by checking for at least one file/folder in the structure
       let folderExists = false;
       try {
         const [existingFiles] = await bucket.getFiles({
@@ -470,6 +481,10 @@ class GoogleCloudStorageService {
         // If we found files in the base folder, assume the structure exists
         if (existingFiles && existingFiles.length > 0) {
           console.log(`Folder structure for repair session #${sessionId} already exists with ${existingFiles.length} files, skipping creation`);
+          
+          // Mark this session as processed
+          GoogleCloudStorageService.processedFolderIds.add(sessionId);
+          
           return baseFolder;
         }
       } catch (checkError: any) {
