@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { storage } from "./storage";
+import cloudStorageRoutes from './routes/cloud-storage-routes';
 import { 
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
@@ -64,6 +65,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
   console.log("Authentication setup complete");
+  
+  // Register cloud storage routes
+  app.use('/api/cloud-storage', cloudStorageRoutes);
+  console.log("Cloud storage routes registered");
 
   // Add a simple ping endpoint for debugging
   app.get('/api/ping', (req, res) => {
@@ -1763,8 +1768,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "diagnosed"
       });
       
-      // Store the diagnostic data in Google Cloud Storage
-      const jsonData = {
+      // Import cloudDataSync only when needed to avoid circular dependencies
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Store the diagnostic data in Google Cloud Storage using the dedicated cloud sync service
+      const diagnosticData = {
         sessionId,
         userId: user.id,
         diagnosticResults,
@@ -1772,16 +1780,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage: "diagnosis"
       };
       
-      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
-        folder: `repair_sessions/${sessionId}`,
-        customName: "diagnostic_results.json",
-        isPublic: false
-      });
-      
-      // Update the metadata URL for consistency
-      await storage.updateRepairSession(sessionId, {
-        metadataUrl: storageUrl.replace("diagnostic_results.json", "initial_data.json")
-      });
+      try {
+        // Store the diagnostic data specifically
+        await cloudDataSync.storeDiagnosticData(sessionId, diagnosticData);
+        
+        // Also sync the full repair session to ensure comprehensive data storage
+        const metadataUrl = await cloudDataSync.syncRepairSession(sessionId);
+        console.log(`Successfully synced repair session #${sessionId} after diagnosis: ${metadataUrl}`);
+        
+        // Update the metadata URL in the database
+        await storage.updateRepairSession(sessionId, { metadataUrl });
+      } catch (syncError) {
+        console.error(`Warning: Could not sync diagnostic data to GCS: ${syncError}`);
+        // Continue anyway, as this is not critical for the user response
+      }
       
       res.status(200).json({
         success: true,
@@ -1834,8 +1846,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "confirmed"
       });
       
-      // Store the issue confirmation in Google Cloud Storage
-      const jsonData = {
+      // Import cloudDataSync only when needed to avoid circular dependencies
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Store the issue confirmation data in Google Cloud Storage using the cloud sync service
+      const issueData = {
         sessionId,
         userId: user.id,
         issueConfirmation,
@@ -1843,16 +1858,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage: "confirmation"
       };
       
-      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
-        folder: `repair_sessions/${sessionId}`,
-        customName: "issue_confirmation.json",
-        isPublic: false
-      });
-      
-      // Update the metadata URL for consistency
-      await storage.updateRepairSession(sessionId, {
-        metadataUrl: storageUrl.replace("issue_confirmation.json", "initial_data.json")
-      });
+      try {
+        // Store the issue confirmation data specifically
+        await cloudDataSync.storeIssueConfirmationData(sessionId, issueData);
+        
+        // Also sync the full repair session to ensure comprehensive data storage
+        const metadataUrl = await cloudDataSync.syncRepairSession(sessionId);
+        console.log(`Successfully synced repair session #${sessionId} after issue confirmation: ${metadataUrl}`);
+        
+        // Update the metadata URL in the database
+        await storage.updateRepairSession(sessionId, { metadataUrl });
+      } catch (syncError) {
+        console.error(`Warning: Could not sync issue confirmation data to GCS: ${syncError}`);
+        // Continue anyway, as this is not critical for the user response
+      }
       
       res.status(200).json({
         success: true,
@@ -1905,8 +1924,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "guide_generated"
       });
       
-      // Store the repair guide in Google Cloud Storage
-      const jsonData = {
+      // Import cloudDataSync only when needed to avoid circular dependencies
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Store the repair guide data in Google Cloud Storage using the cloud sync service
+      const repairGuideData = {
         sessionId,
         userId: user.id,
         repairGuide,
@@ -1914,16 +1936,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage: "guide"
       };
       
-      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
-        folder: `repair_sessions/${sessionId}`,
-        customName: "repair_guide.json",
-        isPublic: false
-      });
-      
-      // Update the metadata URL for consistency
-      await storage.updateRepairSession(sessionId, {
-        metadataUrl: storageUrl.replace("repair_guide.json", "initial_data.json")
-      });
+      try {
+        // Store the repair guide data specifically
+        await cloudDataSync.storeRepairGuideData(sessionId, repairGuideData);
+        
+        // Also sync the full repair session to ensure comprehensive data storage
+        const metadataUrl = await cloudDataSync.syncRepairSession(sessionId);
+        console.log(`Successfully synced repair session #${sessionId} after repair guide generation: ${metadataUrl}`);
+        
+        // Update the metadata URL in the database
+        await storage.updateRepairSession(sessionId, { metadataUrl });
+      } catch (syncError) {
+        console.error(`Warning: Could not sync repair guide data to GCS: ${syncError}`);
+        // Continue anyway, as this is not critical for the user response
+      }
       
       res.status(200).json({
         success: true,
@@ -1987,7 +2013,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic: true // Make files public so they can be viewed in the UI
       });
       
-      // Save the file reference in the database
+      // Import cloudDataSync only when needed to avoid circular dependencies
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Save the file reference in the database (uploadedAt and createdAt will be auto-generated)
       const fileRecord = await storage.createRepairSessionFile({
         repairSessionId: sessionId,
         userId: user.id,
@@ -1995,14 +2024,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileUrl,
         contentType,
         filePurpose,
-        stepName: stepName || null,
-        uploadedAt: new Date()
+        stepName: stepName || null
       });
+      
+      // Sync the entire repair session data to Google Cloud Storage for AI training
+      try {
+        const metadataUrl = await cloudDataSync.syncRepairSession(sessionId);
+        console.log(`Successfully synced repair session #${sessionId} after file upload: ${metadataUrl}`);
+        
+        // Update the session with the metadata URL
+        await storage.updateRepairSession(sessionId, { metadataUrl });
+      } catch (syncError) {
+        console.error(`Warning: Could not sync repair session data to GCS: ${syncError}`);
+        // Continue anyway, as this is not critical for the user
+      }
       
       res.status(200).json({
         success: true,
         file: fileRecord,
-        message: "File uploaded successfully"
+        message: "File uploaded successfully and synced to cloud storage"
       });
     } catch (error) {
       console.error("Error uploading file to repair journey:", error);

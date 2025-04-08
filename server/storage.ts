@@ -1033,6 +1033,9 @@ export class DatabaseStorage implements IStorage {
   
   async createRepairSessionFile(fileData: Omit<InsertRepairSessionFile, 'id' | 'createdAt'>): Promise<RepairSessionFile> {
     try {
+      // Import cloudDataSync only when needed to avoid circular dependencies
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
       // Create the file record with the proper schema and field names
       const [file] = await db
         .insert(repairSessionFiles)
@@ -1046,6 +1049,15 @@ export class DatabaseStorage implements IStorage {
           stepName: fileData.stepName,
         })
         .returning();
+      
+      // After creating the file record, sync the entire repair session data to Google Cloud Storage
+      try {
+        await cloudDataSync.syncRepairSession(fileData.repairSessionId);
+        console.log(`Successfully synced repair session #${fileData.repairSessionId} after file upload`);
+      } catch (syncError) {
+        // Log but don't fail the operation if sync fails
+        console.error(`Error syncing repair session data to GCS: ${syncError}`);
+      }
       
       return file;
     } catch (error) {

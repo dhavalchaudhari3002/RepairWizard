@@ -1,53 +1,112 @@
 import React from 'react';
-import { CloudStorageDemo } from '@/components/cloud-storage-demo';
+import { CloudStorageSettings } from '../components/cloud-storage-settings';
+import { 
+  Cloud, 
+  Database, 
+  HardDrive, 
+  Shield, 
+  Zap 
+} from 'lucide-react';
 
 export function CloudStoragePage() {
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">Google Cloud Storage</h1>
-        <p className="text-muted-foreground">
-          Upload, store, and manage files securely with Google Cloud Storage
-        </p>
-      </div>
-      
-      <div className="grid gap-8 mb-8">
-        <CloudStorageDemo />
-      </div>
-      
-      <div className="mt-12 max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4">About Google Cloud Storage</h2>
-        <div className="prose dark:prose-invert">
-          <p>
-            Google Cloud Storage is a unified object storage service for developers and enterprises. 
-            It's ideal for storing and serving user-generated content, data backup, and archival storage.
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            Google Cloud Storage Integration
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Manage your repair data synced to Google Cloud Storage
           </p>
+        </header>
+        
+        <div className="grid gap-8">
+          <CloudStorageSettings />
           
-          <h3>Key features:</h3>
-          <ul>
-            <li><strong>Scalable storage</strong> - Store any amount of data with no minimum object size</li>
-            <li><strong>High durability</strong> - Industry-leading 99.999999999% (11 9's) annual durability</li>
-            <li><strong>Global access</strong> - Access your data from anywhere in the world</li>
-            <li><strong>Security</strong> - Protect your data with encryption, access controls, and audit logging</li>
-          </ul>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="bg-card text-card-foreground rounded-lg border p-6 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Database className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Data Redundancy</h3>
+                  <p className="text-muted-foreground">
+                    All your repair journey data is automatically backed up to Google Cloud Storage,
+                    ensuring your important information is never lost.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-card text-card-foreground rounded-lg border p-6 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Enterprise Security</h3>
+                  <p className="text-muted-foreground">
+                    Your data is protected with industry-leading security measures provided by
+                    Google Cloud Platform's infrastructure.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-card text-card-foreground rounded-lg border p-6 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Zap className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Real-time Sync</h3>
+                  <p className="text-muted-foreground">
+                    Choose between real-time synchronization or scheduled backups to optimize
+                    for your specific performance and data protection needs.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-card text-card-foreground rounded-lg border p-6 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <HardDrive className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Structured Storage</h3>
+                  <p className="text-muted-foreground">
+                    All repair data is organized in a structured format that facilitates future
+                    machine learning and analytics applications.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <h3>When to use Google Cloud Storage:</h3>
-          <ul>
-            <li>Storing user-uploaded files (images, documents, videos)</li>
-            <li>Serving static content for websites and applications</li>
-            <li>Data backup and archiving</li>
-            <li>Data lakes for analytics</li>
-          </ul>
-          
-          <p>
-            In this demo, we've integrated Google Cloud Storage with our repair assistant 
-            platform to provide secure and reliable storage for repair images, documentation, 
-            and other files that users may need to share or access during the repair process.
-          </p>
+          <div className="mt-8 bg-muted p-6 rounded-lg border">
+            <div className="flex items-start space-x-4">
+              <Cloud className="h-8 w-8 text-primary mt-1" />
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Why use Google Cloud Storage?</h2>
+                <p className="text-muted-foreground mb-4">
+                  Google Cloud Storage provides enterprise-grade durability and availability for your repair data.
+                  By synchronizing your repair journeys to the cloud, you ensure:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>Complete backup of all diagnostic data, issues, and repair guides</li>
+                  <li>Secure storage of images and files uploaded during repair journeys</li>
+                  <li>Structured organization of data for future AI training and analytics</li>
+                  <li>Ability to access your repair data from anywhere, anytime</li>
+                  <li>Protection against data loss due to local infrastructure failures</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-export default CloudStoragePage;

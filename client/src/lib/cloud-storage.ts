@@ -1,4 +1,190 @@
 /**
+ * Check the status of the Google Cloud Storage configuration
+ * @returns A Promise resolving to the storage status
+ */
+export const checkCloudStorageStatus = async (): Promise<{
+  isConfigured: boolean;
+  bucketName: string;
+  message?: string;
+}> => {
+  try {
+    const response = await fetch('/api/cloud-storage/status');
+    
+    if (!response.ok) {
+      throw new Error('Failed to check storage status');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error checking cloud storage status:', error);
+    return {
+      isConfigured: false,
+      bucketName: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+/**
+ * Upload a file to the server using the /api/cloud-storage/upload endpoint
+ * @param file The file to upload
+ * @param folder Optional folder to store the file in
+ * @returns A Promise resolving to the uploaded file data
+ */
+export const uploadFile = async (file: File, folder?: string): Promise<{ url: string; name: string; id: number }> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    if (folder) {
+      formData.append('folder', folder);
+    }
+    
+    const response = await fetch('/api/cloud-storage/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload file');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a file from Google Cloud Storage
+ * @param url The URL of the file to delete
+ * @returns A Promise resolving to the result of the delete operation
+ */
+export const deleteFile = async (url: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch('/api/cloud-storage/delete', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete file');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch user data sync configuration
+ * @returns A Promise resolving to the user's data sync preferences
+ */
+export const fetchDataSyncConfig = async (): Promise<{
+  enabled: boolean;
+  syncFrequency: string;
+  lastSyncTime: string | null;
+  syncRepairJourneys: boolean;
+  syncDiagnosticData: boolean;
+  syncRepairGuides: boolean;
+  syncFileUploads: boolean;
+}> => {
+  try {
+    const response = await fetch('/api/cloud-storage/config');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch data sync configuration');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching data sync configuration:', error);
+    // Return default configuration if there's an error
+    return {
+      enabled: false,
+      syncFrequency: 'real-time',
+      lastSyncTime: null,
+      syncRepairJourneys: true,
+      syncDiagnosticData: true,
+      syncRepairGuides: true,
+      syncFileUploads: true
+    };
+  }
+};
+
+/**
+ * Update user data sync configuration
+ * @param config The updated sync configuration
+ * @returns A Promise resolving to the updated configuration
+ */
+export const updateDataSyncConfig = async (config: {
+  enabled: boolean;
+  syncFrequency: string;
+  syncRepairJourneys: boolean;
+  syncDiagnosticData: boolean;
+  syncRepairGuides: boolean;
+  syncFileUploads: boolean;
+}): Promise<{
+  success: boolean;
+  config: any;
+  message?: string;
+}> => {
+  try {
+    const response = await fetch('/api/cloud-storage/config', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update data sync configuration');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating data sync configuration:', error);
+    throw error;
+  }
+};
+
+/**
+ * Trigger a manual sync of all data to Google Cloud Storage
+ * @returns A Promise resolving to the sync result
+ */
+export const triggerManualSync = async (): Promise<{
+  success: boolean;
+  message: string;
+  syncedItems?: number;
+}> => {
+  try {
+    const response = await fetch('/api/cloud-storage/sync', {
+      method: 'POST',
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to trigger manual sync');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error triggering manual sync:', error);
+    throw error;
+  }
+};
+
+/**
  * Converts a file to base64 encoded string for sending to the server
  * @param file The file to convert
  * @returns A Promise resolving to the base64 encoded string
@@ -7,16 +193,7 @@ export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        // The result includes the data URL prefix (e.g., "data:image/png;base64,")
-        // We need to strip this prefix for backend processing
-        const base64String = reader.result.split(',')[1];
-        resolve(base64String);
-      } else {
-        reject(new Error('Failed to convert file to base64'));
-      }
-    };
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = error => reject(error);
   });
 };
@@ -28,19 +205,18 @@ export const fileToBase64 = (file: File): Promise<string> => {
  * @returns A Blob representation of the data
  */
 export const base64ToBlob = (base64: string, contentType: string): Blob => {
-  const byteCharacters = atob(base64);
-  const byteArrays = [];
-
-  for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
-    const slice = byteCharacters.slice(offset, offset + 1024);
-    
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteArrays: Uint8Array[] = [];
+  
+  for (let i = 0; i < byteCharacters.length; i += 512) {
+    const slice = byteCharacters.slice(i, i + 512);
     const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
+    
+    for (let j = 0; j < slice.length; j++) {
+      byteNumbers[j] = slice.charCodeAt(j);
     }
     
-    const byteArray = new Uint8Array(byteNumbers);
-    byteArrays.push(byteArray);
+    byteArrays.push(new Uint8Array(byteNumbers));
   }
   
   return new Blob(byteArrays, { type: contentType });
@@ -63,11 +239,16 @@ export const base64ToUrl = (base64: string, contentType: string): string => {
  * @returns A formatted string showing the file size
  */
 export const getBase64FileSize = (base64: string): string => {
-  const sizeInBytes = (base64.length * 3) / 4;
+  // Extract the base64 data part (after the comma)
+  const base64Data = base64.split(',')[1] || base64;
+  
+  // Calculate size in bytes: each base64 character represents 6 bits, so 4 characters are 3 bytes
+  const sizeInBytes = Math.floor((base64Data.length * 3) / 4);
+  
   if (sizeInBytes < 1024) {
-    return `${Math.round(sizeInBytes)} B`;
+    return `${sizeInBytes} B`;
   } else if (sizeInBytes < 1024 * 1024) {
-    return `${Math.round(sizeInBytes / 1024)} KB`;
+    return `${(sizeInBytes / 1024).toFixed(2)} KB`;
   } else {
     return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
@@ -80,15 +261,16 @@ export const getBase64FileSize = (base64: string): string => {
  */
 export const fetchRepairSessionFiles = async (sessionId: number) => {
   try {
-    const response = await fetch(`/api/repair-journey/${sessionId}/files`);
+    const response = await fetch(`/api/repair-sessions/${sessionId}/files`);
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch files');
+      throw new Error('Failed to fetch repair session files');
     }
-    const data = await response.json();
-    return data.files || [];
+    
+    return await response.json();
   } catch (error) {
     console.error('Error fetching repair session files:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -103,30 +285,27 @@ export const fetchRepairSessionFiles = async (sessionId: number) => {
 export const uploadFileToCloudStorage = async (
   sessionId: number,
   file: File,
-  filePurpose: string,
+  filePurpose: 'diagnostic_image' | 'repair_guide_image' | 'user_upload' | 'other',
   stepName?: string
 ) => {
   try {
-    // Convert file to base64
-    const base64Data = await fileToBase64(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sessionId', sessionId.toString());
+    formData.append('filePurpose', filePurpose);
     
-    const response = await fetch(`/api/repair-journey/${sessionId}/files`, {
+    if (stepName) {
+      formData.append('stepName', stepName);
+    }
+    
+    const response = await fetch('/api/cloud-storage/upload-session-file', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        file: base64Data,
-        contentType: file.type,
-        fileName: file.name,
-        filePurpose,
-        stepName: stepName || undefined,
-      }),
+      body: formData,
     });
     
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to upload file');
+      throw new Error(errorData.message || 'Failed to upload file');
     }
     
     return await response.json();

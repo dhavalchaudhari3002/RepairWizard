@@ -16,6 +16,93 @@ class GoogleCloudStorageService {
   private storage: Storage;
   private bucketName: string;
   private isReady: boolean = false;
+  
+  /**
+   * Check if Google Cloud Storage is properly configured and accessible
+   * @returns An object with the status of the GCS configuration
+   */
+  public async checkStatus(): Promise<{
+    isConfigured: boolean;
+    bucketName: string;
+    message?: string;
+  }> {
+    try {
+      if (!this.isReady || !this.bucketName) {
+        return {
+          isConfigured: false,
+          bucketName: this.bucketName || 'not-configured',
+          message: 'Google Cloud Storage is not properly configured'
+        };
+      }
+      
+      // Try to get bucket metadata to verify access
+      const [exists] = await this.storage.bucket(this.bucketName).exists();
+      
+      if (!exists) {
+        return {
+          isConfigured: false,
+          bucketName: this.bucketName,
+          message: `Bucket "${this.bucketName}" does not exist`
+        };
+      }
+      
+      return {
+        isConfigured: true,
+        bucketName: this.bucketName
+      };
+    } catch (error) {
+      console.error('Error checking GCS status:', error);
+      return {
+        isConfigured: false,
+        bucketName: this.bucketName || 'error',
+        message: error instanceof Error ? error.message : 'Unknown error checking GCS configuration'
+      };
+    }
+  }
+  
+  /**
+   * Upload a buffer to Google Cloud Storage
+   * @param buffer The buffer to upload
+   * @param options Upload options
+   * @returns The public URL of the uploaded file
+   */
+  public async uploadBuffer(
+    buffer: Buffer,
+    options: UploadOptions = {}
+  ): Promise<string> {
+    if (!this.isReady) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    try {
+      const folder = options.folder || '';
+      const filename = options.customName || `${randomUUID()}`;
+      const fullPath = folder ? `${folder}/${filename}` : filename;
+      
+      const file = this.storage.bucket(this.bucketName).file(fullPath);
+      
+      // Upload the buffer
+      await file.save(buffer, {
+        contentType: options.contentType || 'application/octet-stream',
+        public: options.isPublic || false,
+        metadata: {
+          contentType: options.contentType || 'application/octet-stream'
+        }
+      });
+      
+      // Make the file public if requested
+      if (options.isPublic) {
+        await file.makePublic();
+      }
+      
+      // Get the public URL
+      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${fullPath}`;
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading buffer to GCS:', error);
+      throw error;
+    }
+  }
 
   constructor() {
     this.bucketName = process.env.GCS_BUCKET_NAME || '';

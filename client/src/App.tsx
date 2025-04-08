@@ -19,7 +19,7 @@ import ResetPassword from '@/pages/reset-password';
 import ToolsPage from '@/pages/tools-page';
 import UploadImagePage from '@/pages/upload-image-page';
 import VerificationPage from '@/pages/verification-page';
-import CloudStoragePage from '@/pages/cloud-storage-page';
+import { CloudStoragePage } from '@/pages/cloud-storage-page';
 import { RepairJourneyPage } from '@/pages/repair-journey-page';
 
 // Protected route wrapper
