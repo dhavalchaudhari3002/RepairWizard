@@ -118,7 +118,7 @@ export interface IStorage {
   deleteRepairSession(id: number): Promise<void>;
   
   // Repair Session Files
-  createRepairSessionFile(fileData: any): Promise<RepairSessionFile>;
+  createRepairSessionFile(fileData: Omit<InsertRepairSessionFile, 'id' | 'createdAt'>): Promise<RepairSessionFile>;
   getRepairSessionFile(id: number): Promise<RepairSessionFile | undefined>;
   getRepairSessionFiles(sessionId: number): Promise<RepairSessionFile[]>;
   deleteRepairSessionFile(id: number): Promise<void>;
@@ -1031,11 +1031,20 @@ export class DatabaseStorage implements IStorage {
   
   // Repair Session Files Methods
   
-  async createRepairSessionFile(fileData: any): Promise<RepairSessionFile> {
+  async createRepairSessionFile(fileData: Omit<InsertRepairSessionFile, 'id' | 'createdAt'>): Promise<RepairSessionFile> {
     try {
+      // Create the file record with the proper schema and field names
       const [file] = await db
         .insert(repairSessionFiles)
-        .values(fileData)
+        .values({
+          repairSessionId: fileData.repairSessionId,
+          userId: fileData.userId,
+          fileName: fileData.fileName,
+          fileUrl: fileData.fileUrl,
+          contentType: fileData.contentType,
+          filePurpose: fileData.filePurpose,
+          stepName: fileData.stepName,
+        })
         .returning();
       
       return file;

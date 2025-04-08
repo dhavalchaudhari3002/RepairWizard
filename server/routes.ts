@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           productCategory: category,
           subCategory: subcategory || undefined,
           version: 1,
-          treeData: JSON.stringify(basicTree)
+          treeData: JSON.parse(JSON.stringify(basicTree))
         });
         
         return res.status(201).json(newTree);
@@ -774,7 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productCategory,
         subCategory: subCategory || undefined,
         version: version || newVersion,
-        treeData: typeof treeData === 'string' ? treeData : JSON.stringify(treeData)
+        treeData: typeof treeData === 'string' ? JSON.parse(treeData) : treeData
       });
       
       return res.status(201).json(newTree);
@@ -810,7 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the tree
       const updatedTree = await storage.updateDiagnosticQuestionTree(id, {
-        treeData: typeof treeData === 'string' ? treeData : JSON.stringify(treeData),
+        treeData: typeof treeData === 'string' ? JSON.parse(treeData) : treeData,
         updatedAt: new Date()
       });
       
@@ -1200,13 +1200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Link file to repair session
-      await db.insert(repairSessionFiles).values({
+      // Create repair session file record
+      await storage.createRepairSessionFile({
         repairSessionId: sessionId,
-        storageFileId: storageFile.id,
+        userId: req.user.id,
+        fileName: actualFileName,
+        fileUrl: url,
+        contentType,
         filePurpose,
-        stepName: stepName || null,
-        createdAt: new Date()
+        stepName: stepName || null
       });
 
       res.json({ 
@@ -1252,21 +1254,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get files for the repair session
       const sessionFiles = await db.select({
         id: repairSessionFiles.id,
-        fileId: storageFiles.id,
-        fileName: storageFiles.fileName,
-        originalName: storageFiles.originalName,
-        fileUrl: storageFiles.fileUrl,
-        contentType: storageFiles.contentType,
-        fileSize: storageFiles.fileSize,
+        fileName: repairSessionFiles.fileName,
+        fileUrl: repairSessionFiles.fileUrl,
+        contentType: repairSessionFiles.contentType,
         filePurpose: repairSessionFiles.filePurpose,
         stepName: repairSessionFiles.stepName,
+        uploadedAt: repairSessionFiles.uploadedAt,
         createdAt: repairSessionFiles.createdAt
       })
       .from(repairSessionFiles)
-      .innerJoin(
-        storageFiles,
-        eq(repairSessionFiles.storageFileId, storageFiles.id)
-      )
       .where(eq(repairSessionFiles.repairSessionId, sessionId));
       
       res.json({ 
@@ -1309,18 +1305,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get files for the repair session
       const sessionFiles = await db.select({
         id: repairSessionFiles.id,
-        fileId: storageFiles.id,
-        fileName: storageFiles.fileName,
-        fileUrl: storageFiles.fileUrl,
-        contentType: storageFiles.contentType,
+        fileName: repairSessionFiles.fileName,
+        fileUrl: repairSessionFiles.fileUrl,
+        contentType: repairSessionFiles.contentType,
         filePurpose: repairSessionFiles.filePurpose,
-        stepName: repairSessionFiles.stepName
+        stepName: repairSessionFiles.stepName,
+        uploadedAt: repairSessionFiles.uploadedAt
       })
       .from(repairSessionFiles)
-      .innerJoin(
-        storageFiles,
-        eq(repairSessionFiles.storageFileId, storageFiles.id)
-      )
       .where(eq(repairSessionFiles.repairSessionId, sessionId));
       
       // Combine session data with files
@@ -1646,7 +1638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic: false
       });
       
-      // Update the session with the storage URL
+      // Update the session with the storage URL for metadata
       await storage.updateRepairSession(session.id, {
         metadataUrl: storageUrl
       });
@@ -1786,6 +1778,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic: false
       });
       
+      // Update the metadata URL for consistency
+      await storage.updateRepairSession(sessionId, {
+        metadataUrl: storageUrl.replace("diagnostic_results.json", "initial_data.json")
+      });
+      
       res.status(200).json({
         success: true,
         message: "Diagnostic results saved successfully"
@@ -1850,6 +1847,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         folder: `repair_sessions/${sessionId}`,
         customName: "issue_confirmation.json",
         isPublic: false
+      });
+      
+      // Update the metadata URL for consistency
+      await storage.updateRepairSession(sessionId, {
+        metadataUrl: storageUrl.replace("issue_confirmation.json", "initial_data.json")
       });
       
       res.status(200).json({
@@ -1918,6 +1920,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublic: false
       });
       
+      // Update the metadata URL for consistency
+      await storage.updateRepairSession(sessionId, {
+        metadataUrl: storageUrl.replace("repair_guide.json", "initial_data.json")
+      });
+      
       res.status(200).json({
         success: true,
         message: "Repair guide saved successfully"
@@ -1982,7 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save the file reference in the database
       const fileRecord = await storage.createRepairSessionFile({
-        sessionId,
+        repairSessionId: sessionId,
         userId: user.id,
         fileName,
         fileUrl,

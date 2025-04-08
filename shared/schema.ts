@@ -490,6 +490,7 @@ export const repairSessions = pgTable("repair_sessions", {
   diagnosticResults: jsonb("diagnostic_results"),
   issueConfirmation: jsonb("issue_confirmation"),
   repairGuide: jsonb("repair_guide"),
+  metadataUrl: text("metadata_url"),  // URL to the metadata JSON in Google Cloud Storage
   status: text("status").notNull().default("started"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -507,9 +508,13 @@ export const insertRepairSessionSchema = createInsertSchema(repairSessions)
 export const repairSessionFiles = pgTable("repair_session_files", {
   id: serial("id").primaryKey(),
   repairSessionId: integer("repair_session_id").references(() => repairSessions.id).notNull(),
-  storageFileId: integer("storage_file_id").references(() => storageFiles.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  contentType: text("content_type").notNull(),
   filePurpose: text("file_purpose").notNull(),
   stepName: text("step_name"),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -518,6 +523,7 @@ export const insertRepairSessionFileSchema = createInsertSchema(repairSessionFil
   .omit({
     id: true,
     createdAt: true,
+    uploadedAt: true,
   });
 
 export type RepairSession = typeof repairSessions.$inferSelect;
