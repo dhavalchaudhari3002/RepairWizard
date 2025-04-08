@@ -317,6 +317,48 @@ export class CloudDataSyncService {
   }
 
   /**
+   * Store initial submission data in Google Cloud Storage
+   * @param sessionId The ID of the repair session
+   * @param initialData The initial submission data to store
+   * @returns The URL of the stored JSON file
+   */
+  async storeInitialSubmissionData(sessionId: number, initialData: any): Promise<string> {
+    try {
+      // Create repair journey folder structure if it doesn't exist yet
+      try {
+        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
+      } catch (folderError: any) {
+        console.log(`Note: Folder structure may already exist for session #${sessionId}: ${folderError.message}`);
+      }
+
+      try {
+        // Store in a dedicated submission folder with an organized filename
+        const url = await googleCloudStorage.saveRepairJourneyData(
+          sessionId,
+          'submission',
+          initialData,
+          `initial_submission_${Date.now()}.json`
+        );
+        console.log(`Successfully stored initial submission data for session #${sessionId} to GCS: ${url}`);
+        return url;
+      } catch (gcsError) {
+        console.error(`Error storing initial submission data to GCS for session #${sessionId}, using local fallback:`, gcsError);
+        const localUrl = this.saveLocalFallback(initialData, sessionId, 'submission');
+        console.log(`Stored initial submission data to local filesystem: ${localUrl}`);
+        return localUrl;
+      }
+    } catch (error) {
+      console.error(`Error storing initial submission data for session #${sessionId}:`, error);
+      // Last resort fallback
+      return this.saveLocalFallback(
+        { error: String(error), data: initialData, timestamp: new Date() },
+        sessionId,
+        'error_submission'
+      );
+    }
+  }
+
+  /**
    * Store user interaction data in Google Cloud Storage
    * @param interaction The user interaction to store
    * @returns The URL of the stored JSON file

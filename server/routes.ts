@@ -957,11 +957,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date().toISOString()
       };
 
-      // Save to Google Cloud Storage in the repair-sessions folder
-      const dataUrl = await googleCloudStorage.saveJsonData(initialData, {
-        folder: `repair-sessions/${repairSession[0].id}`,
-        customName: 'initial-submission.json'
-      });
+      // Save to Google Cloud Storage using cloud data sync for proper folder organization
+      const dataUrl = await cloudDataSync.storeInitialSubmissionData(repairSession[0].id, initialData);
 
       res.status(201).json({
         success: true,
@@ -1030,11 +1027,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Save to Google Cloud Storage
-      const dataUrl = await googleCloudStorage.saveJsonData(diagnosisData, {
-        folder: `repair-sessions/${sessionId}`,
-        customName: 'diagnosis-results.json'
-      });
+      // Save to Google Cloud Storage using cloud data sync for proper folder organization
+      const dataUrl = await cloudDataSync.storeDiagnosticData(sessionId, diagnosisData);
 
       res.json({
         success: true,
@@ -1103,11 +1097,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Save to Google Cloud Storage
-      const dataUrl = await googleCloudStorage.saveJsonData(confirmationData, {
-        folder: `repair-sessions/${sessionId}`,
-        customName: 'issue-confirmation.json'
-      });
+      // Save to Google Cloud Storage using cloud data sync for proper folder organization
+      const dataUrl = await cloudDataSync.storeIssueConfirmationData(sessionId, confirmationData);
 
       res.json({
         success: true,
@@ -1176,11 +1167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Save to Google Cloud Storage
-      const dataUrl = await googleCloudStorage.saveJsonData(guideData, {
-        folder: `repair-sessions/${sessionId}`,
-        customName: 'repair-guide.json'
-      });
+      // Save to Google Cloud Storage using cloud data sync for proper folder organization
+      const dataUrl = await cloudDataSync.storeRepairGuideData(sessionId, guideData);
 
       res.json({
         success: true,
