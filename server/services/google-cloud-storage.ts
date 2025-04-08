@@ -19,6 +19,8 @@ class GoogleCloudStorageService {
   // Add static properties to track which folder IDs have been processed and are currently being processed
   private static processedFolderIds = new Set<number>();
   private static folderCreationInProgress = new Map<number, Promise<string>>();
+  private static sequenceLock = false;
+  private static lastProcessedId = 0;
   
   /**
    * Check if Google Cloud Storage is properly configured and accessible
@@ -444,33 +446,62 @@ class GoogleCloudStorageService {
     if (!this.isConfigured()) {
       throw new Error('Google Cloud Storage is not configured');
     }
-    
-    // If this session has already been processed, skip folder creation
-    if (GoogleCloudStorageService.processedFolderIds.has(sessionId)) {
-      console.log(`Folder structure for session #${sessionId} was already created in this server process, skipping repeated creation`);
-      return `repair_sessions/${sessionId}`;
+
+    // Wait until we acquire the sequence lock
+    while (GoogleCloudStorageService.sequenceLock) {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
     }
-    
-    // Critical section: check if there's already a folder creation in progress for this session ID
-    if (GoogleCloudStorageService.folderCreationInProgress.has(sessionId)) {
-      console.log(`Folder creation for session #${sessionId} is already in progress, reusing the existing promise`);
-      // Reuse the existing promise to avoid duplicate creation
-      return GoogleCloudStorageService.folderCreationInProgress.get(sessionId) as Promise<string>;
-    }
-    
-    // Create a new promise for this folder creation and track it
-    const folderCreationPromise = this._createFolderStructure(sessionId);
-    
-    // Store the promise so concurrent requests can reuse it
-    GoogleCloudStorageService.folderCreationInProgress.set(sessionId, folderCreationPromise);
     
     try {
-      // Wait for the folder creation to complete
-      const result = await folderCreationPromise;
-      return result;
+      // Acquire sequence lock
+      GoogleCloudStorageService.sequenceLock = true;
+
+      // Check if we need to maintain sequential IDs - only process the next ID in sequence
+      if (GoogleCloudStorageService.lastProcessedId > 0 && sessionId !== GoogleCloudStorageService.lastProcessedId + 1 && sessionId !== GoogleCloudStorageService.lastProcessedId) {
+        console.log(`Warning: Session ID ${sessionId} is not sequential after ${GoogleCloudStorageService.lastProcessedId}`);
+        
+        // Only allow sequential processing if it's the next ID or we're reprocessing the same ID
+        if (sessionId > GoogleCloudStorageService.lastProcessedId + 1) {
+          console.log(`Skipping non-sequential session ID ${sessionId} to prevent duplicate folders`);
+          return `repair_sessions/${sessionId}`;
+        }
+      }
+      
+      // If this session has already been processed, skip folder creation
+      if (GoogleCloudStorageService.processedFolderIds.has(sessionId)) {
+        console.log(`Folder structure for session #${sessionId} was already created in this server process, skipping repeated creation`);
+        return `repair_sessions/${sessionId}`;
+      }
+      
+      // Critical section: check if there's already a folder creation in progress for this session ID
+      if (GoogleCloudStorageService.folderCreationInProgress.has(sessionId)) {
+        console.log(`Folder creation for session #${sessionId} is already in progress, reusing the existing promise`);
+        // Reuse the existing promise to avoid duplicate creation
+        return GoogleCloudStorageService.folderCreationInProgress.get(sessionId) as Promise<string>;
+      }
+      
+      // Create a new promise for this folder creation and track it
+      const folderCreationPromise = this._createFolderStructure(sessionId);
+      
+      // Store the promise so concurrent requests can reuse it
+      GoogleCloudStorageService.folderCreationInProgress.set(sessionId, folderCreationPromise);
+      
+      try {
+        // Wait for the folder creation to complete
+        const result = await folderCreationPromise;
+        
+        // Update the last processed ID
+        GoogleCloudStorageService.lastProcessedId = sessionId;
+        console.log(`Updated last processed session ID to ${sessionId}`);
+        
+        return result;
+      } finally {
+        // Clean up the promise from the map once it's done (success or failure)
+        GoogleCloudStorageService.folderCreationInProgress.delete(sessionId);
+      }
     } finally {
-      // Clean up the promise from the map once it's done (success or failure)
-      GoogleCloudStorageService.folderCreationInProgress.delete(sessionId);
+      // Release sequence lock
+      GoogleCloudStorageService.sequenceLock = false;
     }
   }
   
