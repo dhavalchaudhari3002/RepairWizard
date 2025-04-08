@@ -114,14 +114,13 @@ class GoogleCloudStorageService {
           metadata: {
             contentType: options.contentType,
           },
+          // Note: We're not attempting to set per-object ACLs since the bucket uses uniform access control
+          // The bucket's permissions will apply to all objects
         });
         console.log(`File saved successfully to: ${filePath}`);
         
-        // Make the file public if requested
-        if (options.isPublic) {
-          await file.makePublic();
-          console.log(`File made public: ${filePath}`);
-        }
+        // With uniform bucket-level access enabled, we don't need to call makePublic()
+        // as it would cause an error. The bucket's IAM permissions apply to all objects.
         
         // Return the public URL
         const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
