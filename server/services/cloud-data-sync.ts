@@ -81,6 +81,9 @@ export class CloudDataSyncService {
    */
   async syncRepairSession(sessionId: number): Promise<string> {
     try {
+      // Log which session ID we're processing
+      console.log(`Syncing repair session data for session ID: ${sessionId}`);
+      
       // Step 1: Get the repair session data
       const [repairSession] = await db
         .select()
@@ -200,7 +203,17 @@ export class CloudDataSyncService {
    */
   async storeDiagnosticData(sessionId: number, diagnosticData: any): Promise<string> {
     try {
-      // The improved createRepairJourneyFolderStructure method handles existing folders properly
+      // Add logging to debug which session ID is being processed
+      console.log(`Processing diagnostic data for session ID: ${sessionId}`);
+      
+      // Check if diagnosticData has a different repairRequestId - this is crucial
+      // to prevent creating folders for both old and new sessions
+      const requestId = diagnosticData.repairRequestId || sessionId;
+      if (requestId !== sessionId) {
+        console.log(`Note: Diagnostic data has different repairRequestId (${requestId}) than sessionId (${sessionId}). Using sessionId.`);
+      }
+      
+      // Only create folders for the current session - not any related sessions
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
       } catch (folderError: any) {
@@ -243,7 +256,10 @@ export class CloudDataSyncService {
    */
   async storeIssueConfirmationData(sessionId: number, issueData: any): Promise<string> {
     try {
-      // The improved createRepairJourneyFolderStructure method handles existing folders properly
+      // Log which session ID we're processing
+      console.log(`Processing issue confirmation data for session ID: ${sessionId}`);
+      
+      // Only create folders for the current session - not any related sessions
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
       } catch (folderError: any) {
@@ -286,7 +302,10 @@ export class CloudDataSyncService {
    */
   async storeRepairGuideData(sessionId: number, repairGuideData: any): Promise<string> {
     try {
-      // The improved createRepairJourneyFolderStructure method handles existing folders properly
+      // Log which session ID we're processing
+      console.log(`Processing repair guide data for session ID: ${sessionId}`);
+      
+      // Only create folders for the current session - not any related sessions
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
       } catch (folderError: any) {
@@ -329,6 +348,9 @@ export class CloudDataSyncService {
    */
   async storeInitialSubmissionData(sessionId: number, initialData: any): Promise<string> {
     try {
+      // Log which session ID we're processing
+      console.log(`Processing initial submission data for session ID: ${sessionId}`);
+      
       // Check if we already have files for this session in GCS to prevent duplication
       const existingSessionData = await db
         .select()
@@ -407,7 +429,10 @@ export class CloudDataSyncService {
     }
     
     try {
-      // The improved createRepairJourneyFolderStructure method handles existing folders properly
+      // Log which session/request ID we're processing
+      console.log(`Processing interaction data for repair request ID: ${interaction.repairRequestId}`);
+      
+      // Only create folders for the current session - not any related sessions
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(interaction.repairRequestId);
       } catch (folderError: any) {
