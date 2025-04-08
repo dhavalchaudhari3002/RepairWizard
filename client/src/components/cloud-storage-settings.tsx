@@ -36,6 +36,7 @@ import {
   ExternalLink, 
   Loader2, 
   RefreshCw, 
+  Trash2, 
   Upload 
 } from 'lucide-react';
 import { 
@@ -44,7 +45,8 @@ import {
   updateDataSyncConfig, 
   triggerManualSync,
   uploadFile,
-  deleteFile
+  deleteFile,
+  deleteFolder
 } from '../lib/cloud-storage';
 
 export function CloudStorageSettings() {
@@ -650,5 +652,99 @@ export function CloudStorageSettings() {
         </p>
       </CardFooter>
     </Card>
+  );
+}
+
+// Component for cleaning up duplicate folders
+function FolderCleanupTool() {
+  const { toast } = useToast();
+  const [folderPath, setFolderPath] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleDeleteFolder = async () => {
+    if (!folderPath) {
+      toast({
+        title: 'Missing folder path',
+        description: 'Please enter a folder path to delete',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Confirm before deleting
+    if (!window.confirm(`Are you sure you want to delete the folder "${folderPath}" and ALL its contents? This action cannot be undone!`)) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const result = await deleteFolder(folderPath);
+      
+      if (result.success) {
+        toast({
+          title: 'Folder deleted',
+          description: `Successfully deleted folder: ${folderPath}`,
+          variant: 'default'
+        });
+        setFolderPath(''); // Clear the input
+      } else {
+        throw new Error(result.message || 'Failed to delete folder');
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast({
+        title: 'Deletion failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-4 border border-border rounded-md p-4">
+      <div>
+        <h4 className="text-sm font-medium mb-2">Delete Folder</h4>
+        <p className="text-xs text-muted-foreground mb-4">
+          Use this tool to delete duplicate or unwanted folders from cloud storage.
+          Be careful as this will delete all files within the folder.
+        </p>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="folder-path">Folder Path</Label>
+        <div className="flex gap-2">
+          <Input
+            id="folder-path"
+            placeholder="e.g., repair_sessions/113"
+            value={folderPath}
+            onChange={e => setFolderPath(e.target.value)}
+            disabled={isDeleting}
+          />
+          <Button 
+            variant="destructive" 
+            size="sm"
+            disabled={!folderPath || isDeleting}
+            onClick={handleDeleteFolder}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Enter the full path to the folder (e.g. repair_sessions/113)
+        </p>
+      </div>
+    </div>
   );
 }

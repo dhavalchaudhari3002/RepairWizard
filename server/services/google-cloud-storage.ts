@@ -268,6 +268,45 @@ class GoogleCloudStorageService {
   }
 
   /**
+   * Delete a folder and all its contents from Google Cloud Storage
+   * @param folderPath - The path of the folder to delete
+   */
+  async deleteFolder(folderPath: string): Promise<void> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+
+    // Ensure path ends with a slash to indicate a folder
+    const normalizedFolderPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+    
+    const bucket = this.storage.bucket(this.bucketName);
+    
+    try {
+      console.log(`Attempting to delete folder: ${normalizedFolderPath}`);
+      
+      // List all files in the folder
+      const [files] = await bucket.getFiles({
+        prefix: normalizedFolderPath
+      });
+      
+      console.log(`Found ${files.length} files/objects to delete in the folder ${normalizedFolderPath}`);
+      
+      // Delete each file
+      const deletePromises = files.map(file => {
+        console.log(`Deleting file: ${file.name}`);
+        return file.delete();
+      });
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Successfully deleted folder: ${normalizedFolderPath} with all its contents`);
+    } catch (error) {
+      console.error(`Error deleting folder ${normalizedFolderPath} from Google Cloud Storage:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get the signed URL for a file (for temporary access to private files)
    * @param filePath - The path of the file in the bucket
    * @param expiresInMinutes - How long the URL should be valid for (in minutes)
@@ -416,6 +455,21 @@ class GoogleCloudStorageService {
     ];
     
     try {
+      // Check if the base folder already exists by listing files with its prefix
+      const bucket = this.storage.bucket(this.bucketName);
+      const [existingFiles] = await bucket.getFiles({
+        prefix: `${baseFolder}/`,
+        maxResults: 1
+      });
+      
+      // If files exist, this folder structure already exists
+      if (existingFiles && existingFiles.length > 0) {
+        console.log(`Folder structure for repair session #${sessionId} already exists, skipping creation`);
+        return baseFolder;
+      }
+      
+      console.log(`Creating folder structure for repair session #${sessionId}`);
+      
       // Creating an empty file in each folder to ensure the folder structure exists
       for (const subFolder of subFolders) {
         const folderPath = `${baseFolder}/${subFolder}`;

@@ -324,6 +324,22 @@ export class CloudDataSyncService {
    */
   async storeInitialSubmissionData(sessionId: number, initialData: any): Promise<string> {
     try {
+      // Check if we already have files for this session in GCS to prevent duplication
+      const existingSessionData = await db
+        .select()
+        .from(repairSessionFiles)
+        .where(eq(repairSessionFiles.repairSessionId, sessionId));
+        
+      // If existing files found in the submission folder, don't create duplicate data
+      const existingSubmissionFile = existingSessionData.find(
+        file => file.fileUrl && file.fileUrl.includes(`/submission/`)
+      );
+      
+      if (existingSubmissionFile?.fileUrl) {
+        console.log(`Initial submission data already exists for session #${sessionId}, skipping duplicate creation`);
+        return existingSubmissionFile.fileUrl;
+      }
+      
       // Create repair journey folder structure if it doesn't exist yet
       try {
         await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
@@ -332,14 +348,28 @@ export class CloudDataSyncService {
       }
 
       try {
-        // Store in a dedicated submission folder with an organized filename
+        // Make the filename consistent to avoid duplicates
+        const filename = `initial_submission.json`;
+        
+        // Store in a dedicated submission folder with a consistent filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'submission',
           initialData,
-          `initial_submission_${Date.now()}.json`
+          filename
         );
         console.log(`Successfully stored initial submission data for session #${sessionId} to GCS: ${url}`);
+        
+        // Record this file in the database to track it
+        await db.insert(repairSessionFiles).values({
+          repairSessionId: sessionId,
+          userId: initialData.userId || 1, // Use the userId from initialData or default to 1
+          fileName: filename,
+          fileUrl: url,
+          filePurpose: 'submission_data',
+          contentType: 'application/json'
+        });
+        
         return url;
       } catch (gcsError) {
         console.error(`Error storing initial submission data to GCS for session #${sessionId}, using local fallback:`, gcsError);

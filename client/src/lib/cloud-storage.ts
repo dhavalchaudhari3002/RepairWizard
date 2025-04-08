@@ -85,6 +85,33 @@ export const deleteFile = async (url: string): Promise<{ success: boolean; messa
 };
 
 /**
+ * Delete a folder and all its contents from Google Cloud Storage
+ * @param folderPath The path of the folder to delete (e.g., 'repair_sessions/123')
+ * @returns A Promise resolving to the result of the delete operation
+ */
+export const deleteFolder = async (folderPath: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch('/api/cloud-storage/delete-folder', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ folderPath }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete folder');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    throw error;
+  }
+};
+
+/**
  * Fetch user data sync configuration
  * @returns A Promise resolving to the user's data sync preferences
  */

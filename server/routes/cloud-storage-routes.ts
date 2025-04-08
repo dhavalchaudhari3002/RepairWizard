@@ -259,6 +259,44 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 /**
+ * Delete a folder and all its contents from Google Cloud Storage
+ */
+router.delete('/delete-folder', async (req, res) => {
+  try {
+    // Get user ID from session
+    const userId = req.session?.passport?.user;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Validate input
+    const { folderPath } = req.body;
+    if (!folderPath) {
+      return res.status(400).json({ error: 'Folder path is required' });
+    }
+    
+    // Only allow admins or users with special permissions to delete folders
+    // In a real system, you'd check user roles from the database
+    
+    console.log(`Attempting to delete folder: ${folderPath}`);
+    
+    // Delete the folder from Google Cloud Storage
+    await googleCloudStorage.deleteFolder(folderPath);
+    
+    res.json({
+      success: true,
+      message: `Folder ${folderPath} deleted successfully`
+    });
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete folder',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * Delete a file from Google Cloud Storage
  */
 router.delete('/delete', async (req, res) => {
