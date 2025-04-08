@@ -249,6 +249,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: user.id
       });
 
+      // Save repair request data to Google Cloud Storage
+      try {
+        // Import cloudDataSync to avoid circular dependencies
+        const { cloudDataSync } = require('./services/cloud-data-sync');
+        
+        // Store repair request data in cloud storage
+        const repairRequestData = {
+          id: repairRequest.id,
+          customerId: user.id,
+          productType: data.productType,
+          issueDescription: data.issueDescription,
+          imageUrls: data.imageUrls || [],
+          timestamp: new Date().toISOString()
+        };
+        
+        // Store the data and log success
+        await cloudDataSync.syncRepairSession(repairRequest.id);
+        console.log(`Successfully stored repair request #${repairRequest.id} data to Google Cloud Storage`);
+      } catch (syncError) {
+        console.error(`Warning: Failed to sync repair request data to Google Cloud Storage: ${syncError}`);
+        // Continue anyway as this is not critical for the user response
+      }
+
       // We've removed the code that creates and sends the "Repair Request Created" notification
       // as per user request
 
@@ -478,6 +501,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Save repair guide to Google Cloud Storage if we have a repair request ID
+      if (repairRequestId) {
+        try {
+          // Import cloudDataSync to avoid circular dependencies
+          const { cloudDataSync } = require('./services/cloud-data-sync');
+          
+          // Store guide data in cloud storage
+          const guideData = {
+            repairRequestId,
+            productType,
+            issue,
+            guide,
+            timestamp: new Date().toISOString()
+          };
+          
+          // Store the guide and log success
+          await cloudDataSync.storeRepairGuideData(repairRequestId, guideData);
+          console.log(`Successfully stored repair guide for request #${repairRequestId} to Google Cloud Storage`);
+        } catch (syncError) {
+          console.error(`Warning: Failed to sync repair guide to Google Cloud Storage: ${syncError}`);
+          // Continue anyway as this is not critical for the user response
+        }
+      }
+      
       res.json(guide);
     } catch (error) {
       console.error("Error generating repair guide:", error);
@@ -551,6 +598,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         console.log("Sending validated diagnostic response to client");
+        
+        // Save diagnostic data to Google Cloud Storage
+        if (repairRequestId) {
+          try {
+            // Import cloudDataSync to avoid circular dependencies
+            const { cloudDataSync } = require('./services/cloud-data-sync');
+            
+            // Store diagnostic data in cloud storage
+            const diagnosticData = {
+              repairRequestId,
+              productType,
+              issueDescription,
+              diagnosticResults: validatedDiagnostic,
+              timestamp: new Date().toISOString()
+            };
+            
+            // Store using the cloud sync service
+            await cloudDataSync.storeDiagnosticData(repairRequestId, diagnosticData);
+            console.log(`Successfully stored diagnostic data to Google Cloud Storage for request #${repairRequestId}`);
+          } catch (syncError) {
+            console.error(`Warning: Failed to sync diagnostic data to Google Cloud Storage: ${syncError}`);
+            // Continue anyway as this is not critical for the user response
+          }
+        }
+        
         res.json(validatedDiagnostic);
       } catch (innerError) {
         clearTimeout(timeout);
