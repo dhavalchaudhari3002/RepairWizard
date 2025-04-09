@@ -200,6 +200,7 @@ router.post('/manual-sync', async (req, res) => {
 
 /**
  * Upload a file to Google Cloud Storage
+ * IMPORTANT: Files are stored directly in bucket root, not in folders
  */
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -216,16 +217,19 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     
     // Get file details
     const file = req.file;
-    const folder = req.body.folder || 'uploads';
+    // IMPORTANT CHANGE: Don't use folders at all, always empty string
+    // A folder parameter might be provided but will be ignored by uploadBuffer
+    const folder = ''; // No folder structure, store directly in bucket root
     
     // Generate a unique filename
     const filename = `${randomUUID()}_${file.originalname}`;
     
-    // Upload to Google Cloud Storage
+    // Upload to Google Cloud Storage - note that folder param will be ignored
+    // by the uploadBuffer method but we pass empty string anyway for clarity
     const url = await googleCloudStorage.uploadBuffer(
       file.buffer, 
       {
-        folder,
+        folder, // Empty folder parameter - will store in bucket root
         customName: filename,
         contentType: file.mimetype,
         isPublic: true
@@ -240,7 +244,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       originalName: file.originalname,
       contentType: file.mimetype,
       fileSize: file.size,
-      folder,
+      folder, // Empty folder string
       metadata: {
         encoding: file.encoding,
         uploadedBy: 'cloud-storage-ui'
