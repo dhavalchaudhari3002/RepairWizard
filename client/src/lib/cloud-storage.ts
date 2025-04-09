@@ -27,18 +27,18 @@ export const checkCloudStorageStatus = async (): Promise<{
 
 /**
  * Upload a file to the server using the /api/cloud-storage/upload endpoint
+ * IMPORTANT: All files are stored directly at the bucket root, not in folders
  * @param file The file to upload
- * @param folder Optional folder to store the file in
  * @returns A Promise resolving to the uploaded file data
  */
-export const uploadFile = async (file: File, folder?: string): Promise<{ url: string; name: string; id: number }> => {
+export const uploadFile = async (file: File): Promise<{ url: string; name: string; id: number }> => {
   try {
+    // Create form data with the file
     const formData = new FormData();
     formData.append('file', file);
     
-    if (folder) {
-      formData.append('folder', folder);
-    }
+    // Note: We no longer pass folder parameter as files are stored directly in the bucket root
+    // This ensures that all files are stored at the top level of the bucket
     
     const response = await fetch('/api/cloud-storage/upload', {
       method: 'POST',
@@ -303,6 +303,9 @@ export const fetchRepairSessionFiles = async (sessionId: number) => {
 
 /**
  * Upload a file to Google Cloud Storage via the server API
+ * IMPORTANT: All files are stored directly at the bucket root to simplify data management
+ * Files are identified by their metadata and descriptive filenames, not folder structure
+ * 
  * @param sessionId The ID of the repair session
  * @param file The file to upload
  * @param filePurpose The purpose of the file in the repair process
@@ -316,8 +319,16 @@ export const uploadFileToCloudStorage = async (
   stepName?: string
 ) => {
   try {
+    // Create a descriptive filename with metadata embedded
+    const timestamp = Date.now();
+    const randomId = Math.floor(Math.random() * 10000);
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const metadataFilename = `session_${sessionId}_${filePurpose}_${timestamp}_${randomId}.${fileExt}`;
+    
+    // Create form data with all metadata as fields (not as folder path)
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('fileName', metadataFilename);
     formData.append('sessionId', sessionId.toString());
     formData.append('filePurpose', filePurpose);
     

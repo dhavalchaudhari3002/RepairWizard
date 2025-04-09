@@ -235,19 +235,38 @@ export function CloudStorageSettings() {
     }, 300);
     
     try {
-      const result = await uploadFile(selectedFile, uploadFolder || undefined);
+      // Create a timestamped filename for identification purposes
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000); 
+      const originalExt = selectedFile.name.split('.').pop() || '';
+      let customFileName = selectedFile.name;
+      
+      // If a folder was entered, use it as a prefix in the filename rather than a folder path
+      if (uploadFolder) {
+        const folderPrefix = uploadFolder.replace(/\//g, '_');
+        customFileName = `${folderPrefix}_${timestamp}_${randomId}${originalExt ? '.' + originalExt : ''}`;
+      } else {
+        customFileName = `user_upload_${timestamp}_${randomId}${originalExt ? '.' + originalExt : ''}`;
+      }
+      
+      // Create a new file object with the custom filename
+      const fileToUpload = new File([selectedFile], customFileName, { type: selectedFile.type });
+      
+      // Upload directly to bucket root - no folder parameter
+      const result = await uploadFile(fileToUpload);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
       
       toast({
         title: 'File uploaded',
-        description: `${result.name} has been uploaded to cloud storage`,
+        description: `${result.name} has been uploaded to the bucket root`,
         variant: 'default'
       });
       
       // Clear form
       setSelectedFile(null);
+      setUploadFolder(''); // Clear folder field since it's now just used for filename prefixing
       
       // Refresh files list if on the files tab
       if (activeTab === 'files') {
@@ -583,16 +602,16 @@ export function CloudStorageSettings() {
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="folder">Folder (optional)</Label>
+                  <Label htmlFor="folder">Filename Prefix (optional)</Label>
                   <Input
                     id="folder"
-                    placeholder="e.g., documents/manuals"
+                    placeholder="e.g., documents_manuals"
                     value={uploadFolder}
                     onChange={e => setUploadFolder(e.target.value)}
                     disabled={isUploading}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Leave empty to upload to the root folder
+                    This will be used as a prefix in the filename to help categorize files
                   </p>
                 </div>
                 

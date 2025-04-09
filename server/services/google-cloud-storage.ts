@@ -521,11 +521,21 @@ class GoogleCloudStorageService {
     // IMPORTANT: Ensure we're not creating any folder structure
     // Extract just the filename without any path segments
     let filename = filePath;
+    
+    // Always check for folder paths in the filePath and extract just the filename
     if (filePath.includes('/')) {
       // Get just the filename part, stripping any folder structure
       filename = filePath.split('/').pop() || filePath;
       console.log(`WARNING: Attempted to create folder structure in path: ${filePath}. Using filename directly: ${filename}`);
     }
+    
+    // Second check - ensure no test/ prefix gets added
+    if (filename.startsWith('test/')) {
+      filename = filename.substring(5); // Remove 'test/' prefix
+      console.log(`WARNING: Found test/ prefix in: ${filename}. Removing prefix.`);
+    }
+    
+    console.log(`Using final filename (NO FOLDERS): ${filename}`);
     
     const bucket = this.storage.bucket(this.bucketName);
     const file = bucket.file(filename); // Use filename directly, not path

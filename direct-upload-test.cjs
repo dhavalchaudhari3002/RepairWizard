@@ -1,136 +1,66 @@
 /**
- * Direct Upload Test
- * 
- * This script tests direct uploads to Google Cloud Storage bucket root
- * It creates files with unique names directly in the bucket without any folders
+ * Test script to directly check the API upload functionality
  */
-
-const { Storage } = require('@google-cloud/storage');
 const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
 
-// Create test data for upload
-const testData = {
-  timestamp: Date.now(),
-  test: true,
-  message: 'This is a direct upload test to bucket root (no folders)',
-  testId: `test-${Date.now()}`,
-};
-
-// Run direct root upload test
-async function testDirectRootUpload() {
+async function testDirectUpload() {
   try {
-    console.log('Running direct upload test to bucket root (no folder structure)...');
+    console.log('Testing direct API upload to verify no folders are created...');
     
-    // Get Google Cloud Storage credentials and config from environment
-    if (!process.env.GCS_CREDENTIALS || !process.env.GCS_BUCKET_NAME || !process.env.GCS_PROJECT_ID) {
-      console.error('ERROR: Missing required GCS environment variables');
-      process.exit(1);
-    }
+    // Create a minimal test image (1x1 pixel transparent PNG)
+    const base64Image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
     
-    // Parse credentials
-    let credentials;
-    try {
-      credentials = JSON.parse(process.env.GCS_CREDENTIALS);
-      console.log('Successfully parsed GCS credentials');
-    } catch (error) {
-      console.error('Failed to parse GCS credentials:', error);
-      process.exit(1);
-    }
+    // Prepare the API request
+    const apiUrl = 'http://localhost:5000/api/cloud-storage/upload';
     
-    // Initialize Google Cloud Storage
-    const storage = new Storage({
-      projectId: process.env.GCS_PROJECT_ID,
-      credentials
-    });
-    
-    const bucketName = process.env.GCS_BUCKET_NAME;
-    console.log(`Using bucket: ${bucketName}`);
-    
-    // Verify bucket exists
-    const [exists] = await storage.bucket(bucketName).exists();
-    if (!exists) {
-      console.error(`ERROR: Bucket ${bucketName} does not exist`);
-      process.exit(1);
-    }
-    
-    console.log(`Successfully connected to bucket: ${bucketName}`);
-    
-    // Generate filename based on timestamp to ensure uniqueness
+    // Create random filename with timestamp
     const timestamp = Date.now();
-    const filename = `direct_bucket_root_test_${timestamp}.json`;
+    const filename = `test-api-${timestamp}.png`;
     
-    console.log(`Creating test file: ${filename}`);
+    // First attempt - with folder parameter
+    const testData1 = {
+      file: base64Image,
+      contentType: 'image/png',
+      fileName: filename,
+      folder: 'test-api-folder' // This should be ignored
+    };
     
-    // Upload the file directly to bucket root
-    const file = storage.bucket(bucketName).file(filename);
+    console.log(`Uploading test file with folder parameter: ${testData1.folder}/${testData1.fileName}`);
     
-    // Convert test data to JSON string
-    const fileContent = JSON.stringify({
-      ...testData,
-      filename
-    }, null, 2);
-    
-    // Upload the file
-    await file.save(fileContent, {
-      contentType: 'application/json',
-      metadata: {
-        contentType: 'application/json'
-      }
-    });
-    
-    // Get public URL
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
-    console.log(`Successfully uploaded file to: ${publicUrl}`);
-    
-    // Verify URL does not contain folders
-    if (publicUrl.includes('/')) {
-      const lastSlashIndex = publicUrl.lastIndexOf('/');
-      const path = publicUrl.substring(0, lastSlashIndex);
+    try {
+      const response1 = await axios.post(apiUrl, testData1);
+      console.log('Upload response:', response1.data);
       
-      if (path.includes('/repair_data') || 
-          path.includes('/sessions') || 
-          path.includes('/diagnostics')) {
-        console.error(`ERROR: URL contains folder structure: ${publicUrl}`);
-        process.exit(1);
+      // Check if the URL has a folder structure
+      const url = response1.data.url;
+      if (url.includes('/test-api-folder/')) {
+        console.log('❌ FAILED: URL still includes folder structure:', url);
+      } else {
+        console.log('✅ SUCCESS: File uploaded to bucket root:', url);
+      }
+      
+      // Save the results to a JSON file for analysis
+      fs.writeFileSync(`direct-upload-test-results-${timestamp}.json`, JSON.stringify({
+        testData: testData1,
+        response: response1.data,
+        timestamp: new Date().toISOString()
+      }, null, 2));
+      
+    } catch (error) {
+      console.error('API upload failed:', error.response?.data || error.message);
+      if (error.response) {
+        console.log('Status:', error.response.status);
+        console.log('Headers:', error.response.headers);
+        console.log('Data:', error.response.data);
       }
     }
     
-    console.log('TEST PASSED: File is in bucket root, not in any folder structure');
-    
-    // Save results locally
-    const results = {
-      testId: `direct-upload-test-${timestamp}`,
-      timestamp,
-      bucketName,
-      filename,
-      publicUrl,
-      testData
-    };
-    
-    fs.writeFileSync(
-      `direct-upload-test-results-${timestamp}.json`,
-      JSON.stringify(results, null, 2)
-    );
-    
-    console.log(`Test results saved to: direct-upload-test-results-${timestamp}.json`);
-    
-    return {
-      success: true,
-      url: publicUrl
-    };
   } catch (error) {
-    console.error('TEST FAILED:', error);
-    process.exit(1);
+    console.error('Test failed:', error);
   }
 }
 
 // Run the test
-testDirectRootUpload()
-  .then(result => {
-    console.log(`\nTest completed successfully: ${result.url}`);
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('Unhandled error in test:', error);
-    process.exit(1);
-  });
+testDirectUpload();

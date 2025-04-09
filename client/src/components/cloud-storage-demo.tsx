@@ -65,22 +65,30 @@ export function CloudStorageDemo() {
 
     setUploading(true);
     try {
-      const result = await uploadFile(file, {
-        contentType: file.type,
-        fileName: file.name,
-        folder: 'demo'
-      });
+      // Updated to use flat file structure in bucket root - no folders
+      // The filename will include 'demo_' prefix to identify it as a demo file
+      // Create a timestamped filename to ensure uniqueness
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000);
+      const originalExt = file.name.split('.').pop() || '';
+      const newFileName = `demo_${timestamp}_${randomId}${originalExt ? '.' + originalExt : ''}`;
+      
+      // Create a new file object with the demo prefix in the name
+      const demoFile = new File([file], newFileName, { type: file.type });
+      
+      // Upload directly to bucket root, no folder parameter needed
+      const result = await uploadFile(demoFile);
 
-      if (result.success && result.url) {
+      if (result && result.url) {
         toast({
           title: 'File uploaded',
-          description: 'Your file has been uploaded successfully',
+          description: 'Your file has been uploaded successfully to bucket root',
         });
         
         // Add to uploaded files list
         setUploadedFiles(prev => [...prev, { 
-          url: result.url as string, 
-          name: file.name 
+          url: result.url, 
+          name: newFileName 
         }]);
         
         // Reset file input
@@ -90,7 +98,7 @@ export function CloudStorageDemo() {
       } else {
         toast({
           title: 'Upload failed',
-          description: result.error || 'An unknown error occurred',
+          description: 'An unknown error occurred during upload',
           variant: 'destructive'
         });
       }
