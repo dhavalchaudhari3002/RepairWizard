@@ -167,7 +167,7 @@ export class CloudDataSyncService {
             originalName: filename,
             fileUrl: url,
             contentType: 'application/json',
-            folder: ``,
+            folder: '',
             fileSize: JSON.stringify(consolidatedData).length,
             metadata: {
               sessionId,
@@ -546,7 +546,7 @@ export class CloudDataSyncService {
             originalName: fileName,
             fileUrl: url,
             contentType: 'application/json',
-            folder: ``,
+            folder: '',
             fileSize: JSON.stringify(interaction).length,
             metadata: {
               sessionId: interaction.repairRequestId,

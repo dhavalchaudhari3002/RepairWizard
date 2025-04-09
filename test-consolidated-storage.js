@@ -5,147 +5,217 @@
  * for each phase of the repair journey.
  */
 
-import { cloudDataSync } from './server/services/cloud-data-sync.js';
+// Import required modules
+const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const axios = require('axios');
 
-// Create a test session ID
-const sessionId = Date.now(); // Use current timestamp as a unique ID
-console.log(`Creating test session with ID: ${sessionId}`);
-
-// Sample data for each phase of the repair journey
-const initialSubmission = {
-  deviceType: "Desktop Computer",
-  deviceBrand: "Generic PC",
-  deviceModel: "Home Build",
-  issueDescription: "Computer will not turn on properly",
-  symptoms: [
-    "No power",
-    "Power light flashes briefly",
-    "No display"
-  ],
-  timestamp: new Date().toISOString(),
-  userId: 1
+// Define the test session data
+const testData = {
+  sessionId: Math.floor(Math.random() * 10000) + 1000, // Random session ID for testing
+  userId: 1,
+  deviceType: 'Laptop',
+  deviceBrand: 'Test Brand',
+  deviceModel: 'Test Model',
+  issueDescription: 'Test issue for consolidated storage approach',
+  symptoms: ['not powering on', 'battery issues'],
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
+// Test diagnostic data
 const diagnosticData = {
-  questions: [
-    {
-      id: 1,
-      text: "Is the device turning on?",
-      answer: "No"
-    },
-    {
-      id: 2,
-      text: "Do you see any lights?",
-      answer: "Yes"
-    }
-  ],
-  analysis: "Device power issue detected",
+  sessionId: testData.sessionId,
+  possibleCauses: ['Battery failure', 'Power adapter issue'],
+  suggestedTests: ['Test with different power adapter', 'Check battery health'],
   confidence: 0.85,
-  timestamp: new Date().toISOString(),
-  userId: 1
 };
 
-const issueConfirmation = {
-  confirmedIssue: "Power supply malfunction",
-  symptoms: [
-    "No power",
-    "Flashing lights",
-    "No boot"
-  ],
-  severity: "High",
-  timestamp: new Date().toISOString(),
-  userId: 1
+// Test issue confirmation data
+const issueData = {
+  sessionId: testData.sessionId,
+  confirmedIssue: 'Power adapter failure',
+  severity: 'Medium',
+  estimatedRepairTime: '1-2 hours',
 };
 
-const repairGuide = {
-  title: "How to fix a power supply issue",
+// Test repair guide data
+const repairGuideData = {
+  sessionId: testData.sessionId,
   steps: [
-    {
-      number: 1,
-      instruction: "Unplug all cables",
-      detail: "Ensure no power is connected"
-    },
-    {
-      number: 2,
-      instruction: "Open the case",
-      detail: "Remove screws from the back panel"
-    },
-    {
-      number: 3,
-      instruction: "Check connections",
-      detail: "Ensure all power cables are properly seated"
-    }
+    { step: 1, description: 'Replace power adapter', difficulty: 'Easy' },
+    { step: 2, description: 'Test laptop with new adapter', difficulty: 'Easy' },
   ],
-  parts: [
-    "Screwdriver",
-    "New power supply (optional)"
-  ],
-  difficulty: "Medium",
-  estimatedTime: "30 minutes",
-  timestamp: new Date().toISOString(),
-  userId: 1
+  tools: ['New power adapter', 'None'],
+  estimatedCost: '$50-100',
 };
 
+// Run the test
 async function runTest() {
-  console.log("Starting consolidated storage test...");
+  console.log('Starting consolidated storage test with random session ID:', testData.sessionId);
   
   try {
-    // First, store the initial submission
-    console.log("Adding initial submission data...");
-    const initialUrl = await cloudDataSync.storeInitialSubmissionData(sessionId, initialSubmission);
-    console.log(`Initial submission stored at: ${initialUrl}`);
+    // Make API requests to test each phase of data storage
+    console.log('\n[1] Creating test repair session...');
+    const sessionResponse = await axios.post('http://localhost:3000/api/repair-sessions', {
+      ...testData,
+      testMode: true, // Indicate this is a test request
+    });
     
-    // Then add diagnostic data
-    console.log("Adding diagnostic data...");
-    const diagnosticUrl = await cloudDataSync.storeDiagnosticData(sessionId, diagnosticData);
-    console.log(`Diagnostic data stored at: ${diagnosticUrl}`);
+    if (sessionResponse.status !== 200) {
+      throw new Error(`Failed to create test session: ${sessionResponse.status}`);
+    }
     
-    // Add issue confirmation
-    console.log("Adding issue confirmation data...");
-    const issueUrl = await cloudDataSync.storeIssueConfirmationData(sessionId, issueConfirmation);
-    console.log(`Issue confirmation stored at: ${issueUrl}`);
+    console.log('Session created successfully:', sessionResponse.data.id);
     
-    // Finally, add repair guide
-    console.log("Adding repair guide data...");
-    const repairUrl = await cloudDataSync.storeRepairGuideData(sessionId, repairGuide);
-    console.log(`Repair guide stored at: ${repairUrl}`);
+    // Small delay to ensure session is fully created
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Create the consolidated file with all data in one request
-    console.log("Creating consolidated file with all data...");
-    const allData = {
-      initialSubmissionData: initialSubmission,
-      diagnosticData: diagnosticData,
-      issueConfirmationData: issueConfirmation,
-      repairGuideData: repairGuide
+    console.log('\n[2] Submitting diagnostic data...');
+    const diagnosticResponse = await axios.post('http://localhost:3000/api/repair-diagnostics', {
+      ...diagnosticData,
+      repairRequestId: testData.sessionId,
+      testMode: true,
+    });
+    
+    if (diagnosticResponse.status !== 200) {
+      throw new Error(`Failed to submit diagnostic data: ${diagnosticResponse.status}`);
+    }
+    
+    console.log('Diagnostic data submitted successfully');
+    
+    // Small delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('\n[3] Submitting issue confirmation data...');
+    const issueResponse = await axios.post('http://localhost:3000/api/repair-issues', {
+      ...issueData,
+      repairRequestId: testData.sessionId,
+      testMode: true,
+    });
+    
+    if (issueResponse.status !== 200) {
+      throw new Error(`Failed to submit issue data: ${issueResponse.status}`);
+    }
+    
+    console.log('Issue confirmation data submitted successfully');
+    
+    // Small delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('\n[4] Submitting repair guide data...');
+    const guideResponse = await axios.post('http://localhost:3000/api/repair-guides', {
+      ...repairGuideData,
+      repairRequestId: testData.sessionId,
+      testMode: true,
+    });
+    
+    if (guideResponse.status !== 200) {
+      throw new Error(`Failed to submit repair guide data: ${guideResponse.status}`);
+    }
+    
+    console.log('Repair guide data submitted successfully');
+    
+    // Small delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    console.log('\n[5] Verifying storage files in database...');
+    // Get files from API
+    const filesResponse = await axios.get(`http://localhost:3000/api/repair-sessions/${testData.sessionId}/files`);
+    
+    if (filesResponse.status !== 200) {
+      throw new Error(`Failed to retrieve files: ${filesResponse.status}`);
+    }
+    
+    const files = filesResponse.data;
+    console.log(`Found ${files.length} files associated with session #${testData.sessionId}`);
+    
+    // Verify file URLs
+    let hasErrors = false;
+    for (const file of files) {
+      console.log(`\nFile: ${file.fileName}`);
+      console.log(`URL: ${file.fileUrl}`);
+      console.log(`Type: ${file.contentType}`);
+      
+      // Check for folder structure in URL
+      if (file.fileUrl && file.fileUrl.includes('/repair_data/')) {
+        console.error('ERROR: File URL contains folder structure: /repair_data/');
+        hasErrors = true;
+      }
+      
+      // Other folder checks
+      if (file.fileUrl && (
+        file.fileUrl.includes(`/${testData.sessionId}/`) || 
+        file.fileUrl.includes('/diagnostics/') ||
+        file.fileUrl.includes('/issues/') ||
+        file.fileUrl.includes('/guides/') ||
+        file.fileUrl.includes('/submissions/')
+      )) {
+        console.error('ERROR: File URL contains folder structure:', file.fileUrl);
+        hasErrors = true;
+      }
+      
+      // Verify content type
+      if (file.contentType !== 'application/json') {
+        console.error('ERROR: File content type is not application/json:', file.contentType);
+        hasErrors = true;
+      }
+    }
+    
+    if (hasErrors) {
+      console.error('\nTest FAILED: Some files contain folder structures or other issues');
+    } else {
+      console.log('\nTest PASSED: All files stored directly in bucket root');
+      console.log('No folder structures found in file URLs');
+    }
+    
+    // Create a consolidated file with test results
+    const testResults = {
+      testId: `test-${Date.now()}`,
+      sessionId: testData.sessionId,
+      testTimestamp: new Date().toISOString(),
+      results: {
+        sessionCreated: true,
+        diagnosticSubmitted: true,
+        issueSubmitted: true,
+        guideSubmitted: true,
+        filesVerified: !hasErrors,
+      },
+      files: files,
     };
     
-    const consolidatedUrl = await cloudDataSync.storeConsolidatedSessionData(sessionId, allData);
-    console.log(`Consolidated file created at: ${consolidatedUrl}`);
+    fs.writeFileSync(
+      `./test-results-${testData.sessionId}.json`, 
+      JSON.stringify(testResults, null, 2)
+    );
     
-    console.log("\nTest completed successfully!");
-    console.log(`All data for session #${sessionId} is now stored in consolidated format.`);
+    console.log(`\nTest results saved to: ./test-results-${testData.sessionId}.json`);
     
     return {
-      sessionId,
-      initialUrl,
-      diagnosticUrl, 
-      issueUrl,
-      repairUrl,
-      consolidatedUrl
+      success: !hasErrors,
+      sessionId: testData.sessionId,
+      fileCount: files.length,
     };
   } catch (error) {
-    console.error("Error during consolidated storage test:", error);
-    throw error;
+    console.error('Test error:', error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
 
-// Run the test
+// Run the test and exit with appropriate code
 runTest()
-  .then(results => {
-    console.log("\nTest Results:", results);
-    process.exit(0);
+  .then(result => {
+    console.log('\nTest completed with result:', result);
+    process.exit(result.success ? 0 : 1);
   })
-  .catch(err => {
-    console.error("\nTest Failed:", err);
+  .catch(error => {
+    console.error('Unhandled error in test:', error);
     process.exit(1);
   });
