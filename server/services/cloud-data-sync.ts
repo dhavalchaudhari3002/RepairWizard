@@ -154,7 +154,7 @@ export class CloudDataSyncService {
           issueDescription: repairSession.issueDescription,
           createdAt: repairSession.createdAt,
           updatedAt: repairSession.updatedAt,
-          diagnosticsCount: interactions.filter(i => i.type === 'diagnostic_generated').length,
+          diagnosticsCount: interactions.filter(i => i.interactionType === 'diagnostic_generated').length,
           filesCount: sessionFiles.length,
           interactionsCount: interactions.length,
           analyticsCount: analytics.length,
@@ -227,14 +227,42 @@ export class CloudDataSyncService {
       }
 
       try {
+        // Enhanced logging to see what data is being stored
+        console.log(`Diagnostic data to store:`, JSON.stringify(diagnosticData).substring(0, 200) + "...");
+        
+        // Make sure diagnostic data has core information
+        const enhancedDiagnosticData = {
+          ...diagnosticData,
+          timestamp: diagnosticData.timestamp || new Date().toISOString(),
+          sessionId: sessionId,
+          storageType: 'diagnostic'
+        };
+        
         // Store in a dedicated diagnostics folder with an organized filename
         const url = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'diagnostics',
-          diagnosticData,
+          enhancedDiagnosticData,
           `diagnostic_data_${Date.now()}.json`
         );
         console.log(`Successfully stored diagnostic data for session #${sessionId} to GCS: ${url}`);
+        
+        // Record this file in the database to track it
+        try {
+          await db.insert(repairSessionFiles).values({
+            repairSessionId: sessionId,
+            userId: diagnosticData.userId || 1, // Use the userId from data or default to 1
+            fileName: `diagnostic_data_${Date.now()}.json`,
+            fileUrl: url,
+            filePurpose: 'diagnostic_data',
+            contentType: 'application/json'
+          });
+          console.log(`Recorded diagnostic file in database for session #${sessionId}`);
+        } catch (dbError) {
+          console.error(`Failed to record diagnostic file in database: ${dbError}`);
+          // Continue anyway as the file was saved successfully
+        }
+        
         return url;
       } catch (gcsError) {
         console.error(`Error storing diagnostic data to GCS for session #${sessionId}, using local fallback:`, gcsError);
