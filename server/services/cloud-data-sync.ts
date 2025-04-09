@@ -147,8 +147,8 @@ export class CloudDataSyncService {
       const filename = `repair_session_${sessionId}_${timestamp}_${randomId}.json`;
       
       // Store directly in the root of the bucket with a clear naming convention
-      // No nested folders needed
-      const filePath = `repair_data/${filename}`;
+      // No nested folders needed - using the filename directly
+      const filePath = filename;
       
       // Upload the consolidated data file
       try {
@@ -167,7 +167,7 @@ export class CloudDataSyncService {
             originalName: filename,
             fileUrl: url,
             contentType: 'application/json',
-            folder: `repair_data`,
+            folder: ``,
             fileSize: JSON.stringify(consolidatedData).length,
             metadata: {
               sessionId,
@@ -210,10 +210,10 @@ export class CloudDataSyncService {
         try {
           console.log(`Generating an alternative URL for session #${sessionId}`);
           // Return a simple path without trying to access consolidatedData
-          return `repair_data/session_data_${sessionId}_${Date.now()}.json`;
+          return `session_data_${sessionId}_${Date.now()}.json`;
         } catch (fallbackError) {
           console.error(`Error creating fallback URL: ${fallbackError}`);
-          return `repair_data/error_${sessionId}_${Date.now()}.json`;
+          return `error_${sessionId}_${Date.now()}.json`;
         }
       }
       
@@ -341,7 +341,7 @@ export class CloudDataSyncService {
         
         // Upload directly to repair_data folder without creating nested folders
         metadataUrl = await googleCloudStorage.uploadText(
-          `repair_data/${journeyFilename}`,
+          journeyFilename,
           JSON.stringify(journeyMetadata, null, 2)
         );
         console.log(`Successfully synced repair session #${sessionId} metadata to Google Cloud Storage: ${metadataUrl}`);
@@ -532,7 +532,7 @@ export class CloudDataSyncService {
         
         // Store directly in repair_data folder for consistency
         const url = await googleCloudStorage.uploadText(
-          `repair_data/${fileName}`,
+          fileName,
           JSON.stringify(interaction, null, 2)
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
@@ -546,7 +546,7 @@ export class CloudDataSyncService {
             originalName: fileName,
             fileUrl: url,
             contentType: 'application/json',
-            folder: `repair_data`,
+            folder: ``,
             fileSize: JSON.stringify(interaction).length,
             metadata: {
               sessionId: interaction.repairRequestId,
@@ -614,7 +614,7 @@ export class CloudDataSyncService {
         
         // Store directly in repair_data folder like other files
         const url = await googleCloudStorage.uploadText(
-          `repair_data/${filename}`,
+          filename,
           JSON.stringify(tree, null, 2)
         );
         urls.push(url);
@@ -710,7 +710,7 @@ export class CloudDataSyncService {
       const trainingDatasetFilename = `repair_training_dataset_${timestamp}_${randomId}.json`;
       
       const trainingDatasetUrl = await googleCloudStorage.uploadText(
-        `repair_data/${trainingDatasetFilename}`,
+        trainingDatasetFilename,
         JSON.stringify({
           metadata: {
             generatedAt: new Date().toISOString(),
