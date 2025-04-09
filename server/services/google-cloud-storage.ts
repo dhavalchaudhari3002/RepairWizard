@@ -145,6 +145,9 @@ class GoogleCloudStorageService {
           });
           this.isReady = true;
           console.log('Google Cloud Storage initialized with credentials from environment');
+          
+          // Schedule periodic folder cleanup to prevent unwanted folder creation
+          this.schedulePeriodicFolderCleanup();
         } catch (error) {
           console.error('Failed to parse GCS credentials:', error);
           this.storage = new Storage();
@@ -157,6 +160,9 @@ class GoogleCloudStorageService {
         });
         this.isReady = true;
         console.log('Google Cloud Storage initialized with key file');
+        
+        // Schedule periodic folder cleanup
+        this.schedulePeriodicFolderCleanup();
       } else {
         // Use default authentication (service account or application default credentials)
         this.storage = new Storage({
@@ -168,6 +174,9 @@ class GoogleCloudStorageService {
           .then(() => {
             this.isReady = true;
             console.log('Google Cloud Storage initialized with application default credentials');
+            
+            // Schedule periodic folder cleanup
+            this.schedulePeriodicFolderCleanup();
           })
           .catch(error => {
             console.error('Failed to authenticate with Google Cloud Storage:', error);
@@ -177,6 +186,91 @@ class GoogleCloudStorageService {
     } catch (error) {
       console.error('Error initializing Google Cloud Storage:', error);
       this.storage = new Storage();
+    }
+  }
+  
+  /**
+   * Schedule periodic cleanup of any folders that might have been created
+   * This helps ensure we maintain a flat bucket structure
+   */
+  private schedulePeriodicFolderCleanup() {
+    // Run cleanup immediately on startup
+    this.cleanupFolders().catch(err => {
+      console.error("Error in initial folder cleanup:", err);
+    });
+    
+    // Then schedule to run every 60 minutes
+    setInterval(() => {
+      this.cleanupFolders().catch(err => {
+        console.error("Error in scheduled folder cleanup:", err);
+      });
+    }, 60 * 60 * 1000); // 60 minutes
+  }
+  
+  /**
+   * Clean up any unwanted folders that might have been created
+   * This helps maintain a flat structure and prevent UI confusion
+   */
+  private async cleanupFolders() {
+    if (!this.isReady) return;
+    
+    try {
+      console.log("Running folder cleanup to maintain flat bucket structure...");
+      const bucket = this.storage.bucket(this.bucketName);
+      
+      // Get all files in bucket
+      const [files] = await bucket.getFiles();
+      
+      // Find potential folder marker objects (objects with '/' in name or ending with '/')
+      const folderMarkers = files.filter(file => 
+        file.name.endsWith('/') || 
+        (file.name.includes('/') && !file.name.includes('.'))
+      );
+      
+      if (folderMarkers.length > 0) {
+        console.log(`Found ${folderMarkers.length} potential folder markers, cleaning up...`);
+        
+        for (const marker of folderMarkers) {
+          console.log(`Deleting folder marker: ${marker.name}`);
+          await marker.delete();
+        }
+        
+        console.log("Folder cleanup completed successfully");
+      } else {
+        console.log("No folder markers found, bucket structure is clean");
+      }
+      
+      // Specifically check the "test/" folder
+      const [testFolderFiles] = await bucket.getFiles({ prefix: 'test/' });
+      if (testFolderFiles.length > 0) {
+        console.log(`Found ${testFolderFiles.length} files in test/ folder, cleaning up...`);
+        
+        for (const file of testFolderFiles) {
+          console.log(`Deleting file from test/ folder: ${file.name}`);
+          await file.delete();
+        }
+      }
+      
+      // Try to delete the test/ folder marker if it exists
+      try {
+        const testFolder = bucket.file('test/');
+        await testFolder.delete();
+        console.log("Deleted test/ folder marker");
+      } catch (err) {
+        // Ignore errors if the folder doesn't exist
+      }
+      
+      // Also try the test folder without trailing slash
+      try {
+        const testFolder = bucket.file('test');
+        await testFolder.delete();
+        console.log("Deleted test folder marker");
+      } catch (err) {
+        // Ignore errors if the folder doesn't exist
+      }
+      
+    } catch (error) {
+      console.error("Error in folder cleanup:", error);
     }
   }
 
