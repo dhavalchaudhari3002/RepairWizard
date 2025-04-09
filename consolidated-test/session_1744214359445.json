@@ -1,0 +1,84 @@
+{
+  "sessionId": 1744214359445,
+  "timestamp": "2025-04-09T15:59:19.449Z",
+  "initialSubmission": {
+    "deviceType": "Desktop Computer",
+    "deviceBrand": "Generic PC",
+    "deviceModel": "Home Build",
+    "issueDescription": "Computer will not turn on properly",
+    "symptoms": [
+      "No power",
+      "Power light flashes briefly",
+      "No display"
+    ],
+    "timestamp": "2025-04-09T15:59:19.449Z",
+    "userId": 1
+  },
+  "diagnostics": [
+    {
+      "questions": [
+        {
+          "id": 1,
+          "text": "Is the device turning on?",
+          "answer": "No"
+        },
+        {
+          "id": 2,
+          "text": "Do you see any lights?",
+          "answer": "Yes"
+        }
+      ],
+      "analysis": "Device power issue detected",
+      "confidence": 0.85,
+      "timestamp": "2025-04-09T15:59:19.449Z",
+      "userId": 1
+    }
+  ],
+  "issueConfirmation": {
+    "confirmedIssue": "Power supply malfunction",
+    "symptoms": [
+      "No power",
+      "Flashing lights",
+      "No boot"
+    ],
+    "severity": "High",
+    "timestamp": "2025-04-09T15:59:19.449Z",
+    "userId": 1
+  },
+  "repairGuide": {
+    "title": "How to fix a power supply issue",
+    "steps": [
+      {
+        "number": 1,
+        "instruction": "Unplug all cables",
+        "detail": "Ensure no power is connected"
+      },
+      {
+        "number": 2,
+        "instruction": "Open the case",
+        "detail": "Remove screws from the back panel"
+      },
+      {
+        "number": 3,
+        "instruction": "Check connections",
+        "detail": "Ensure all power cables are properly seated"
+      }
+    ],
+    "parts": [
+      "Screwdriver",
+      "New power supply (optional)"
+    ],
+    "difficulty": "Medium",
+    "estimatedTime": "30 minutes",
+    "timestamp": "2025-04-09T15:59:19.449Z",
+    "userId": 1
+  },
+  "interactions": [],
+  "analytics": [],
+  "metadata": {
+    "version": "1.0",
+    "source": "repair-ai-assistant-test",
+    "syncTimestamp": "2025-04-09T15:59:19.449Z",
+    "aiTrainingReady": true
+  }
+}

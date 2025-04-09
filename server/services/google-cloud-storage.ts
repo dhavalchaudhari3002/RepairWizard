@@ -13,8 +13,8 @@ interface UploadOptions {
  * This service handles file uploads, retrievals, and deletions
  */
 class GoogleCloudStorageService {
-  private storage: Storage;
-  private bucketName: string;
+  public storage: Storage;
+  public bucketName: string;
   private isReady: boolean = false;
   // Add static properties to track which folder IDs have been processed and are currently being processed
   private static processedFolderIds = new Set<number>();
@@ -435,6 +435,98 @@ class GoogleCloudStorageService {
     };
     
     return extensionMap[contentType] || '.bin';
+  }
+  
+  /**
+   * Check if a folder exists in Google Cloud Storage
+   * @param folderPath The path of the folder to check
+   * @returns Boolean indicating if the folder exists
+   */
+  async checkIfFolderExists(folderPath: string): Promise<boolean> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    // Ensure path ends with a slash to indicate a folder
+    const normalizedFolderPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+    
+    try {
+      // Try to list files in the folder with a limit of 1
+      const [files] = await this.storage.bucket(this.bucketName).getFiles({
+        prefix: normalizedFolderPath,
+        maxResults: 1
+      });
+      
+      // If we got any results, the folder exists
+      return files.length > 0;
+    } catch (error) {
+      console.error(`Error checking if folder ${normalizedFolderPath} exists:`, error);
+      return false;
+    }
+  }
+  
+  /**
+   * Create a folder in Google Cloud Storage
+   * Google Cloud Storage doesn't have actual folders, so we create an empty file with a trailing slash
+   * @param folderPath The path of the folder to create
+   * @returns The full path of the created folder
+   */
+  async createFolder(folderPath: string): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    // Ensure path ends with a slash to indicate a folder
+    const normalizedFolderPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+    
+    try {
+      // Create an empty file with the folder path
+      const file = this.storage.bucket(this.bucketName).file(`${normalizedFolderPath}.keep`);
+      await file.save('', { contentType: 'text/plain' });
+      
+      console.log(`Created folder: ${normalizedFolderPath}`);
+      return normalizedFolderPath;
+    } catch (error) {
+      console.error(`Error creating folder ${normalizedFolderPath}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Upload a string directly to Google Cloud Storage
+   * @param filePath The full path of the file to create
+   * @param content The string content to upload
+   * @param contentType The content type of the file
+   * @returns The public URL of the uploaded file
+   */
+  async uploadText(filePath: string, content: string, contentType: string = 'application/json'): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    const bucket = this.storage.bucket(this.bucketName);
+    const file = bucket.file(filePath);
+    const fileBuffer = Buffer.from(content, 'utf-8');
+    
+    try {
+      console.log(`Attempting to upload file: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
+      
+      await file.save(fileBuffer, {
+        metadata: {
+          contentType
+        }
+      });
+      
+      console.log(`File saved successfully to: ${filePath}`);
+      
+      // Return the public URL
+      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
+      console.log(`Generated public URL: ${publicUrl}`);
+      return publicUrl;
+    } catch (error) {
+      console.error(`Error uploading file to Google Cloud Storage: ${filePath}`, error);
+      throw error;
+    }
   }
   
   /**
