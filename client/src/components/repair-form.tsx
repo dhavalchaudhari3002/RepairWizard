@@ -871,9 +871,52 @@ REQUIRED OUTCOME:
   };
 
   // Handler for diagnostic data
-  const handleDiagnosticComplete = (data: RepairDiagnostic) => {
+  const handleDiagnosticComplete = async (data: RepairDiagnostic) => {
     console.log("Diagnostic data received in parent:", data);
     setDiagnosticData(data);
+    
+    // If we have a repair request ID, save the diagnostic data to the repair session
+    if (repairRequestId) {
+      try {
+        console.log("Saving diagnostic data to repair session:", repairRequestId);
+        
+        // Format the data according to the API endpoint's expected schema
+        const diagnosticPayload = {
+          diagnosticResults: data
+        };
+        
+        // Send the data to the repair journey API endpoint
+        const response = await fetch(`/api/repair-journey/${repairRequestId}/diagnosis`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(diagnosticPayload),
+        });
+        
+        if (response.ok) {
+          console.log("Successfully saved diagnostic data to repair session");
+          toast({
+            title: "Diagnostic data saved",
+            description: "Diagnostic results were successfully saved to your repair session",
+            duration: 3000
+          });
+        } else {
+          const errorData = await response.json();
+          console.error("Failed to save diagnostic data:", errorData);
+          toast({
+            title: "Warning",
+            description: "Diagnostic analysis completed but couldn't be saved to your repair history",
+            variant: "destructive",
+            duration: 5000
+          });
+        }
+      } catch (error) {
+        console.error("Error saving diagnostic data:", error);
+      }
+    } else {
+      console.log("No repair request ID available, diagnostic data not saved to a session");
+    }
   };
 
   // Final results step
