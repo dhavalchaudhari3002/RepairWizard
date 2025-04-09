@@ -481,29 +481,20 @@ class GoogleCloudStorageService {
   
   /**
    * Create a folder in Google Cloud Storage
-   * Google Cloud Storage doesn't have actual folders, so we create an empty file with a trailing slash
+   * IMPORTANT: This method is disabled to prevent folder creation, as all files should be stored at bucket root
    * @param folderPath The path of the folder to create
-   * @returns The full path of the created folder
+   * @returns The full path of the created folder (for API compatibility)
    */
   async createFolder(folderPath: string): Promise<string> {
     if (!this.isConfigured()) {
       throw new Error('Google Cloud Storage is not configured');
     }
     
-    // Ensure path ends with a slash to indicate a folder
-    const normalizedFolderPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+    console.log(`WARNING: createFolder was called with path "${folderPath}" but folder creation is disabled to maintain flat structure.`);
+    console.log(`Folders are no longer used - all files should be stored at bucket root with descriptive filenames.`);
     
-    try {
-      // Create an empty file with the folder path
-      const file = this.storage.bucket(this.bucketName).file(`${normalizedFolderPath}.keep`);
-      await file.save('', { contentType: 'text/plain' });
-      
-      console.log(`Created folder: ${normalizedFolderPath}`);
-      return normalizedFolderPath;
-    } catch (error) {
-      console.error(`Error creating folder ${normalizedFolderPath}:`, error);
-      throw error;
-    }
+    // Return the path for API compatibility, but don't actually create anything
+    return folderPath;
   }
   
   /**
@@ -644,90 +635,18 @@ class GoogleCloudStorageService {
     }
   }
   
-  // Private method to do the actual folder creation work
+  // Private method that no longer creates folder structures, but maintains API compatibility
   private async _createFolderStructure(sessionId: number): Promise<string> {
     const baseFolder = `repair_sessions/${sessionId}`;
-    const subFolders = [
-      'submission',         // Initial repair request submission
-      'diagnostics',        // Diagnostic analysis data
-      'questions',          // Question-answer interactions
-      'issue_confirmation', // Confirmed issue data
-      'repair_guide',       // Repair guide data
-      'interactions',       // User interactions
-      'uploads',            // User uploaded files
-      'complete_journey'    // Complete journey data
-    ];
     
-    try {
-      // Get all existing base folders in the repair_sessions directory
-      const bucket = this.storage.bucket(this.bucketName);
-      
-      console.log(`Checking if folder structure for repair session #${sessionId} already exists...`);
-      
-      // Check if the base folder exists by checking for at least one file/folder in the structure
-      try {
-        const [existingFiles] = await bucket.getFiles({
-          prefix: `${baseFolder}/`,
-          maxResults: 5 // Check a few files to be sure
-        });
-        
-        // If we found files in the base folder, assume the structure exists
-        if (existingFiles && existingFiles.length > 0) {
-          console.log(`Folder structure for repair session #${sessionId} already exists with ${existingFiles.length} files, skipping creation`);
-          
-          // Mark this session as processed
-          GoogleCloudStorageService.processedFolderIds.add(sessionId);
-          
-          return baseFolder;
-        }
-      } catch (checkError: any) {
-        // If the check fails, we'll assume the folder doesn't exist and try to create it
-        console.log(`Folder check failed for session #${sessionId}, will attempt creation: ${checkError?.message || 'Unknown error'}`);
-      }
-      
-      console.log(`Creating folder structure for repair session #${sessionId}`);
-      
-      // Creating an empty file in each folder to ensure the folder structure exists
-      // Using a separate try/catch for each folder to ensure partial success if one fails
-      for (const subFolder of subFolders) {
-        try {
-          const folderPath = `${baseFolder}/${subFolder}`;
-          
-          // Double-check if this specific subfolder exists to avoid duplicate creation
-          const [subFolderFiles] = await bucket.getFiles({
-            prefix: `${folderPath}/`,
-            maxResults: 1
-          });
-          
-          if (subFolderFiles && subFolderFiles.length > 0) {
-            console.log(`Subfolder ${folderPath} already exists, skipping`);
-            continue;
-          }
-          
-          // Create placeholder file to establish folder
-          const emptyBuffer = Buffer.from('');
-          await this.uploadFile(emptyBuffer, {
-            folder: folderPath,
-            customName: '.folder',
-            contentType: 'application/x-empty'
-          });
-          
-          console.log(`Created folder structure: ${folderPath}`);
-        } catch (subFolderError: any) {
-          console.warn(`Error creating subfolder for session #${sessionId}, continuing with others: ${subFolderError?.message || 'Unknown error'}`);
-          // Continue with other folders rather than aborting completely
-        }
-      }
-      
-      // Mark this session as processed to avoid duplicate folder creation in the same server process
-      GoogleCloudStorageService.processedFolderIds.add(sessionId);
-      console.log(`Marked session #${sessionId} as processed to prevent duplicate folder creation`);
-      
-      return baseFolder;
-    } catch (error) {
-      console.error('Error creating repair journey folder structure:', error);
-      throw error;
-    }
+    console.log(`WARNING: _createFolderStructure was called for session #${sessionId} but folder creation is disabled`);
+    console.log(`Folders are no longer used - all files will be stored at bucket root with descriptive filenames`);
+    
+    // Mark this session as processed to maintain expected behavior
+    GoogleCloudStorageService.processedFolderIds.add(sessionId);
+    console.log(`Marked session #${sessionId} as processed but no folders were created (flat structure)`);
+    
+    return baseFolder;
   }
   
   /**

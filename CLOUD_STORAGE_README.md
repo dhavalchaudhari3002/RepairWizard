@@ -1,53 +1,65 @@
-# Google Cloud Storage Integration - Flat Structure Design
+# Google Cloud Storage Integration Guide
 
-## Overview
-This document describes the implementation of a flat file structure design for Google Cloud Storage in the AI Repair Assistant application. The system now stores all files directly in the bucket root, using descriptive filenames rather than nested folder structures.
+## Flat File Storage Architecture
 
-## Design Decisions
+This application uses a flat storage architecture for Google Cloud Storage. All files are stored directly in the bucket root with descriptive filenames that include identifiers (like session IDs) and timestamps to ensure uniqueness.
 
-### Flat Structure Benefits
-- **Simplified Data Management**: No need to maintain complex folder hierarchies
-- **Improved Performance**: Reduced path traversal during file operations
-- **Reduced Errors**: Eliminated issues with missing folders and path conflicts
-- **Better Scalability**: Flat structures perform better with very large numbers of files
-- **Easier Migration**: Simplified data portability between environments
+### Important Architecture Notes
 
-### Implementation Details
+1. **No Folder Structures**: Files are stored directly in the bucket root without any folder hierarchies.
+2. **Descriptive Filenames**: Instead of using folders to organize data, we use descriptive filenames that include:
+   - Session IDs (e.g., `session_9999_...`)
+   - Data types (e.g., `diagnostic_`, `repair_guide_`)
+   - Timestamps to ensure uniqueness
 
-#### Backend Changes
-1. Modified `GoogleCloudStorageService.uploadBuffer` method to ignore folder parameters
-2. Modified `GoogleCloudStorageService.uploadText` method to strip folder paths from filenames
-3. Added detailed logging when folder parameters are detected but ignored
-4. Ensured all files are stored directly at the bucket root with descriptive filenames
-5. Added filename prefix removal for any "test/" prefixes to prevent accidental sub-directories
+### Filename Patterns
 
-#### Frontend Changes
-1. Updated `client/src/lib/cloud-storage.ts` to remove folder parameters from upload requests
-2. Modified `uploadFileToCloudStorage` to include metadata in the filename rather than in folder paths
-3. Updated `CloudStorageDemo` component to use the flat structure approach
-4. Changed `uploadFolder` field in `CloudStorageSettings` to "Filename Prefix" to better reflect its purpose
+- Session data: `session_[ID]_[type]_[timestamp].json`
+- Repair data: `repair_session_[ID]_[timestamp].json`
+- Complete session: `complete_session_[ID]_[timestamp].json`
+- User uploads: `user_upload_[ID]_[timestamp].[extension]`
 
-## File Naming Convention
-Files now follow this naming convention to maintain organization without folders:
+## Implementation Details
 
-| File Type | Naming Pattern |
-|-----------|----------------|
-| Repair Session | `repair_session_[sessionId]_[timestamp]_[randomId].json` |
-| Session Image | `session_[sessionId]_[filePurpose]_[timestamp]_[randomId].[ext]` |
-| User Upload | `user_upload_[timestamp]_[randomId].[ext]` |
-| Demo File | `demo_[timestamp]_[randomId].[ext]` |
-| Prefixed Upload | `[prefix]_[timestamp]_[randomId].[ext]` |
+Our Google Cloud Storage service has been modified to:
 
-## Best Practices
-1. Always use the provided upload methods that handle the flat structure correctly
-2. Never manually create folders or nested paths in the bucket
-3. Use metadata in filenames rather than folder structures for organization
-4. When retrieving files, use filtering on the filename rather than path traversal
+1. **Ignore Folder Parameters**: Any folder parameters passed to the storage methods are ignored
+2. **Remove Path Segments**: Path segments in filenames are automatically removed
+3. **Use Descriptive Naming**: All methods generate descriptive filenames with identifiers and timestamps
+4. **Maintain API Compatibility**: Legacy folder-related methods still exist but do not create actual folders
 
-## Test Scripts
-Several test scripts were created to validate the flat structure implementation:
-- `direct-upload-test.cjs`: Tests direct API upload functionality
-- `test-bucket-upload.js`: Verifies files go to bucket root
-- `test-direct-upload.ts`: Tests direct file uploads
-- `test-diagnostic-upload.ts`: Tests diagnostic data uploads
-- `test-app-data-content.ts`: Validates app data content in uploaded files
+## For Developers
+
+### ⚠️ Important Usage Notes
+
+- **Never include folder paths** in filenames when uploading
+- Use the `customName` parameter to provide descriptive filenames
+- If using the web UI, treat the "folder" field as a filename prefix, not an actual folder path
+- If you see any folder structures in Google Cloud Storage console, they may be remnants and can be manually deleted
+
+### Usage Examples
+
+```typescript
+// CORRECT: Use descriptive filename without folders
+await googleCloudStorage.uploadFile(fileBuffer, {
+  customName: `session_${sessionId}_diagnostic_${Date.now()}.json`,
+  contentType: 'application/json'
+});
+
+// INCORRECT: Don't use folder paths
+await googleCloudStorage.uploadFile(fileBuffer, {
+  folder: `sessions/${sessionId}/diagnostics`,  // This will be ignored
+  customName: 'data.json',                     
+  contentType: 'application/json'
+});
+```
+
+## Cleanup Notes
+
+If you observe any folder structures in the Google Cloud Storage console (e.g., a "test/" folder), these may be remnants from previous versions of the application. These folders do not affect the functionality of the application as all new files are guaranteed to be stored directly in the bucket root.
+
+To remove these remnant folders:
+
+1. Use the Google Cloud Storage console to delete the folders manually
+2. Run the provided cleanup script: `node cleanup-test-folder.cjs`
+3. Alternatively, you may need to use the `gsutil` command line tool if the console UI doesn't allow deletion

@@ -27,7 +27,7 @@ async function testGCSConnection() {
     
     // Upload the test file
     console.log('Uploading test file to Google Cloud Storage...');
-    const testFilePath = `test/connection_test_${Date.now()}.json`;
+    const testFilePath = `connection_test_${Date.now()}.json`;
     const url = await googleCloudStorage.uploadText(
       testFilePath,
       JSON.stringify(testContent, null, 2)
@@ -36,11 +36,9 @@ async function testGCSConnection() {
     console.log('✅ Test file uploaded successfully!');
     console.log('File URL:', url);
     
-    // Test creating a folder
-    console.log('Creating test folder in Google Cloud Storage...');
-    const testFolderPath = `test/folder_${Date.now()}`;
-    await googleCloudStorage.createFolder(testFolderPath);
-    console.log('✅ Test folder created successfully!');
+    // Folder creation is disabled to maintain flat bucket structure
+    console.log('Note: Folder creation is disabled to maintain flat bucket structure');
+    console.log('✅ Using flat bucket structure with descriptive filenames instead of folders');
     
     // Now test the consolidated data sync functionality
     console.log('\nTesting session data storage with a mock session...');
