@@ -603,6 +603,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             // No need to import - using global import at top of file
             
+            // First, verify if the session exists in the database
+            const existingSession = await db.select({ id: repairSessions.id })
+              .from(repairSessions)
+              .where(eq(repairSessions.id, repairRequestId))
+              .limit(1);
+              
+            // If no session exists, create a minimal one to ensure proper data linkage
+            if (!existingSession || existingSession.length === 0) {
+              console.log(`Creating minimal repair session #${repairRequestId} for diagnostic data`);
+              try {
+                // Create minimal session record with basic info
+                await db.insert(repairSessions).values({
+                  id: repairRequestId, // Use the same ID
+                  userId: 1, // Default user ID
+                  deviceType: productType || 'Unknown',
+                  deviceBrand: 'Auto-created',
+                  issueDescription: issueDescription || 'Auto-created from diagnostic data',
+                  status: 'diagnosed',
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                });
+                console.log(`Successfully created minimal repair session #${repairRequestId}`);
+              } catch (createError) {
+                // Log but continue - our cloud data sync service has fallback handling
+                console.warn(`Failed to create minimal repair session #${repairRequestId}: ${createError}`);
+              }
+            }
+            
             // Store diagnostic data in cloud storage
             const diagnosticData = {
               repairRequestId,

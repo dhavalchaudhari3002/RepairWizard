@@ -79,7 +79,24 @@ export class CloudDataSyncService {
         .where(eq(repairSessions.id, sessionId));
         
       if (!repairSession) {
-        throw new Error(`Repair session #${sessionId} not found in database`);
+        console.warn(`Repair session #${sessionId} not found in database - creating minimal record`);
+        // Create a minimal data structure since the session doesn't exist yet
+        // Use googleCloudStorage.saveJsonData directly since we're bypassing the regular process
+        return googleCloudStorage.saveJsonData({
+          sessionId,
+          timestamp: new Date().toISOString(),
+          data: additionalData,
+          note: "Created without database session",
+          metadata: {
+            version: '1.0',
+            source: 'repair-ai-assistant',
+            syncTimestamp: new Date().toISOString(),
+            createdWithoutSession: true
+          }
+        }, {
+          customName: `repair_session_${sessionId}_${Date.now()}_minimal.json`,
+          contentType: 'application/json'
+        });
       }
       
       // Get files, interactions, and analytics data

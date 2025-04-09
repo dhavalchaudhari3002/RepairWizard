@@ -344,6 +344,36 @@ class GoogleCloudStorageService {
     const uuid = randomUUID();
     return `${timestamp}-${uuid}`;
   }
+  
+  /**
+   * Upload text content directly to Google Cloud Storage
+   * @param fileName The name of the file to create
+   * @param content The text content to upload
+   * @param contentType Optional content type (defaults to text/plain)
+   * @returns The public URL of the uploaded file
+   */
+  async uploadText(fileName: string, content: string, contentType = 'text/plain'): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error('Google Cloud Storage is not configured');
+    }
+    
+    // Check if the path contains folder structure and warn about it
+    if (fileName.includes('/')) {
+      console.warn(`WARNING: Attempted to create folder structure in path: ${fileName}. Using filename directly: ${fileName.split('/').pop()}`);
+      fileName = fileName.split('/').pop() || fileName;
+    }
+    
+    console.log(`Using final filename (NO FOLDERS): ${fileName}`);
+    
+    // Convert text to buffer
+    const buffer = Buffer.from(content, 'utf-8');
+    
+    // Upload using the existing method
+    return this.uploadFile(buffer, {
+      customName: fileName,
+      contentType
+    });
+  }
 
   /**
    * Delete a file from Google Cloud Storage
