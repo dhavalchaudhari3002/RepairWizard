@@ -138,28 +138,17 @@ export class CloudDataSyncService {
         consolidatedData.repairGuide = additionalData.repairGuideData;
       }
       
-      // Create a simple folder structure - just one folder per session
-      try {
-        // This will create just a single folder named after the session ID
-        const folder = `repair_sessions/${sessionId}`;
-        const exists = await googleCloudStorage.checkIfFolderExists(folder);
-        
-        if (!exists) {
-          console.log(`Creating folder structure for session #${sessionId}`);
-          await googleCloudStorage.createFolder(folder);
-        } else {
-          console.log(`Folder already exists for session #${sessionId}`);
-        }
-      } catch (error) {
-        console.log(`Error creating folder for session #${sessionId}: ${error}`);
-        // Non-critical, continue with file creation
-      }
+      // Simplified approach - no folder creation, just place files directly in the bucket
+      // This avoids creating empty folders that clutter the bucket
       
       // Generate a unique filename with timestamp and randomized ID for ensuring uniqueness
       const timestamp = Date.now();
       const randomId = Math.floor(Math.random() * 10000); // Add some randomness
-      const filename = `session_${sessionId}_${timestamp}_${randomId}.json`;
-      const filePath = `repair_sessions/${sessionId}/${filename}`;
+      const filename = `repair_session_${sessionId}_${timestamp}_${randomId}.json`;
+      
+      // Store directly in the root of the bucket with a clear naming convention
+      // No nested folders needed
+      const filePath = `repair_data/${filename}`;
       
       // Upload the consolidated data file
       try {
@@ -178,7 +167,7 @@ export class CloudDataSyncService {
             originalName: filename,
             fileUrl: url,
             contentType: 'application/json',
-            folder: `repair_sessions/${sessionId}`,
+            folder: `repair_data`,
             fileSize: JSON.stringify(consolidatedData).length,
             metadata: {
               sessionId,
@@ -221,10 +210,10 @@ export class CloudDataSyncService {
         try {
           console.log(`Generating an alternative URL for session #${sessionId}`);
           // Return a simple path without trying to access consolidatedData
-          return `repair_sessions/${sessionId}/session_data_${Date.now()}.json`;
+          return `repair_data/session_data_${sessionId}_${Date.now()}.json`;
         } catch (fallbackError) {
           console.error(`Error creating fallback URL: ${fallbackError}`);
-          return `repair_sessions/${sessionId}/error_${Date.now()}.json`;
+          return `repair_data/error_${sessionId}_${Date.now()}.json`;
         }
       }
       
@@ -322,23 +311,16 @@ export class CloudDataSyncService {
         }
       };
 
-      // Step 6: Create the folder structure for this repair session
-      // The improved createRepairJourneyFolderStructure method handles existing folders properly
-      try {
-        await googleCloudStorage.createRepairJourneyFolderStructure(sessionId);
-      } catch (folderError) {
-        // Non-critical error, continue with storing the session data
-        console.log(`Note: Issue with folder structure for repair session #${sessionId}, but will continue with sync`);
-      }
-
-      // Step 7: Try to store the complete journey in Google Cloud Storage
+      // Step 6: Skip folder creation, use a simplified direct file approach
+      // Generate a unique and descriptive filename
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000); 
+      const journeyFilename = `repair_journey_${sessionId}_${timestamp}_${randomId}.json`;
+      
+      // Step 7: Store data directly in repair_data folder (no nested folders)
       let metadataUrl: string;
       try {
-        // Store only in the complete_journey folder to avoid data duplication
-        // Avoid saving the same data to multiple folders
-
-        // Save only metadata in complete_journey for indexing purposes
-        // This prevents duplication of actual data across folders
+        // Create a comprehensive data structure with all session data
         const journeyMetadata = {
           sessionId: repairSession.id,
           status: repairSession.status,
@@ -353,16 +335,14 @@ export class CloudDataSyncService {
           interactionsCount: interactions.length,
           analyticsCount: analytics.length,
           syncTimestamp: new Date().toISOString(),
+          // Include the full journey data
+          journeyData: completeJourney
         };
         
-        // Save the complete journey metadata with unique filename
-        const timestamp = Date.now();
-        const randomId = Math.floor(Math.random() * 10000); // Add some randomness
-        metadataUrl = await googleCloudStorage.saveRepairJourneyData(
-          sessionId,
-          'complete_journey',
-          journeyMetadata,
-          `journey_metadata_${sessionId}_${timestamp}_${randomId}.json`
+        // Upload directly to repair_data folder without creating nested folders
+        metadataUrl = await googleCloudStorage.uploadText(
+          `repair_data/${journeyFilename}`,
+          JSON.stringify(journeyMetadata, null, 2)
         );
         console.log(`Successfully synced repair session #${sessionId} metadata to Google Cloud Storage: ${metadataUrl}`);
       } catch (gcsError) {
@@ -543,23 +523,17 @@ export class CloudDataSyncService {
       // Log which session/request ID we're processing
       console.log(`Processing interaction data for repair request ID: ${interaction.repairRequestId}`);
       
-      // Only create folders for the current session - not any related sessions
+      // Use the same simplified pattern for interactions - no folders needed
       try {
-        await googleCloudStorage.createRepairJourneyFolderStructure(interaction.repairRequestId);
-      } catch (folderError: any) {
-        // Non-critical error, continue with storing the interaction data
-        console.log(`Note: Issue with folder structure for interaction data, but will continue with storage: ${folderError?.message || 'Unknown error'}`);
-      }
-
-      try {
-        // Store in a dedicated interactions folder with an organized filename
+        // Generate a descriptive filename with interaction and session IDs
         const timestamp = Date.now();
-        const fileName = `interaction_${interaction.id}_${interaction.interactionType}_${timestamp}.json`;
-        const url = await googleCloudStorage.saveRepairJourneyData(
-          interaction.repairRequestId,
-          'interactions',
-          interaction,
-          fileName
+        const randomId = Math.floor(Math.random() * 10000);
+        const fileName = `interaction_${interaction.repairRequestId}_${interaction.id}_${interaction.interactionType}_${timestamp}_${randomId}.json`;
+        
+        // Store directly in repair_data folder for consistency
+        const url = await googleCloudStorage.uploadText(
+          `repair_data/${fileName}`,
+          JSON.stringify(interaction, null, 2)
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
         
@@ -572,7 +546,7 @@ export class CloudDataSyncService {
             originalName: fileName,
             fileUrl: url,
             contentType: 'application/json',
-            folder: `repair_sessions/${interaction.repairRequestId}/interactions`,
+            folder: `repair_data`,
             fileSize: JSON.stringify(interaction).length,
             metadata: {
               sessionId: interaction.repairRequestId,
@@ -634,12 +608,14 @@ export class CloudDataSyncService {
       const urls: string[] = [];
       
       for (const tree of trees) {
-        const url = await googleCloudStorage.saveJsonData(
-          tree,
-          {
-            folder: 'diagnostic_trees',
-            customName: `tree_${tree.id}_${tree.productCategory}${tree.subCategory ? '_' + tree.subCategory : ''}_v${tree.version}.json`
-          }
+        const timestamp = Date.now();
+        const randomId = Math.floor(Math.random() * 10000);
+        const filename = `diagnostic_tree_${tree.id}_${tree.productCategory}${tree.subCategory ? '_' + tree.subCategory : ''}_v${tree.version}_${timestamp}_${randomId}.json`;
+        
+        // Store directly in repair_data folder like other files
+        const url = await googleCloudStorage.uploadText(
+          `repair_data/${filename}`,
+          JSON.stringify(tree, null, 2)
         );
         urls.push(url);
       }
@@ -728,9 +704,14 @@ export class CloudDataSyncService {
         }
       }
       
-      // Save the complete training dataset
-      const trainingDatasetUrl = await googleCloudStorage.saveJsonData(
-        {
+      // Save the complete training dataset directly in repair_data folder
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000);
+      const trainingDatasetFilename = `repair_training_dataset_${timestamp}_${randomId}.json`;
+      
+      const trainingDatasetUrl = await googleCloudStorage.uploadText(
+        `repair_data/${trainingDatasetFilename}`,
+        JSON.stringify({
           metadata: {
             generatedAt: new Date().toISOString(),
             version: '1.0',
@@ -738,11 +719,7 @@ export class CloudDataSyncService {
             source: 'repair-ai-assistant',
           },
           data: trainingData,
-        },
-        {
-          folder: 'training_datasets',
-          customName: `repair_training_dataset_${Date.now()}.json`
-        }
+        }, null, 2)
       );
       
       console.log(`Successfully created training dataset with ${trainingData.length} repair journeys: ${trainingDatasetUrl}`);
