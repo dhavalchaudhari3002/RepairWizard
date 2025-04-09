@@ -60,15 +60,13 @@ export class CloudDataSyncService {
    */
   async storeConsolidatedSessionData(sessionId: number, additionalData: Record<string, any> = {}): Promise<string> {
     try {
-      console.log(`Creating consolidated data file for repair session #${sessionId}`);
+      console.log(`Creating new consolidated data file for repair session #${sessionId}`);
       
-      // Skip if we've already created a folder for this session
-      if (this.processedSessions.has(sessionId)) {
-        console.log(`Session #${sessionId} has already been processed in this server process, using existing data`);
-      } else {
-        this.processedSessions.add(sessionId);
-        console.log(`Added session #${sessionId} to tracked sessions`);
-      }
+      // Always create a new file for this session with a unique name - don't skip
+      // (removing the processedSessions check to always create a new file)
+      // Add to tracked sessions for other operations
+      this.processedSessions.add(sessionId);
+      console.log(`Added session #${sessionId} to tracked sessions (will always create new file)`);
       
       // Get all data related to this session from the database
       const [repairSession] = await db
@@ -157,9 +155,10 @@ export class CloudDataSyncService {
         // Non-critical, continue with file creation
       }
       
-      // Generate a unique filename with timestamp
+      // Generate a unique filename with timestamp and randomized ID for ensuring uniqueness
       const timestamp = Date.now();
-      const filename = `session_${timestamp}.json`;
+      const randomId = Math.floor(Math.random() * 10000); // Add some randomness
+      const filename = `session_${sessionId}_${timestamp}_${randomId}.json`;
       const filePath = `repair_sessions/${sessionId}/${filename}`;
       
       // Upload the consolidated data file
@@ -356,12 +355,14 @@ export class CloudDataSyncService {
           syncTimestamp: new Date().toISOString(),
         };
         
-        // Save the complete journey metadata only
+        // Save the complete journey metadata with unique filename
+        const timestamp = Date.now();
+        const randomId = Math.floor(Math.random() * 10000); // Add some randomness
         metadataUrl = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'complete_journey',
           journeyMetadata,
-          `journey_metadata_${Date.now()}.json`
+          `journey_metadata_${sessionId}_${timestamp}_${randomId}.json`
         );
         console.log(`Successfully synced repair session #${sessionId} metadata to Google Cloud Storage: ${metadataUrl}`);
       } catch (gcsError) {
