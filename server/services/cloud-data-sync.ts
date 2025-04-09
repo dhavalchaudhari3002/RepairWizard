@@ -140,9 +140,13 @@ export class CloudDataSyncService {
       // Step 7: Try to store the complete journey in Google Cloud Storage
       let metadataUrl: string;
       try {
-        // Store a separate file for the session summary
-        const sessionSummary = {
-          id: repairSession.id,
+        // Store only in the complete_journey folder to avoid data duplication
+        // Avoid saving the same data to multiple folders
+
+        // Save only metadata in complete_journey for indexing purposes
+        // This prevents duplication of actual data across folders
+        const journeyMetadata = {
+          sessionId: repairSession.id,
           status: repairSession.status,
           deviceType: repairSession.deviceType,
           deviceBrand: repairSession.deviceBrand,
@@ -150,28 +154,29 @@ export class CloudDataSyncService {
           issueDescription: repairSession.issueDescription,
           createdAt: repairSession.createdAt,
           updatedAt: repairSession.updatedAt,
+          diagnosticsCount: interactions.filter(i => i.type === 'diagnostic_generated').length,
+          filesCount: sessionFiles.length,
+          interactionsCount: interactions.length,
+          analyticsCount: analytics.length,
+          syncTimestamp: new Date().toISOString(),
         };
         
-        // Save the initial submission data
-        await googleCloudStorage.saveRepairJourneyData(
-          sessionId,
-          'submission',
-          sessionSummary,
-          `repair_request_${Date.now()}.json`
-        );
-        
-        // Save the complete journey data
+        // Save the complete journey metadata only
         metadataUrl = await googleCloudStorage.saveRepairJourneyData(
           sessionId,
           'complete_journey',
-          completeJourney,
-          `complete_journey_${Date.now()}.json`
+          journeyMetadata,
+          `journey_metadata_${Date.now()}.json`
         );
-        console.log(`Successfully synced repair session #${sessionId} to Google Cloud Storage: ${metadataUrl}`);
+        console.log(`Successfully synced repair session #${sessionId} metadata to Google Cloud Storage: ${metadataUrl}`);
       } catch (gcsError) {
         console.error(`Error syncing to Google Cloud Storage, falling back to local:`, gcsError);
         // Use local fallback if GCS is unavailable
-        metadataUrl = this.saveLocalFallback(completeJourney, sessionId, 'complete_journey');
+        metadataUrl = this.saveLocalFallback({
+          sessionId: repairSession.id,
+          status: repairSession.status,
+          syncTimestamp: new Date().toISOString(),
+        }, sessionId, 'complete_journey');
         console.log(`Saved repair session #${sessionId} to local storage: ${metadataUrl}`);
       }
 
