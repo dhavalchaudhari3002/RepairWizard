@@ -80,11 +80,18 @@ class GoogleCloudStorageService {
     }
     
     try {
-      const folder = options.folder || '';
+      // IMPORTANT: Direct upload to bucket root, no folders
       const filename = options.customName || `${randomUUID()}`;
-      const fullPath = folder ? `${folder}/${filename}` : filename;
       
-      const file = this.storage.bucket(this.bucketName).file(fullPath);
+      // IMPORTANT: Warn if folder was provided but ignore it to prevent folder creation
+      if (options.folder) {
+        console.log(`WARNING: Folder option "${options.folder}" specified in uploadBuffer but ignoring it to avoid folder creation. Uploading directly to bucket root.`);
+      }
+      
+      // Always use just the filename with no folder prefix
+      const filePath = filename;
+      
+      const file = this.storage.bucket(this.bucketName).file(filePath);
       
       // Upload the buffer
       await file.save(buffer, {
@@ -101,7 +108,8 @@ class GoogleCloudStorageService {
       }
       
       // Get the public URL
-      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${fullPath}`;
+      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
+      console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
       return publicUrl;
     } catch (error) {
       console.error('Error uploading buffer to GCS:', error);
