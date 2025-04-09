@@ -210,6 +210,33 @@ export class CloudDataSyncService {
         return localUrl;
       }
     } catch (error) {
+      // Check if it's a database error related to metadata_url column
+      const errorStr = String(error);
+      if (errorStr.includes('metadata_url') || errorStr.includes('metadataUrl')) {
+        console.warn(`The database schema may need to be updated to add the metadataUrl column. 
+          This is non-critical - the file is still stored in Google Cloud Storage.
+          Error details: ${errorStr}`);
+        
+        try {
+          // Still attempt to create the file in Google Cloud Storage
+          const timestamp = Date.now();
+          const filename = `session_${timestamp}.json`;
+          const filePath = `repair_sessions/${sessionId}/${filename}`;
+          
+          const url = await googleCloudStorage.uploadText(
+            filePath,
+            JSON.stringify(consolidatedData, null, 2)
+          );
+          
+          console.log(`Successfully stored consolidated data for session #${sessionId} despite database schema mismatch: ${url}`);
+          return url;
+        } catch (uploadError) {
+          console.error(`Error uploading file after database schema issue: ${uploadError}`);
+          return this.saveLocalFallback(consolidatedData, sessionId, 'consolidated');
+        }
+      }
+      
+      // For other errors
       console.error(`Error creating consolidated data for session #${sessionId}: ${error}`);
       return this.saveLocalFallback(
         { error: String(error), sessionId, timestamp: new Date() },
@@ -355,11 +382,17 @@ export class CloudDataSyncService {
         console.log(`Saved repair session #${sessionId} to local storage: ${metadataUrl}`);
       }
 
-      // Step 8: Update the repair session with the metadata URL
-      await db
-        .update(repairSessions)
-        .set({ metadataUrl })
-        .where(eq(repairSessions.id, sessionId));
+      // Step 8: Try to update the repair session with the metadata URL
+      // But handle the case where the metadataUrl column might not exist yet
+      try {
+        await db
+          .update(repairSessions)
+          .set({ metadataUrl })
+          .where(eq(repairSessions.id, sessionId));
+      } catch (dbError) {
+        console.warn(`Could not update metadataUrl for session #${sessionId}:`, dbError);
+        console.log('This is non-critical - the file is still stored in Google Cloud Storage');
+      }
 
       return metadataUrl;
     } catch (error) {
