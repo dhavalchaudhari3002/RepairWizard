@@ -249,6 +249,8 @@ export class CloudDataSyncService {
         
         // Record this file in the database to track it
         try {
+          // Get the correct column name from the schema
+          // Use the drizzle ORM camelCase property names 
           await db.insert(repairSessionFiles).values({
             repairSessionId: sessionId,
             userId: diagnosticData.userId || 1, // Use the userId from data or default to 1
@@ -260,6 +262,7 @@ export class CloudDataSyncService {
           console.log(`Recorded diagnostic file in database for session #${sessionId}`);
         } catch (dbError) {
           console.error(`Failed to record diagnostic file in database: ${dbError}`);
+          console.log(`This is not critical - we can still find the files in Google Cloud Storage`);
           // Continue anyway as the file was saved successfully
         }
         
