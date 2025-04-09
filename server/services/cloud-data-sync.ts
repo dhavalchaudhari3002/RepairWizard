@@ -5,12 +5,14 @@ import {
   repairSessionFiles, 
   diagnosticQuestionTrees,
   userInteractions,
-  repairAnalytics, 
+  repairAnalytics,
+  storageFiles, 
   type RepairSession,
   type RepairSessionFile,
   type UserInteraction,
   type RepairAnalytics,
-  type DiagnosticQuestionTree
+  type DiagnosticQuestionTree,
+  type StorageFile
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
@@ -250,15 +252,34 @@ export class CloudDataSyncService {
         // Record this file in the database to track it
         try {
           // Get the correct column name from the schema
-          // Use the drizzle ORM camelCase property names 
-          await db.insert(repairSessionFiles).values({
-            repairSessionId: sessionId,
-            userId: diagnosticData.userId || 1, // Use the userId from data or default to 1
-            fileName: `diagnostic_data_${Date.now()}.json`,
+          // First insert into storage_files table
+          const timestamp = Date.now();
+          const fileName = `diagnostic_data_${timestamp}.json`;
+          const result = await db.insert(storageFiles).values({
+            userId: diagnosticData.userId || 1,
+            fileName: fileName,
+            originalName: fileName,
             fileUrl: url,
-            filePurpose: 'diagnostic_data',
-            contentType: 'application/json'
-          });
+            contentType: 'application/json',
+            folder: `repair_sessions/${sessionId}/diagnostics`,
+            fileSize: JSON.stringify(enhancedDiagnosticData).length,
+            metadata: {
+              sessionId: sessionId,
+              type: 'diagnostic_data',
+              timestamp: new Date().toISOString()
+            }
+          }).returning({ id: storageFiles.id });
+          
+          if (result && result.length > 0) {
+            // Then link the file to the repair session
+            await db.insert(repairSessionFiles).values({
+              repairSessionId: sessionId,
+              storageFileId: result[0].id,
+              filePurpose: 'diagnostic_data',
+              stepName: 'diagnosis'
+            });
+            console.log(`Recorded diagnostic file in database for session #${sessionId}`);
+          }
           console.log(`Recorded diagnostic file in database for session #${sessionId}`);
         } catch (dbError) {
           console.error(`Failed to record diagnostic file in database: ${dbError}`);
@@ -312,6 +333,43 @@ export class CloudDataSyncService {
           `issue_confirmation_${Date.now()}.json`
         );
         console.log(`Successfully stored issue confirmation data for session #${sessionId} to GCS: ${url}`);
+        
+        // Record this file in the database to track it
+        try {
+          // First insert into storage_files table
+          const timestamp = Date.now();
+          const fileName = `issue_confirmation_${timestamp}.json`;
+          const result = await db.insert(storageFiles).values({
+            userId: issueData.userId || 1,
+            fileName: fileName,
+            originalName: fileName,
+            fileUrl: url,
+            contentType: 'application/json',
+            folder: `repair_sessions/${sessionId}/issue_confirmation`,
+            fileSize: JSON.stringify(issueData).length,
+            metadata: {
+              sessionId: sessionId,
+              type: 'issue_confirmation',
+              timestamp: new Date().toISOString()
+            }
+          }).returning({ id: storageFiles.id });
+          
+          if (result && result.length > 0) {
+            // Then link the file to the repair session
+            await db.insert(repairSessionFiles).values({
+              repairSessionId: sessionId,
+              storageFileId: result[0].id,
+              filePurpose: 'issue_confirmation',
+              stepName: 'confirmation'
+            });
+            console.log(`Recorded issue confirmation file in database for session #${sessionId}`);
+          }
+        } catch (dbError) {
+          console.error(`Failed to record issue confirmation file in database: ${dbError}`);
+          console.log(`This is not critical - we can still find the files in Google Cloud Storage`);
+          // Continue anyway as the file was saved successfully
+        }
+        
         return url;
       } catch (gcsError) {
         console.error(`Error storing issue confirmation data to GCS for session #${sessionId}, using local fallback:`, gcsError);
@@ -358,6 +416,43 @@ export class CloudDataSyncService {
           `repair_guide_${Date.now()}.json`
         );
         console.log(`Successfully stored repair guide data for session #${sessionId} to GCS: ${url}`);
+        
+        // Record this file in the database to track it
+        try {
+          // First insert into storage_files table
+          const timestamp = Date.now();
+          const fileName = `repair_guide_${timestamp}.json`;
+          const result = await db.insert(storageFiles).values({
+            userId: repairGuideData.userId || 1,
+            fileName: fileName,
+            originalName: fileName,
+            fileUrl: url,
+            contentType: 'application/json',
+            folder: `repair_sessions/${sessionId}/repair_guide`,
+            fileSize: JSON.stringify(repairGuideData).length,
+            metadata: {
+              sessionId: sessionId,
+              type: 'repair_guide',
+              timestamp: new Date().toISOString()
+            }
+          }).returning({ id: storageFiles.id });
+          
+          if (result && result.length > 0) {
+            // Then link the file to the repair session
+            await db.insert(repairSessionFiles).values({
+              repairSessionId: sessionId,
+              storageFileId: result[0].id,
+              filePurpose: 'repair_guide',
+              stepName: 'guide'
+            });
+            console.log(`Recorded repair guide file in database for session #${sessionId}`);
+          }
+        } catch (dbError) {
+          console.error(`Failed to record repair guide file in database: ${dbError}`);
+          console.log(`This is not critical - we can still find the files in Google Cloud Storage`);
+          // Continue anyway as the file was saved successfully
+        }
+        
         return url;
       } catch (gcsError) {
         console.error(`Error storing repair guide data to GCS for session #${sessionId}, using local fallback:`, gcsError);
@@ -426,14 +521,32 @@ export class CloudDataSyncService {
         console.log(`Successfully stored initial submission data for session #${sessionId} to GCS: ${url}`);
         
         // Record this file in the database to track it
-        await db.insert(repairSessionFiles).values({
-          repairSessionId: sessionId,
-          userId: initialData.userId || 1, // Use the userId from initialData or default to 1
+        // First insert into storage_files table
+        const result = await db.insert(storageFiles).values({
+          userId: initialData.userId || 1,
           fileName: filename,
+          originalName: filename,
           fileUrl: url,
-          filePurpose: 'submission_data',
-          contentType: 'application/json'
-        });
+          contentType: 'application/json',
+          folder: `repair_sessions/${sessionId}/submission`,
+          fileSize: JSON.stringify(initialData).length,
+          metadata: {
+            sessionId: sessionId,
+            type: 'submission_data',
+            timestamp: new Date().toISOString()
+          }
+        }).returning({ id: storageFiles.id });
+        
+        if (result && result.length > 0) {
+          // Then link the file to the repair session
+          await db.insert(repairSessionFiles).values({
+            repairSessionId: sessionId,
+            storageFileId: result[0].id,
+            filePurpose: 'submission_data',
+            stepName: 'submission'
+          });
+          console.log(`Recorded submission file in database for session #${sessionId}`);
+        }
         
         return url;
       } catch (gcsError) {
@@ -478,13 +591,52 @@ export class CloudDataSyncService {
 
       try {
         // Store in a dedicated interactions folder with an organized filename
+        const timestamp = Date.now();
+        const fileName = `interaction_${interaction.id}_${interaction.interactionType}_${timestamp}.json`;
         const url = await googleCloudStorage.saveRepairJourneyData(
           interaction.repairRequestId,
           'interactions',
           interaction,
-          `interaction_${interaction.id}_${interaction.interactionType}_${Date.now()}.json`
+          fileName
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
+        
+        // Record this file in the database to track it
+        try {
+          // First insert into storage_files table
+          const result = await db.insert(storageFiles).values({
+            userId: interaction.userId || 1,
+            fileName: fileName,
+            originalName: fileName,
+            fileUrl: url,
+            contentType: 'application/json',
+            folder: `repair_sessions/${interaction.repairRequestId}/interactions`,
+            fileSize: JSON.stringify(interaction).length,
+            metadata: {
+              sessionId: interaction.repairRequestId,
+              interactionId: interaction.id,
+              type: 'interaction_data',
+              interactionType: interaction.interactionType,
+              timestamp: new Date().toISOString()
+            }
+          }).returning({ id: storageFiles.id });
+          
+          if (result && result.length > 0) {
+            // Then link the file to the repair session
+            await db.insert(repairSessionFiles).values({
+              repairSessionId: interaction.repairRequestId,
+              storageFileId: result[0].id,
+              filePurpose: 'interaction_data',
+              stepName: interaction.interactionType
+            });
+            console.log(`Recorded interaction file in database for session #${interaction.repairRequestId}`);
+          }
+        } catch (dbError) {
+          console.error(`Failed to record interaction file in database: ${dbError}`);
+          console.log(`This is not critical - we can still find the files in Google Cloud Storage`);
+          // Continue anyway as the file was saved successfully
+        }
+        
         return url;
       } catch (gcsError) {
         console.error(`Error storing interaction data to GCS for interaction #${interaction.id}, using local fallback:`, gcsError);
@@ -558,9 +710,19 @@ export class CloudDataSyncService {
       for (const session of completedSessions) {
         try {
           // Get related data for this session
+          // Join with storage_files table to get complete file information
           const files = await db
-            .select()
+            .select({
+              sessionId: repairSessionFiles.repairSessionId,
+              purpose: repairSessionFiles.filePurpose,
+              step: repairSessionFiles.stepName,
+              fileUrl: storageFiles.fileUrl,
+              contentType: storageFiles.contentType,
+              fileName: storageFiles.fileName,
+              metadata: storageFiles.metadata
+            })
             .from(repairSessionFiles)
+            .innerJoin(storageFiles, eq(repairSessionFiles.storageFileId, storageFiles.id))
             .where(eq(repairSessionFiles.repairSessionId, session.id));
           
           // Include only completed journeys with sufficient data
@@ -579,11 +741,12 @@ export class CloudDataSyncService {
               diagnostic: session.diagnosticResults,
               confirmedIssue: session.issueConfirmation,
               solution: session.repairGuide,
-              files: files.map((f: RepairSessionFile) => ({
-                purpose: f.filePurpose,
-                step: f.stepName,
+              files: files.map((f: any) => ({
+                purpose: f.purpose,
+                step: f.step,
                 url: f.fileUrl,
                 type: f.contentType,
+                metadata: f.metadata
               })),
               timestamps: {
                 created: session.createdAt,
