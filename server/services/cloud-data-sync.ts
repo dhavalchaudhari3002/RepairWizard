@@ -97,17 +97,24 @@ export class CloudDataSyncService {
         .where(eq(repairAnalytics.repairRequestId, sessionId));
         
       // Create a comprehensive data structure with all session data
+      // The structure follows a simplified format that's AI training-friendly
       const consolidatedData: Record<string, any> = {
         sessionId,
         timestamp: new Date().toISOString(),
-        repairSession,
-        initialSubmission: {},  // Will be populated with initial submission data
+        initialSubmission: {
+          deviceType: repairSession.deviceType || '',
+          deviceBrand: repairSession.deviceBrand || '',
+          deviceModel: repairSession.deviceModel || '',
+          issueDescription: repairSession.issueDescription || '',
+          symptoms: repairSession.symptoms || [],
+          timestamp: repairSession.createdAt || new Date().toISOString(),
+          userId: repairSession.userId || 1
+        },
         diagnostics: [] as any[],  // Will be populated with diagnostic data
         issueConfirmation: {},  // Will be populated with issue confirmation data
         repairGuide: {},  // Will be populated with repair guide data
-        interactions,
-        analytics,
-        additionalData,
+        interactions: interactions || [],
+        analytics: analytics || [],
         metadata: {
           version: '1.0',
           source: 'repair-ai-assistant',
@@ -152,7 +159,7 @@ export class CloudDataSyncService {
       
       // Generate a unique filename with timestamp
       const timestamp = Date.now();
-      const filename = `session_data_${timestamp}.json`;
+      const filename = `session_${timestamp}.json`;
       const filePath = `repair_sessions/${sessionId}/${filename}`;
       
       // Upload the consolidated data file

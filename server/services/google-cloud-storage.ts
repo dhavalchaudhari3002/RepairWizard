@@ -511,18 +511,32 @@ class GoogleCloudStorageService {
     try {
       console.log(`Attempting to upload file: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
       
-      await file.save(fileBuffer, {
+      // Create a write stream for the file
+      const writeStream = file.createWriteStream({
         metadata: {
-          contentType
-        }
+          contentType: contentType,
+        },
+        resumable: false // For small files, non-resumable is faster
       });
       
-      console.log(`File saved successfully to: ${filePath}`);
-      
-      // Return the public URL
-      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-      console.log(`Generated public URL: ${publicUrl}`);
-      return publicUrl;
+      // Return a promise that resolves when the upload is complete
+      return new Promise((resolve, reject) => {
+        writeStream.on('error', (error) => {
+          console.error(`Error uploading to GCS: ${error}`);
+          reject(error);
+        });
+        
+        writeStream.on('finish', () => {
+          console.log(`File saved successfully to: ${filePath}`);
+          // Return the public URL
+          const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
+          console.log(`Generated public URL: ${publicUrl}`);
+          resolve(publicUrl);
+        });
+        
+        // Write the content to the stream and end it
+        writeStream.end(fileBuffer);
+      });
     } catch (error) {
       console.error(`Error uploading file to Google Cloud Storage: ${filePath}`, error);
       throw error;
