@@ -185,10 +185,16 @@ class GoogleCloudStorageService {
 
     const bucket = this.storage.bucket(this.bucketName);
     
-    // Generate file path
+    // Generate file path - ALWAYS USE DIRECT BUCKET ROOT, NO FOLDERS
     const fileName = options.customName || this.generateFileName();
-    const folderPrefix = options.folder ? `${options.folder}/` : '';
-    const filePath = `${folderPrefix}${fileName}`;
+    
+    // IMPORTANT: Warn if folder was provided but ignore it to prevent folder creation
+    if (options.folder) {
+      console.log(`WARNING: Folder option "${options.folder}" specified but ignoring it to avoid folder creation. Uploading directly to bucket root.`);
+    }
+    
+    // Always use just the filename with no folder prefix
+    const filePath = fileName;
     
     const file = bucket.file(filePath);
     
@@ -200,7 +206,7 @@ class GoogleCloudStorageService {
     
     // Upload the file
     try {
-      console.log(`Attempting to upload file: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
+      console.log(`Uploading file directly to bucket root: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
       try {
         await file.save(fileBuffer, {
           metadata: {
@@ -209,14 +215,14 @@ class GoogleCloudStorageService {
           // Note: We're not attempting to set per-object ACLs since the bucket uses uniform access control
           // The bucket's permissions will apply to all objects
         });
-        console.log(`File saved successfully to: ${filePath}`);
+        console.log(`File saved successfully to bucket root: ${filePath}`);
         
         // With uniform bucket-level access enabled, we don't need to call makePublic()
         // as it would cause an error. The bucket's IAM permissions apply to all objects.
         
-        // Return the public URL
+        // Return the public URL (directly in bucket root, no folders)
         const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-        console.log(`Generated public URL: ${publicUrl}`);
+        console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
         return publicUrl;
       } catch (uploadError) {
         console.error('Detailed upload error:', uploadError);
@@ -504,12 +510,21 @@ class GoogleCloudStorageService {
       throw new Error('Google Cloud Storage is not configured');
     }
     
+    // IMPORTANT: Ensure we're not creating any folder structure
+    // Extract just the filename without any path segments
+    let filename = filePath;
+    if (filePath.includes('/')) {
+      // Get just the filename part, stripping any folder structure
+      filename = filePath.split('/').pop() || filePath;
+      console.log(`WARNING: Attempted to create folder structure in path: ${filePath}. Using filename directly: ${filename}`);
+    }
+    
     const bucket = this.storage.bucket(this.bucketName);
-    const file = bucket.file(filePath);
+    const file = bucket.file(filename); // Use filename directly, not path
     const fileBuffer = Buffer.from(content, 'utf-8');
     
     try {
-      console.log(`Attempting to upload file: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
+      console.log(`Uploading directly to bucket root: ${filename}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
       
       // Create a write stream for the file
       const writeStream = file.createWriteStream({
@@ -527,10 +542,10 @@ class GoogleCloudStorageService {
         });
         
         writeStream.on('finish', () => {
-          console.log(`File saved successfully to: ${filePath}`);
-          // Return the public URL
-          const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-          console.log(`Generated public URL: ${publicUrl}`);
+          console.log(`File saved successfully to bucket root: ${filename}`);
+          // Return the public URL (directly in bucket root, no folders)
+          const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filename}`;
+          console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
           resolve(publicUrl);
         });
         
@@ -538,7 +553,7 @@ class GoogleCloudStorageService {
         writeStream.end(fileBuffer);
       });
     } catch (error) {
-      console.error(`Error uploading file to Google Cloud Storage: ${filePath}`, error);
+      console.error(`Error uploading file to Google Cloud Storage: ${filename}`, error);
       throw error;
     }
   }
@@ -730,9 +745,8 @@ class GoogleCloudStorageService {
       throw new Error(`Invalid stage: ${stage}. Must be one of: ${validStages.join(', ')}`);
     }
     
-    // Ensure folder structure exists first
-    // This will reuse existing folders or create them if needed, with deduplication built in
-    await this.createRepairJourneyFolderStructure(sessionId);
+    // Skip folder structure creation
+    console.log(`Direct upload without folders for session #${sessionId} stage ${stage}`);
     
     // Add metadata to the data object
     const dataWithMetadata = {
@@ -744,13 +758,15 @@ class GoogleCloudStorageService {
       }
     };
     
-    // Generate file name
-    const fileName = customFileName || `${stage}_${Date.now()}.json`;
-    const folder = `repair_sessions/${sessionId}/${stage}`;
+    // Generate a descriptive file name that contains session ID and stage information
+    // Use timestamp in the filename to ensure uniqueness
+    const timestamp = Date.now();
+    const fileName = customFileName || `session_${sessionId}_${stage}_${timestamp}.json`;
     
-    // Save the data
+    // Save the data directly to bucket root (no folder)
+    console.log(`Saving repair journey data directly to bucket root: ${fileName}`);
     return this.saveJsonData(dataWithMetadata, {
-      folder,
+      folder: '', // No folder, directly in root
       customName: fileName,
       isPublic: false
     });

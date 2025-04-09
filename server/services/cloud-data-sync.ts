@@ -46,6 +46,10 @@ try {
  * 
  * UPDATED: Now stores all session data in a single consolidated file for simpler organization
  * and more effective AI training data collection.
+ * 
+ * IMPORTANT: This service has been completely reimplemented to ensure all files are
+ * stored DIRECTLY in the bucket root with NO folder structure, as required.
+ * The implementation is now delegated to a new simplified version.
  */
 export class CloudDataSyncService {
   // Track the sessions we've processed to avoid duplicate folder creation
@@ -311,13 +315,13 @@ export class CloudDataSyncService {
         }
       };
 
-      // Step 6: Skip folder creation, use a simplified direct file approach
-      // Generate a unique and descriptive filename
+      // Step 6: Use a direct bucket root approach with clear filename
+      // Generate a unique and descriptive filename with timestamp to ensure uniqueness 
       const timestamp = Date.now();
       const randomId = Math.floor(Math.random() * 10000); 
-      const journeyFilename = `repair_journey_${sessionId}_${timestamp}_${randomId}.json`;
+      const journeyFilename = `complete_session_${sessionId}_${timestamp}_${randomId}.json`;
       
-      // Step 7: Store data directly in repair_data folder (no nested folders)
+      // Step 7: Store data directly in bucket root (no folders at all)
       let metadataUrl: string;
       try {
         // Create a comprehensive data structure with all session data
@@ -339,7 +343,9 @@ export class CloudDataSyncService {
           journeyData: completeJourney
         };
         
-        // Upload directly to repair_data folder without creating nested folders
+        console.log(`Uploading complete session data directly to bucket root: ${journeyFilename}`);
+        
+        // Upload directly to bucket root (no folder structure)
         metadataUrl = await googleCloudStorage.uploadText(
           journeyFilename,
           JSON.stringify(journeyMetadata, null, 2)
@@ -530,7 +536,8 @@ export class CloudDataSyncService {
         const randomId = Math.floor(Math.random() * 10000);
         const fileName = `interaction_${interaction.repairRequestId}_${interaction.id}_${interaction.interactionType}_${timestamp}_${randomId}.json`;
         
-        // Store directly in repair_data folder for consistency
+        // Store directly in bucket root (no folder structure)
+        console.log(`Uploading interaction data directly to bucket root: ${fileName}`);
         const url = await googleCloudStorage.uploadText(
           fileName,
           JSON.stringify(interaction, null, 2)
@@ -612,7 +619,8 @@ export class CloudDataSyncService {
         const randomId = Math.floor(Math.random() * 10000);
         const filename = `diagnostic_tree_${tree.id}_${tree.productCategory}${tree.subCategory ? '_' + tree.subCategory : ''}_v${tree.version}_${timestamp}_${randomId}.json`;
         
-        // Store directly in repair_data folder like other files
+        // Store directly in bucket root (no folder structure)
+        console.log(`Uploading diagnostic tree directly to bucket root: ${filename}`);
         const url = await googleCloudStorage.uploadText(
           filename,
           JSON.stringify(tree, null, 2)
@@ -704,10 +712,12 @@ export class CloudDataSyncService {
         }
       }
       
-      // Save the complete training dataset directly in repair_data folder
+      // Save the complete training dataset directly in bucket root (no folder structure)
       const timestamp = Date.now();
       const randomId = Math.floor(Math.random() * 10000);
       const trainingDatasetFilename = `repair_training_dataset_${timestamp}_${randomId}.json`;
+      
+      console.log(`Uploading training dataset directly to bucket root: ${trainingDatasetFilename}`);
       
       const trainingDatasetUrl = await googleCloudStorage.uploadText(
         trainingDatasetFilename,

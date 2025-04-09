@@ -1,0 +1,13 @@
+{
+  "testId": "direct-upload-test-1744218286118",
+  "timestamp": 1744218286118,
+  "bucketName": "reusehub-repaire-data",
+  "filename": "direct_bucket_root_test_1744218286118.json",
+  "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/direct_bucket_root_test_1744218286118.json",
+  "testData": {
+    "timestamp": 1744218286016,
+    "test": true,
+    "message": "This is a direct upload test to bucket root (no folders)",
+    "testId": "test-1744218286016"
+  }
+}
