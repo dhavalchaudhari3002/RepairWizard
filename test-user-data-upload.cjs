@@ -1,18 +1,18 @@
 /**
- * Test script to verify repair-session folder uploads
+ * Test script to verify user-data folder uploads
  */
 const { Storage } = require('@google-cloud/storage');
 const fs = require('fs');
 
 // Configuration
-const TEST_SESSION_ID = 142;
+const TEST_USER_ID = 26;
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'reusehub-repaire-data';
-const FOLDER_NAME = 'repair-session';
+const FOLDER_NAME = 'user-data';
 
 // Main function
-async function testRepairSessionUpload() {
+async function testUserDataUpload() {
   try {
-    console.log(`=== Testing Repair Session Folder Upload ===`);
+    console.log(`=== Testing User Data Folder Upload ===`);
     
     // Initialize Google Cloud Storage
     console.log('Initializing Google Cloud Storage...');
@@ -23,22 +23,25 @@ async function testRepairSessionUpload() {
     
     const bucket = storage.bucket(BUCKET_NAME);
     
-    // Create dummy diagnostic data
-    const diagnosticData = {
-      sessionId: TEST_SESSION_ID,
-      deviceType: 'Smartphone',
-      deviceModel: 'Test Model X',
-      issueDescription: 'Testing repair session folder upload',
+    // Create dummy user data
+    const userData = {
+      userId: TEST_USER_ID,
+      dataType: 'user_preferences',
+      preferences: {
+        theme: 'light',
+        notifications: true,
+        language: 'en-US'
+      },
       createdAt: new Date().toISOString(),
       metadata: {
-        source: 'test-repair-session-upload.cjs',
+        source: 'test-user-data-upload.cjs',
         type: 'folder-test'
       }
     };
     
     // Generate filename with timestamp to avoid conflicts
     const timestamp = Date.now();
-    const filename = `test_session_${TEST_SESSION_ID}_diagnostic_${timestamp}.json`;
+    const filename = `test_user_${TEST_USER_ID}_preferences_${timestamp}.json`;
     const filePath = `${FOLDER_NAME}/${filename}`;
     
     console.log(`Uploading test file to: ${filePath}`);
@@ -47,11 +50,11 @@ async function testRepairSessionUpload() {
     const file = bucket.file(filePath);
     
     // Upload the file
-    await file.save(JSON.stringify(diagnosticData, null, 2), {
+    await file.save(JSON.stringify(userData, null, 2), {
       contentType: 'application/json',
       metadata: {
         source: 'test-script',
-        type: 'repair-session-test'
+        type: 'user-data-test'
       }
     });
     
@@ -64,8 +67,8 @@ async function testRepairSessionUpload() {
     
     // Save test results
     const results = {
-      testId: `repair-session-test-${timestamp}`,
-      sessionId: TEST_SESSION_ID,
+      testId: `user-data-test-${timestamp}`,
+      userId: TEST_USER_ID,
       bucket: BUCKET_NAME,
       folder: FOLDER_NAME,
       filename,
@@ -75,11 +78,11 @@ async function testRepairSessionUpload() {
       success: true
     };
     
-    const resultsFile = `repair-session-upload-test-results-${timestamp}.json`;
+    const resultsFile = `user-data-upload-test-results-${timestamp}.json`;
     fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
     console.log(`Test results saved to: ${resultsFile}`);
     
-    console.log('=== Repair Session Folder Upload Test Completed Successfully ===');
+    console.log('=== User Data Folder Upload Test Completed Successfully ===');
   } catch (error) {
     console.error('Test failed:', error);
     process.exit(1);
@@ -87,4 +90,4 @@ async function testRepairSessionUpload() {
 }
 
 // Run the test
-testRepairSessionUpload();
+testUserDataUpload();

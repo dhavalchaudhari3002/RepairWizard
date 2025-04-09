@@ -43,7 +43,7 @@ async function initializeGoogleCloudStorage() {
   }
 }
 
-// Upload file directly to Google Cloud Storage without database dependency
+// Upload file directly to Google Cloud Storage without database dependency (using repair-session folder)
 async function uploadDiagnosticData(storage, sessionId, diagnosticData) {
   try {
     // Generate a unique filename with timestamp
@@ -51,11 +51,15 @@ async function uploadDiagnosticData(storage, sessionId, diagnosticData) {
     const randomId = Math.floor(Math.random() * 10000);
     const filename = `test_diagnostic_${sessionId}_${timestamp}_${randomId}.json`;
     
-    console.log(`Uploading test diagnostic data with filename: ${filename}`);
+    // Use the repair-session folder
+    const folderName = 'repair-session';
+    const filePath = `${folderName}/${filename}`;
     
-    // Upload to root of bucket (no folders)
+    console.log(`Uploading test diagnostic data to: ${filePath}`);
+    
+    // Upload to the repair-session folder
     const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file(filename);
+    const file = bucket.file(filePath);
     
     // Save the JSON data
     await file.save(JSON.stringify(diagnosticData, null, 2), {
@@ -63,12 +67,13 @@ async function uploadDiagnosticData(storage, sessionId, diagnosticData) {
       metadata: {
         source: 'test-script',
         sessionId: String(sessionId),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        folder: folderName
       }
     });
     
     // Get the public URL
-    const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
+    const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filePath}`;
     console.log(`Diagnostic data uploaded successfully to: ${publicUrl}`);
     return publicUrl;
   } catch (error) {

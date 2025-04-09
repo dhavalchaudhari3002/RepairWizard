@@ -1,0 +1,11 @@
+{
+  "testId": "repair-session-test-1744240804338",
+  "sessionId": 142,
+  "bucket": "reusehub-repaire-data",
+  "folder": "repair-session",
+  "filename": "test_session_142_diagnostic_1744240804338.json",
+  "filePath": "repair-session/test_session_142_diagnostic_1744240804338.json",
+  "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/repair-session/test_session_142_diagnostic_1744240804338.json",
+  "timestamp": "2025-04-09T23:20:04.612Z",
+  "success": true
+}

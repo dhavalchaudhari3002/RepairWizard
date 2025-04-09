@@ -80,16 +80,32 @@ class GoogleCloudStorageService {
     }
     
     try {
-      // IMPORTANT: Direct upload to bucket root, no folders
+      // Get filename
       const filename = options.customName || `${randomUUID()}`;
       
-      // IMPORTANT: Warn if folder was provided but ignore it to prevent folder creation
-      if (options.folder) {
-        console.log(`WARNING: Folder option "${options.folder}" specified in uploadBuffer but ignoring it to avoid folder creation. Uploading directly to bucket root.`);
-      }
+      // Check if folder is one of the allowed folders
+      let filePath = filename;
+      const allowedFolders = ['repair-session', 'user-data'];
       
-      // Always use just the filename with no folder prefix
-      const filePath = filename;
+      if (options.folder) {
+        // Convert any folder format to consistent lowercase with no trailing slash
+        const normalizedFolder = options.folder.toLowerCase().replace(/\/$/, '').replace(/\s/g, '-');
+        
+        // Check if this is one of our allowed folders
+        if (allowedFolders.includes(normalizedFolder)) {
+          // Use the folder in the path
+          filePath = `${normalizedFolder}/${filename}`;
+          console.log(`Using allowed folder: "${normalizedFolder}" for file: ${filename}`);
+        } else {
+          // For any other folders, log a warning and ignore
+          console.log(`WARNING: Folder option "${options.folder}" is not in the list of allowed folders. Using folder: repair-session`);
+          filePath = `repair-session/${filename}`;
+        }
+      } else {
+        // Default to repair-session folder if no folder specified
+        filePath = `repair-session/${filename}`;
+        console.log(`No folder specified, defaulting to repair-session folder for file: ${filename}`);
+      }
       
       const file = this.storage.bucket(this.bucketName).file(filePath);
       
@@ -109,7 +125,7 @@ class GoogleCloudStorageService {
       
       // Get the public URL
       const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-      console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
+      console.log(`Generated public URL (Using folder structure): ${publicUrl}`);
       return publicUrl;
     } catch (error) {
       console.error('Error uploading buffer to GCS:', error);
@@ -352,26 +368,38 @@ class GoogleCloudStorageService {
    * @param contentType Optional content type (defaults to text/plain)
    * @returns The public URL of the uploaded file
    */
-  async uploadText(fileName: string, content: string, contentType = 'text/plain'): Promise<string> {
+  async uploadText(fileName: string, content: string, contentType = 'text/plain', folder = 'repair-session'): Promise<string> {
     if (!this.isConfigured()) {
       throw new Error('Google Cloud Storage is not configured');
     }
     
-    // Check if the path contains folder structure and warn about it
-    if (fileName.includes('/')) {
-      console.warn(`WARNING: Attempted to create folder structure in path: ${fileName}. Using filename directly: ${fileName.split('/').pop()}`);
-      fileName = fileName.split('/').pop() || fileName;
+    // Normalize folder name
+    const allowedFolders = ['repair-session', 'user-data'];
+    let normalizedFolder = folder.toLowerCase().replace(/\/$/, '').replace(/\s/g, '-');
+    
+    // Validate folder is allowed
+    if (!allowedFolders.includes(normalizedFolder)) {
+      console.warn(`WARNING: Folder "${folder}" is not in the list of allowed folders. Using repair-session instead.`);
+      normalizedFolder = 'repair-session';
     }
     
-    console.log(`Using final filename (NO FOLDERS): ${fileName}`);
+    // Extract filename if a path was provided
+    let cleanFileName = fileName;
+    if (fileName.includes('/')) {
+      cleanFileName = fileName.split('/').pop() || fileName;
+      console.log(`Extracted filename from path: ${cleanFileName} (original path: ${fileName})`);
+    }
+    
+    console.log(`Using final filename in folder "${normalizedFolder}": ${cleanFileName}`);
     
     // Convert text to buffer
     const buffer = Buffer.from(content, 'utf-8');
     
-    // Upload using the existing method
-    return this.uploadFile(buffer, {
-      customName: fileName,
-      contentType
+    // Upload using the buffer method
+    return this.uploadBuffer(buffer, {
+      customName: cleanFileName,
+      contentType: contentType,
+      folder: normalizedFolder
     });
   }
 
@@ -502,11 +530,15 @@ class GoogleCloudStorageService {
       customName += '.json';
     }
     
+    // Set default folder if not provided
+    const folder = options.folder || 'repair-session';
+    
     // Upload with modified options
-    return this.uploadFile(fileBuffer, {
+    return this.uploadBuffer(fileBuffer, {
       ...options,
       contentType,
-      customName
+      customName,
+      folder
     });
   }
 
@@ -547,8 +579,14 @@ class GoogleCloudStorageService {
       options.customName = `${generatedName}${extension}`;
     }
     
-    // Upload the file
-    return this.uploadFile(fileBuffer, options);
+    // Set default folder if not provided (user uploads usually go to user-data folder)
+    const folder = options.folder || 'user-data';
+    
+    // Upload the file to the appropriate folder
+    return this.uploadBuffer(fileBuffer, {
+      ...options,
+      folder
+    });
   }
   
   /**
@@ -621,75 +659,8 @@ class GoogleCloudStorageService {
     return folderPath;
   }
   
-  /**
-   * Upload a string directly to Google Cloud Storage
-   * @param filePath The full path of the file to create
-   * @param content The string content to upload
-   * @param contentType The content type of the file
-   * @returns The public URL of the uploaded file
-   */
-  async uploadText(filePath: string, content: string, contentType: string = 'application/json'): Promise<string> {
-    if (!this.isConfigured()) {
-      throw new Error('Google Cloud Storage is not configured');
-    }
-    
-    // IMPORTANT: Ensure we're not creating any folder structure
-    // Extract just the filename without any path segments
-    let filename = filePath;
-    
-    // Always check for folder paths in the filePath and extract just the filename
-    if (filePath.includes('/')) {
-      // Get just the filename part, stripping any folder structure
-      filename = filePath.split('/').pop() || filePath;
-      console.log(`WARNING: Attempted to create folder structure in path: ${filePath}. Using filename directly: ${filename}`);
-    }
-    
-    // Second check - ensure no test/ prefix gets added
-    if (filename.startsWith('test/')) {
-      filename = filename.substring(5); // Remove 'test/' prefix
-      console.log(`WARNING: Found test/ prefix in: ${filename}. Removing prefix.`);
-    }
-    
-    console.log(`Using final filename (NO FOLDERS): ${filename}`);
-    
-    const bucket = this.storage.bucket(this.bucketName);
-    const file = bucket.file(filename); // Use filename directly, not path
-    const fileBuffer = Buffer.from(content, 'utf-8');
-    
-    try {
-      console.log(`Uploading directly to bucket root: ${filename}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
-      
-      // Create a write stream for the file
-      const writeStream = file.createWriteStream({
-        metadata: {
-          contentType: contentType,
-        },
-        resumable: false // For small files, non-resumable is faster
-      });
-      
-      // Return a promise that resolves when the upload is complete
-      return new Promise((resolve, reject) => {
-        writeStream.on('error', (error) => {
-          console.error(`Error uploading to GCS: ${error}`);
-          reject(error);
-        });
-        
-        writeStream.on('finish', () => {
-          console.log(`File saved successfully to bucket root: ${filename}`);
-          // Return the public URL (directly in bucket root, no folders)
-          const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filename}`;
-          console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
-          resolve(publicUrl);
-        });
-        
-        // Write the content to the stream and end it
-        writeStream.end(fileBuffer);
-      });
-    } catch (error) {
-      console.error(`Error uploading file to Google Cloud Storage: ${filename}`, error);
-      throw error;
-    }
-  }
+  // The uploadText method has been moved and improved above (line 371)
+  // It now supports the new folder structure
   
   /**
    * Creates the necessary folder structure for a repair journey
@@ -806,8 +777,7 @@ class GoogleCloudStorageService {
       throw new Error(`Invalid stage: ${stage}. Must be one of: ${validStages.join(', ')}`);
     }
     
-    // Skip folder structure creation
-    console.log(`Direct upload without folders for session #${sessionId} stage ${stage}`);
+    console.log(`Saving repair journey data for session #${sessionId} stage ${stage} to 'repair-session' folder`);
     
     // Add metadata to the data object
     const dataWithMetadata = {
@@ -824,11 +794,15 @@ class GoogleCloudStorageService {
     const timestamp = Date.now();
     const fileName = customFileName || `session_${sessionId}_${stage}_${timestamp}.json`;
     
-    // Save the data directly to bucket root (no folder)
-    console.log(`Saving repair journey data directly to bucket root: ${fileName}`);
-    return this.saveJsonData(dataWithMetadata, {
-      folder: '', // No folder, directly in root
+    // Convert data to JSON string and then to buffer
+    const jsonString = JSON.stringify(dataWithMetadata, null, 2);
+    const fileBuffer = Buffer.from(jsonString, 'utf-8');
+    
+    // Save to repair-session folder
+    return this.uploadBuffer(fileBuffer, {
+      folder: 'repair-session',
       customName: fileName,
+      contentType: 'application/json',
       isPublic: false
     });
   }

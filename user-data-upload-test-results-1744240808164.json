@@ -1,0 +1,11 @@
+{
+  "testId": "user-data-test-1744240808164",
+  "userId": 26,
+  "bucket": "reusehub-repaire-data",
+  "folder": "user-data",
+  "filename": "test_user_26_preferences_1744240808164.json",
+  "filePath": "user-data/test_user_26_preferences_1744240808164.json",
+  "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/user-data/test_user_26_preferences_1744240808164.json",
+  "timestamp": "2025-04-09T23:20:08.443Z",
+  "success": true
+}
