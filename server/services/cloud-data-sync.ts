@@ -154,77 +154,104 @@ export class CloudDataSyncService {
       // No nested folders needed - using the filename directly
       const filePath = filename;
       
-      // Upload the consolidated data file
+      // IMPROVED APPROACH: Upload file first, then attempt database updates
+      // This ensures data is stored in GCS even if database operations fail
+      let uploadedUrl = '';
+      
       try {
-        const url = await googleCloudStorage.uploadText(
+        // First: Upload the consolidated data file to Google Cloud Storage
+        uploadedUrl = await googleCloudStorage.uploadText(
           filePath,
           JSON.stringify(consolidatedData, null, 2)
         );
         
-        console.log(`Successfully stored consolidated data for session #${sessionId}: ${url}`);
+        console.log(`Successfully stored consolidated data for session #${sessionId} at: ${uploadedUrl}`);
         
-        // Update the database to record this file
-        try {
-          const result = await db.insert(storageFiles).values({
-            userId: repairSession.userId || 1,
-            fileName: filename,
-            originalName: filename,
-            fileUrl: url,
-            contentType: 'application/json',
-            folder: '',
-            fileSize: JSON.stringify(consolidatedData).length,
-            metadata: {
-              sessionId,
-              type: 'consolidated_data',
-              timestamp: new Date().toISOString()
-            }
-          }).returning({ id: storageFiles.id });
-          
-          if (result && result.length > 0) {
-            // Link the file to the repair session
-            await db.execute(
-              sql`INSERT INTO repair_session_files (repair_session_id, storage_file_id, file_purpose, step_name) 
-                  VALUES (${sessionId}, ${result[0].id}, 'consolidated_data', 'all')`
-            );
-            console.log(`Recorded consolidated data file in database for session #${sessionId}`);
-          }
-        } catch (dbError) {
-          console.error(`Failed to record consolidated file in database: ${dbError}`);
-          console.log(`This is not critical - we can still find the file in Google Cloud Storage`);
-        }
-        
-        return url;
+        // The file is now safely stored in the cloud regardless of any database errors
       } catch (uploadError) {
         console.error(`Error uploading consolidated data to GCS: ${uploadError}`);
-        // Use local fallback
-        const localUrl = this.saveLocalFallback(consolidatedData, sessionId, 'consolidated');
-        console.log(`Saved consolidated data to local filesystem: ${localUrl}`);
-        return localUrl;
-      }
-    } catch (error) {
-      // Check if it's a database error related to metadata_url column
-      const errorStr = String(error);
-      // Handle the DB schema error (consolidatedData is captured from the outer scope)
-      if (errorStr.includes('metadata_url') || errorStr.includes('metadataUrl')) {
-        console.warn(`The database schema may need to be updated to add the metadataUrl column. 
-          This is non-critical - files will still be stored in Google Cloud Storage.
-          Error details: ${errorStr}`);
-        
-        // Need to create a simple response to avoid the error
-        try {
-          console.log(`Generating an alternative URL for session #${sessionId}`);
-          // Return a simple path without trying to access consolidatedData
-          return `session_data_${sessionId}_${Date.now()}.json`;
-        } catch (fallbackError) {
-          console.error(`Error creating fallback URL: ${fallbackError}`);
-          return `error_${sessionId}_${Date.now()}.json`;
-        }
+        // Use local fallback if the upload itself fails
+        uploadedUrl = this.saveLocalFallback(consolidatedData, sessionId, 'consolidated');
+        console.log(`Saved consolidated data to local filesystem: ${uploadedUrl}`);
+        return uploadedUrl; // Exit early with the local URL if upload fails
       }
       
-      // For other errors
-      console.error(`Error creating consolidated data for session #${sessionId}: ${error}`);
+      // Now that we have the file safely stored in GCS, attempt database operations
+      try {
+        // STEP 1: Record this file in the storage_files table
+        const result = await db.insert(storageFiles).values({
+          userId: repairSession.userId || 1,
+          fileName: filename,
+          originalName: filename,
+          fileUrl: uploadedUrl,
+          contentType: 'application/json',
+          folder: '',
+          fileSize: JSON.stringify(consolidatedData).length,
+          metadata: {
+            sessionId,
+            type: 'consolidated_data',
+            timestamp: new Date().toISOString()
+          }
+        }).returning({ id: storageFiles.id });
+        
+        // STEP 2: Link the file to the repair session if Step 1 succeeded
+        if (result && result.length > 0) {
+          await db.execute(
+            sql`INSERT INTO repair_session_files (repair_session_id, storage_file_id, file_purpose, step_name) 
+                VALUES (${sessionId}, ${result[0].id}, 'consolidated_data', 'all')`
+          );
+          console.log(`Recorded consolidated data file in database for session #${sessionId}`);
+        }
+        
+        // STEP 3: Try to update the repair_sessions table with the metadata URL 
+        // Wrapped in its own try/catch to handle schema differences
+        try {
+          await db
+            .update(repairSessions)
+            .set({ metadataUrl: uploadedUrl })
+            .where(eq(repairSessions.id, sessionId));
+          console.log(`Updated repair session #${sessionId} with metadata URL`);
+        } catch (schemaError) {
+          // This is expected in some environments where the column hasn't been added yet
+          console.warn(`Note: Could not update metadataUrl column - schema migration may be needed: ${schemaError}`);
+        }
+      } catch (dbError) {
+        // If any database operation fails, log the error but don't fail the function
+        console.error(`Failed to record consolidated file in database: ${dbError}`);
+        console.log(`Not critical - file is already stored at: ${uploadedUrl}`);
+      }
+      
+      // Always return the URL where the data is stored
+      return uploadedUrl;
+    } catch (error) {
+      // Improved error handling for any unexpected errors in the main function
+      
+      // Check if it's a database error related to metadata_url column
+      const errorStr = String(error);
+      
+      if (errorStr.includes('metadata_url') || errorStr.includes('metadataUrl')) {
+        // For metadataUrl errors, we now avoid them with our improved implementation above
+        // But if something else in the process still causes this error, provide clarity
+        console.warn(`Database schema issue detected but shouldn't block file upload: ${errorStr}`);
+        console.warn(`This should be handled by our improved implementation - please report if you still see this error`);
+        
+        // Generate a "fake" URL as a last resort (not usually needed with improved implementation)
+        console.log(`Generating a fallback URL for session #${sessionId} - data may not have been properly uploaded`);
+        return `error_session_data_${sessionId}_${Date.now()}.json`;
+      }
+      
+      // Log all other errors in detail
+      console.error(`Error creating consolidated data for session #${sessionId}:`, error);
+      
+      // Attempt local fallback for catastrophic errors
       return this.saveLocalFallback(
-        { error: String(error), sessionId, timestamp: new Date() },
+        { 
+          error: String(error), 
+          errorDetails: error, 
+          sessionId, 
+          timestamp: new Date(),
+          note: "Unexpected error in storeConsolidatedSessionData - check server logs"
+        },
         sessionId,
         'error_consolidated'
       );

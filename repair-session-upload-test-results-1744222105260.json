@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "timestamp": 1744222105260,
+  "testId": 8819,
+  "filename": "test_session_123_1744222105260.json",
+  "metadata": {
+    "kind": "storage#object",
+    "id": "reusehub-repaire-data/test_session_123_1744222105260.json/1744222105472366",
+    "selfLink": "https://www.googleapis.com/storage/v1/b/reusehub-repaire-data/o/test_session_123_1744222105260.json",
+    "mediaLink": "https://storage.googleapis.com/download/storage/v1/b/reusehub-repaire-data/o/test_session_123_1744222105260.json?generation=1744222105472366&alt=media",
+    "name": "test_session_123_1744222105260.json",
+    "bucket": "reusehub-repaire-data",
+    "generation": "1744222105472366",
+    "metageneration": "1",
+    "contentType": "application/json",
+    "storageClass": "STANDARD",
+    "size": "1590",
+    "md5Hash": "k9dTbHMUUamr5LoSE/Z7kw==",
+    "crc32c": "dCzoHA==",
+    "etag": "CO6ahtjFy4wDEAE=",
+    "timeCreated": "2025-04-09T18:08:25.496Z",
+    "updated": "2025-04-09T18:08:25.496Z",
+    "timeStorageClassUpdated": "2025-04-09T18:08:25.496Z",
+    "timeFinalized": "2025-04-09T18:08:25.496Z"
+  },
+  "contentSample": "{\n  \"sessionId\": 123,\n  \"timestamp\": \"2025-04-09T18:08:25.260Z\",\n  \"initialSubmission\": {\n    \"deviceType\": \"smartphone\",\n    \"deviceBrand\": \"Apple\",\n    \"deviceModel\": \"iPhone 13\",\n    \"issueDescript"
+}
