@@ -36,7 +36,7 @@ import {
 } from "./ml-services/repair-cost-model";
 import { createBasicDiagnosticTree, treeToDbFormat } from "./utils/diagnostic-tree";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { googleCloudStorage } from "./services/google-cloud-storage";
 import { cloudDataSync } from "./services/cloud-data-sync";
 
@@ -601,37 +601,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Save diagnostic data to Google Cloud Storage
         if (repairRequestId) {
           try {
-            // No need to import - using global import at top of file
+            console.log(`Storing diagnostic data for request #${repairRequestId} directly in Google Cloud Storage`);
             
-            // First, verify if the session exists in the database
-            const existingSession = await db.select({ id: repairSessions.id })
-              .from(repairSessions)
-              .where(eq(repairSessions.id, repairRequestId))
-              .limit(1);
-              
-            // If no session exists, create a minimal one to ensure proper data linkage
-            if (!existingSession || existingSession.length === 0) {
-              console.log(`Creating minimal repair session #${repairRequestId} for diagnostic data`);
-              try {
-                // Create minimal session record with basic info
-                await db.insert(repairSessions).values({
-                  id: repairRequestId, // Use the same ID
-                  userId: 1, // Default user ID
-                  deviceType: productType || 'Unknown',
-                  deviceBrand: 'Auto-created',
-                  issueDescription: issueDescription || 'Auto-created from diagnostic data',
-                  status: 'diagnosed',
-                  createdAt: new Date(),
-                  updatedAt: new Date()
-                });
-                console.log(`Successfully created minimal repair session #${repairRequestId}`);
-              } catch (createError) {
-                // Log but continue - our cloud data sync service has fallback handling
-                console.warn(`Failed to create minimal repair session #${repairRequestId}: ${createError}`);
-              }
-            }
-            
-            // Store diagnostic data in cloud storage
+            // Create complete diagnostic data package
             const diagnosticData = {
               repairRequestId,
               productType,
@@ -640,11 +612,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: new Date().toISOString()
             };
             
-            // Store using the cloud sync service
-            await cloudDataSync.storeDiagnosticData(repairRequestId, diagnosticData);
-            console.log(`Successfully stored diagnostic data to Google Cloud Storage for request #${repairRequestId}`);
-          } catch (syncError) {
-            console.error(`Warning: Failed to sync diagnostic data to Google Cloud Storage: ${syncError}`);
+            // Generate a unique filename with timestamp
+            const timestamp = Date.now();
+            const randomId = Math.floor(Math.random() * 10000);
+            const filename = `diagnostic_${repairRequestId}_${timestamp}_${randomId}.json`;
+            
+            // Save directly to Google Cloud Storage root without any folder structure
+            const dataUrl = await googleCloudStorage.uploadText(
+              filename,  // No folder path, just the filename
+              JSON.stringify(diagnosticData, null, 2)
+            );
+            
+            console.log(`Successfully stored diagnostic data to Google Cloud Storage at: ${dataUrl}`);
+            
+            // Optionally try to create/update a database record but don't fail if it doesn't work
+            try {
+              // Check if session exists in the database
+              const existingSession = await db.select({ id: repairSessions.id })
+                .from(repairSessions)
+                .where(eq(repairSessions.id, repairRequestId))
+                .limit(1);
+              
+              if (existingSession && existingSession.length > 0) {
+                // If session exists, record the file in storage_files
+                const result = await db.insert(storageFiles).values({
+                  userId: 1, // Default user ID since this isn't an authenticated request
+                  fileName: filename,
+                  originalName: filename,
+                  fileUrl: dataUrl,
+                  contentType: 'application/json',
+                  folder: '',
+                  fileSize: JSON.stringify(diagnosticData).length,
+                  metadata: {
+                    repairRequestId,
+                    type: 'diagnostic_data',
+                    timestamp: new Date().toISOString()
+                  }
+                }).returning({ id: storageFiles.id });
+                
+                // Link file to repair session
+                if (result && result.length > 0) {
+                  await db.execute(
+                    sql`INSERT INTO repair_session_files (repair_session_id, storage_file_id, file_purpose, step_name) 
+                        VALUES (${repairRequestId}, ${result[0].id}, 'diagnostic_data', 'diagnosis')`
+                  );
+                }
+              }
+            } catch (dbError) {
+              // Non-critical - the file is already stored in cloud storage
+              console.warn(`Could not record diagnostic file in database, but file is stored in cloud: ${dbError}`);
+            }
+          } catch (storageError) {
+            console.error(`Warning: Failed to store diagnostic data in Google Cloud Storage: ${storageError}`);
             // Continue anyway as this is not critical for the user response
           }
         }
@@ -1020,34 +1039,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid session ID" });
       }
 
-      // Verify repair session exists and belongs to user
-      const session = await db.select().from(repairSessions)
-        .where(and(
-          eq(repairSessions.id, sessionId),
-          eq(repairSessions.userId, req.user.id)
-        )).limit(1);
-
-      if (!session || session.length === 0) {
-        return res.status(404).json({ error: "Repair session not found" });
-      }
-
       // Extract diagnosis data
       const { diagnosticResults } = req.body;
       
       if (!diagnosticResults) {
         return res.status(400).json({ error: "Missing diagnostic results" });
       }
-
-      // Update repair session in database
-      await db.update(repairSessions)
-        .set({
-          diagnosticResults,
-          status: 'diagnosed',
-          updatedAt: new Date()
-        })
-        .where(eq(repairSessions.id, sessionId));
-
-      // Save diagnosis data to Google Cloud Storage
+      
+      // Create the diagnosis data to be stored
       const diagnosisData = {
         sessionId,
         userId: req.user.id,
@@ -1055,13 +1054,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Save to Google Cloud Storage using cloud data sync for proper folder organization
-      const dataUrl = await cloudDataSync.storeDiagnosticData(sessionId, diagnosisData);
+      // Two-track approach: Check if session exists in database
+      let sessionExists = false;
+      try {
+        const session = await db.select().from(repairSessions)
+          .where(and(
+            eq(repairSessions.id, sessionId),
+            eq(repairSessions.userId, req.user.id)
+          )).limit(1);
+          
+        sessionExists = session && session.length > 0;
+        
+        // If session exists in database, update it
+        if (sessionExists) {
+          console.log(`Updating existing repair session #${sessionId} with diagnostic results`);
+          await db.update(repairSessions)
+            .set({
+              diagnosticResults,
+              status: 'diagnosed',
+              updatedAt: new Date()
+            })
+            .where(eq(repairSessions.id, sessionId));
+        } else {
+          console.log(`Session #${sessionId} not found in database, continuing with cloud storage only`);
+        }
+      } catch (dbError) {
+        // Non-critical error - just log it and continue with cloud storage
+        console.warn(`Database error when checking session #${sessionId}, continuing with cloud storage:`, dbError);
+      }
 
+      // DIRECT APPROACH: Always save to Google Cloud Storage, even if database operations fail
+      console.log(`Storing diagnostic data for session #${sessionId} directly in Google Cloud Storage`);
+      
+      // Generate a unique filename with timestamp
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000);
+      const filename = `diagnosis_${sessionId}_${timestamp}_${randomId}.json`;
+      
+      // Save directly to Google Cloud Storage root without any folder structure
+      const dataUrl = await googleCloudStorage.uploadText(
+        filename,  // No folder path, just the filename
+        JSON.stringify(diagnosisData, null, 2)
+      );
+      
+      // Log success
+      console.log(`Successfully stored diagnostic data for session #${sessionId} at: ${dataUrl}`);
+
+      // Optionally try to track the file in database but don't fail if it doesn't work
+      try {
+        if (sessionExists) {
+          // Record this file in the storage_files table
+          const result = await db.insert(storageFiles).values({
+            userId: req.user.id,
+            fileName: filename,
+            originalName: filename,
+            fileUrl: dataUrl,
+            contentType: 'application/json',
+            folder: '',
+            fileSize: JSON.stringify(diagnosisData).length,
+            metadata: {
+              sessionId,
+              type: 'diagnostic_data',
+              timestamp: new Date().toISOString()
+            }
+          }).returning({ id: storageFiles.id });
+          
+          // Link the file to the repair session
+          if (result && result.length > 0) {
+            await db.execute(
+              sql`INSERT INTO repair_session_files (repair_session_id, storage_file_id, file_purpose, step_name) 
+                  VALUES (${sessionId}, ${result[0].id}, 'diagnostic_data', 'diagnosis')`
+            );
+          }
+        }
+      } catch (dbRecordError) {
+        // Non-critical - the file is already stored in cloud storage
+        console.warn(`Could not record file in database, but file is stored in cloud: ${dbRecordError}`);
+      }
+
+      // Return success - the data is safely stored in Google Cloud Storage
       res.json({
         success: true,
         sessionId,
-        message: "Diagnosis saved successfully",
+        message: sessionExists 
+          ? "Diagnosis saved successfully to database and cloud storage" 
+          : "Diagnosis saved successfully to cloud storage only",
         dataUrl
       });
     } catch (error) {
