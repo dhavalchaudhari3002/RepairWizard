@@ -56,8 +56,58 @@ export class CloudDataSyncService {
   private processedSessions = new Set<number>();
   
   // Track uploads within a time window to prevent duplicates
-  private recentUploads = new Map<string, { timestamp: number, url: string }>();
+  private recentUploads = new Map<string, { timestamp: number, url: string, contentHash?: string }>();
   private DEDUPE_WINDOW_MS = 10000; // 10 second window for deduplication
+  
+  /**
+   * Centralized file upload method with deduplication
+   * This method provides content-based deduplication within a time window
+   * @param buffer The file buffer to upload
+   * @param folder The folder to upload to
+   * @param filename The filename to use
+   * @param contentType The content type of the file
+   * @returns The URL of the uploaded file
+   */
+  async uploadBuffer(
+    buffer: Buffer,
+    folder: string,
+    filename: string,
+    contentType: string = 'application/octet-stream'
+  ): Promise<string> {
+    // Generate a cache key for this folder/filename
+    const cacheKey = `${folder}/${filename}`;
+    const now = Date.now();
+    const contentHash = require('crypto').createHash('md5').update(buffer).digest('hex');
+    
+    // Check if we've recently uploaded this exact file (same path and content)
+    const existing = this.recentUploads.get(cacheKey);
+    if (existing && now - existing.timestamp < this.DEDUPE_WINDOW_MS) {
+      if (existing.contentHash === contentHash) {
+        console.log(`DEDUPLICATION: Using existing upload for ${cacheKey} (${existing.url})`);
+        return existing.url;
+      }
+    }
+    
+    // Content is different or outside window, proceed with upload
+    console.log(`Uploading file to ${folder}: ${filename} (content hash: ${contentHash.substring(0, 8)}...)`);
+    
+    // Upload the file
+    const url = await googleCloudStorage.uploadBuffer(buffer, {
+      contentType,
+      customName: filename,
+      folder,
+      isPublic: true
+    });
+    
+    // Store in recent uploads with content hash
+    this.recentUploads.set(cacheKey, { 
+      timestamp: now, 
+      url,
+      contentHash 
+    });
+    
+    return url;
+  }
   
   /**
    * Store all data for a repair session in a single consolidated file

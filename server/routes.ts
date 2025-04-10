@@ -1596,13 +1596,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const actualFolder = 'user-data';
       const actualFileName = `user_${req.user.id}_${Date.now()}_${originalname}`;
 
-      // Upload to Google Cloud Storage with proper folder
-      const url = await googleCloudStorage.uploadBuffer(fileBuffer, {
-        contentType: mimetype,
-        customName: actualFileName,
-        folder: actualFolder,
-        isPublic: true
-      });
+      // Use cloud data sync service to avoid duplication
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Upload to Google Cloud Storage using deduplication service
+      const url = await cloudDataSync.uploadBuffer(
+        fileBuffer, 
+        actualFolder, 
+        actualFileName, 
+        mimetype
+      );
 
       // Save file info to database
       try {
@@ -1805,11 +1808,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage: "initial"
       };
       
-      const storageUrl = await googleCloudStorage.saveJsonData(jsonData, {
-        folder: `repair_sessions/${session.id}`,
-        customName: "initial_data.json",
-        isPublic: false
-      });
+      // Import cloudDataSync for deduplication
+      const { cloudDataSync } = require('./services/cloud-data-sync');
+      
+      // Store initial data using the cloudDataSync service (which has deduplication)
+      const folder = `repair-sessions/${session.id}/initial`;
+      const filename = `initial_data_${session.id}_${Date.now()}.json`;
+      
+      // Use the centralized upload method with deduplication
+      const storageUrl = await cloudDataSync.uploadBuffer(
+        Buffer.from(JSON.stringify(jsonData, null, 2)),
+        folder,
+        filename,
+        'application/json'
+      );
       
       // Update the session with the storage URL for metadata
       await storage.updateRepairSession(session.id, {
