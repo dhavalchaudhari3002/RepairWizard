@@ -1588,11 +1588,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid file data" });
       }
 
-      const actualFolder = folder || `user_${req.user.id}`;
-      const actualFileName = fileName || `file_${Date.now()}`;
+      // Always use 'user-data' folder for user uploads
+      const actualFolder = 'user-data';
+      const actualFileName = fileName || `user_${req.user.id}_file_${Date.now()}`;
 
-      // Upload to Google Cloud Storage
-      const url = await googleCloudStorage.uploadFile(fileBuffer, {
+      // Upload to Google Cloud Storage with proper folder
+      const url = await googleCloudStorage.uploadBuffer(fileBuffer, {
         contentType,
         customName: actualFileName,
         folder: actualFolder,

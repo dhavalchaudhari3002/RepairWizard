@@ -301,55 +301,9 @@ class GoogleCloudStorageService {
       throw new Error('Google Cloud Storage is not configured');
     }
 
-    const bucket = this.storage.bucket(this.bucketName);
-    
-    // Generate file path - ALWAYS USE DIRECT BUCKET ROOT, NO FOLDERS
-    const fileName = options.customName || this.generateFileName();
-    
-    // IMPORTANT: Warn if folder was provided but ignore it to prevent folder creation
-    if (options.folder) {
-      console.log(`WARNING: Folder option "${options.folder}" specified but ignoring it to avoid folder creation. Uploading directly to bucket root.`);
-    }
-    
-    // Always use just the filename with no folder prefix
-    const filePath = fileName;
-    
-    const file = bucket.file(filePath);
-    
-    // Set file metadata
-    const metadata: Record<string, string> = {};
-    if (options.contentType) {
-      metadata.contentType = options.contentType;
-    }
-    
-    // Upload the file
-    try {
-      console.log(`Uploading file directly to bucket root: ${filePath}, bucket: ${this.bucketName}, size: ${fileBuffer.length} bytes`);
-      try {
-        await file.save(fileBuffer, {
-          metadata: {
-            contentType: options.contentType,
-          },
-          // Note: We're not attempting to set per-object ACLs since the bucket uses uniform access control
-          // The bucket's permissions will apply to all objects
-        });
-        console.log(`File saved successfully to bucket root: ${filePath}`);
-        
-        // With uniform bucket-level access enabled, we don't need to call makePublic()
-        // as it would cause an error. The bucket's IAM permissions apply to all objects.
-        
-        // Return the public URL (directly in bucket root, no folders)
-        const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
-        console.log(`Generated public URL (NO FOLDERS): ${publicUrl}`);
-        return publicUrl;
-      } catch (uploadError) {
-        console.error('Detailed upload error:', uploadError);
-        throw uploadError;
-      }
-    } catch (error) {
-      console.error('Error uploading file to Google Cloud Storage:', error);
-      throw error;
-    }
+    // For backward compatibility and to ensure we're using the same folder logic,
+    // delegate this to uploadBuffer which has the updated folder handling logic
+    return this.uploadBuffer(fileBuffer, options);
   }
 
   /**
