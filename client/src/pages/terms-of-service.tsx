@@ -14,12 +14,12 @@ export default function TermsOfService() {
               We are ReuseHub ("Company," "we," "us," "our"), a company registered in Canada.
             </p>
             <p className="mb-4">
-              We operate the website https://www.reusehub.org/ (the "Site"), as well as any other related
-              products and services that refer or link to these legal terms (the "Legal Terms")
+              We operate the website <a href="https://www.reusehub.org/" target="_blank" className="text-primary hover:underline">https://www.reusehub.org/</a> (the "Site"), 
+              as well as any other related products and services that refer or link to these legal terms (the "Legal Terms")
               (collectively, the "Services").
             </p>
             <p className="mb-4">
-              You can contact us by email at reusehubteam@gmail.com.
+              You can contact us by email at <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
             </p>
             <p className="mb-4">
               These Legal Terms constitute a legally binding agreement made between you, whether
@@ -76,7 +76,7 @@ export default function TermsOfService() {
             </p>
             <p className="mb-4">
               If you wish to make any use of the Services, Content, or Marks other than as set out in this
-              section or elsewhere in our Legal Terms, please address your request to: reusehubteam@gmail.com.
+              section or elsewhere in our Legal Terms, please address your request to: <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
               If we ever grant you the permission to post, reproduce, or publicly display any part of our
               Services or Content, you must identify us as the owners or licensors of the Services, Content,
               or Marks and ensure that any copyright or proprietary notice appears or is visible on posting,
@@ -98,16 +98,16 @@ export default function TermsOfService() {
             </p>
             <p className="mb-4">
               By using the Services, you represent and warrant that:
-              (1) all registration information you submit will be true, accurate, current, and complete;
-              (2) you will maintain the accuracy of such information and promptly update such registration
-              information as necessary;
-              (3) you have the legal capacity and you agree to comply with these Legal Terms;
-              (4) you are not a minor in the jurisdiction in which you reside;
-              (5) you will not access the Services through automated or non-human means, whether through a bot,
-              script or otherwise;
-              (6) you will not use the Services for any illegal or unauthorized purpose; and
-              (7) your use of the Services will not violate any applicable law or regulation.
             </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>All registration information you submit will be true, accurate, current, and complete;</li>
+              <li>You will maintain the accuracy of such information and promptly update such registration information as necessary;</li>
+              <li>You have the legal capacity and you agree to comply with these Legal Terms;</li>
+              <li>You are not a minor in the jurisdiction in which you reside;</li>
+              <li>You will not access the Services through automated or non-human means, whether through a bot, script or otherwise;</li>
+              <li>You will not use the Services for any illegal or unauthorized purpose;</li>
+              <li>Your use of the Services will not violate any applicable law or regulation.</li>
+            </ul>
             <p className="mb-4">
               If you provide any information that is untrue, inaccurate, not current, or incomplete, we have
               the right to suspend or terminate your account and refuse any and all current or future use of
@@ -116,7 +116,7 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">4. USER REGISTRATION</h2>
+            <h2 className="text-2xl font-semibold mb-4">3. USER REGISTRATION</h2>
             <p className="mb-4">
               You may be required to register to use the Services. You agree to keep your password
               confidential and will be responsible for all use of your account and password. We reserve
@@ -126,14 +126,14 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">5. SUBSCRIPTIONS</h2>
+            <h2 className="text-2xl font-semibold mb-4">4. SUBSCRIPTIONS</h2>
             
             <h3 className="text-xl font-semibold mt-6 mb-3">Billing and Renewal</h3>
             <p className="mb-4">
               Your subscription will continue and automatically renew unless canceled. You consent to our
               charging your payment method on a recurring basis without requiring your prior approval for
               each recurring charge, until such time as you cancel the applicable order. The length of your
-              billing cycle is right now i have not implement subscription but soon i will implement.
+              billing cycle will be implemented in the future.
             </p>
             
             <h3 className="text-xl font-semibold mt-6 mb-3">Free Trial</h3>
@@ -147,7 +147,7 @@ export default function TermsOfService() {
             <p className="mb-4">
               You can cancel your subscription at any time by logging into your account. Your cancellation
               will take effect at the end of the current paid term. If you have any questions or are
-              unsatisfied with our Services, please email us at reusehubteam@gmail.com.
+              unsatisfied with our Services, please email us at <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
             </p>
             
             <h3 className="text-xl font-semibold mt-6 mb-3">Fee Changes</h3>
@@ -158,7 +158,7 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. PROHIBITED ACTIVITIES</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. PROHIBITED ACTIVITIES</h2>
             <p className="mb-4">
               You may not access or use the Services for any purpose other than that for which we make
               the Services available. The Services may not be used in connection with any commercial
@@ -173,6 +173,14 @@ export default function TermsOfService() {
               <li>Circumvent, disable, or otherwise interfere with security-related features of the Services, including features that prevent or restrict the use or copying of any Content or enforce limitations on the use of the Services and/or the Content contained therein.</li>
               <li>Disparage, tarnish, or otherwise harm, in our opinion, us and/or the Services.</li>
               <li>Use the Services in a manner inconsistent with any applicable laws or regulations.</li>
+              <li>Engage in unauthorized framing of or linking to the Services.</li>
+              <li>Upload or transmit (or attempt to upload or to transmit) viruses, Trojan horses, or other material, including excessive use of capital letters and spamming that interferes with any party's uninterrupted use and enjoyment of the Services or modifies, impairs, disrupts, alters, or interferes with the use, features, functions, operation, or maintenance of the Services.</li>
+              <li>Delete the copyright or other proprietary rights notice from any Content.</li>
+              <li>Attempt to impersonate another user or person or use the username of another user.</li>
+              <li>Upload or transmit (or attempt to upload or to transmit) any material that acts as a passive or active information collection or transmission mechanism, including without limitation, clear graphics interchange formats ("gifs"), 1×1 pixels, web bugs, cookies, or other similar devices (sometimes referred to as "spyware" or "passive collection mechanisms" or "pcms").</li>
+              <li>Interfere with, disrupt, or create an undue burden on the Services or the networks or services connected to the Services.</li>
+              <li>Harass, annoy, intimidate, or threaten any of our employees or agents engaged in providing any portion of the Services to you.</li>
+              <li>Attempt to bypass any measures of the Services designed to prevent or restrict access to the Services, or any portion of the Services.</li>
             </ul>
           </section>
 

@@ -475,8 +475,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        I accept the <a href="/terms-of-service" target="_blank" className="text-primary hover:underline">Terms of Service</a> and{" "}
-                        <a href="/privacy-policy" target="_blank" className="text-primary hover:underline">Privacy Policy</a>
+                        I accept the <a href="/terms-of-service" target="_blank" className="text-primary hover:underline">Terms of Service</a>
                       </FormLabel>
                       <FormMessage />
                     </div>
