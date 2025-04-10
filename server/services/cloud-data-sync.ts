@@ -15,7 +15,7 @@ import {
   type StorageFile
 } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
