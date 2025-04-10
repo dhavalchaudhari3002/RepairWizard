@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { googleCloudStorage } from './google-cloud-storage';
+import { cloudDataSync } from './cloud-data-sync';
 
 /**
  * Service responsible for managing user data in cloud storage
@@ -37,15 +37,12 @@ class UserDataSyncService {
       // Create a unique filename for the user data
       const filename = `user-${userData.id}-${randomUUID()}.json`;
       
-      // Upload to Google Cloud Storage, explicitly using the user-data folder
-      const uploadedUrl = await googleCloudStorage.uploadBuffer(
+      // Upload using deduplication service
+      const uploadedUrl = await cloudDataSync.uploadBuffer(
         Buffer.from(userDataJson),
-        {
-          customName: filename,
-          contentType: 'application/json',
-          folder: 'user-data', // Explicitly using user-data folder
-          isPublic: false
-        }
+        'user-data', // Folder name
+        filename,
+        'application/json'
       );
       
       console.log(`User registration data stored at: ${uploadedUrl}`);
@@ -72,15 +69,12 @@ class UserDataSyncService {
       // Create a unique filename for the profile image
       const filename = `profile-${userId}-${randomUUID()}.${contentType.split('/')[1] || 'jpg'}`;
       
-      // Upload to Google Cloud Storage in the user-data folder
-      const uploadedUrl = await googleCloudStorage.uploadBuffer(
+      // Upload using deduplication service
+      const uploadedUrl = await cloudDataSync.uploadBuffer(
         imageBuffer,
-        {
-          customName: filename,
-          contentType,
-          folder: 'user-data', // Explicitly using user-data folder
-          isPublic: true
-        }
+        'user-data', // Folder name
+        filename,
+        contentType
       );
       
       console.log(`User profile image stored at: ${uploadedUrl}`);
@@ -105,15 +99,12 @@ class UserDataSyncService {
       // Create a unique filename for the settings
       const filename = `settings-${userId}-${randomUUID()}.json`;
       
-      // Upload to Google Cloud Storage in the user-data folder
-      const uploadedUrl = await googleCloudStorage.uploadBuffer(
+      // Upload using deduplication service
+      const uploadedUrl = await cloudDataSync.uploadBuffer(
         Buffer.from(settingsJson),
-        {
-          customName: filename,
-          contentType: 'application/json',
-          folder: 'user-data', // Explicitly using user-data folder
-          isPublic: false
-        }
+        'user-data', // Folder name
+        filename,
+        'application/json'
       );
       
       console.log(`User settings stored at: ${uploadedUrl}`);

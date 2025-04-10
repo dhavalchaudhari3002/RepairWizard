@@ -224,16 +224,16 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Generate a unique filename
     const filename = `${randomUUID()}_${file.originalname}`;
     
-    // Upload to Google Cloud Storage - note that folder param will be ignored
-    // by the uploadBuffer method but we pass empty string anyway for clarity
-    const url = await googleCloudStorage.uploadBuffer(
-      file.buffer, 
-      {
-        folder, // Empty folder parameter - will store in bucket root
-        customName: filename,
-        contentType: file.mimetype,
-        isPublic: true
-      }
+    // Import cloudDataSync for deduplication support
+    const { cloudDataSync } = require('../services/cloud-data-sync');
+    
+    // Upload to Google Cloud Storage using the deduplication service
+    // This prevents multiple identical files from being uploaded
+    const url = await cloudDataSync.uploadBuffer(
+      file.buffer,
+      folder, // Empty folder parameter 
+      filename,
+      file.mimetype
     );
     
     // Store file metadata in database
