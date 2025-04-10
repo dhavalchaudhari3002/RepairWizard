@@ -72,8 +72,23 @@
             <input type="email" id="loginEmail" placeholder="Email">
             <input type="password" id="loginPassword" placeholder="Password">
             <button id="loginBtn">Login</button>
+            <button id="authTestBtn" style="margin-left: 10px; background-color: #2196F3;">Check Auth Status</button>
         </div>
         <div id="loginResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Get Current User</h2>
+        <p>Get the currently logged in user from session</p>
+        <button id="getCurrentUserBtn">Get Current User</button>
+        <div id="currentUserResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Logout</h2>
+        <p>Log out the current user session</p>
+        <button id="logoutBtn" style="background-color: #f44336;">Logout</button>
+        <div id="logoutResult"></div>
     </div>
 
     <script>
@@ -160,6 +175,69 @@
                 resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
             } catch (error) {
                 document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to test auth status
+        document.getElementById('authTestBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/cloud/auth-test', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Auth Test Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to get current user
+        document.getElementById('getCurrentUserBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/cloud/user', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('currentUserResult');
+                resultDiv.innerHTML = '<h3>Current User Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('currentUserResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/cloud/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('logoutResult');
+                resultDiv.innerHTML = '<h3>Logout Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('logoutResult').innerHTML = `<p>Error: ${error.message}</p>`;
             }
         });
     </script>

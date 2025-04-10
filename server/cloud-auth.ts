@@ -1,9 +1,11 @@
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { randomBytes } from "crypto";
 import { directUserStorage } from "./services/direct-user-storage";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "./services/email";
 import * as bcrypt from 'bcrypt';
+
+// Session types are imported automatically - no need to explicitly import .d.ts files
 
 /**
  * Setup authentication routes that use direct cloud storage
@@ -13,31 +15,26 @@ import * as bcrypt from 'bcrypt';
  * in Google Cloud Storage.
  */
 export function setupCloudAuth(app: Express) {
-  // Setup session middleware
-  app.use(session({
-    secret: process.env.SESSION_SECRET || "cloud-storage-session-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  }));
+  // Session middleware is applied in server/index.ts
 
-  // Session serialization/deserialization
-  app.use((req, res, next) => {
+  // Session serialization/deserialization middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // Add user to req.user if in session
-    if (req.session && req.session.userId) {
+    if (req.session && req.session.userId && req.session.user) {
       // We'll keep a simple approach for this example
-      // In a production app, you'd want to query the user from storage
-      req.user = req.session.user;
+      req.user = {
+        id: req.session.user.id,
+        email: req.session.user.email,
+        firstName: req.session.user.firstName,
+        lastName: req.session.user.lastName,
+        role: req.session.user.role
+      };
     }
     next();
   });
 
   // User registration endpoint
-  app.post("/api/cloud/register", async (req, res) => {
+  app.post("/api/cloud/register", async (req: Request, res: Response) => {
     try {
       console.log("Cloud registration request received:", { ...req.body, password: '[REDACTED]' });
 
@@ -107,8 +104,9 @@ export function setupCloudAuth(app: Express) {
   });
 
   // User login endpoint
-  app.post("/api/cloud/login", async (req, res) => {
+  app.post("/api/cloud/login", async (req: Request, res: Response) => {
     try {
+      console.log("Cloud login attempt received:", { email: req.body.email });
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -118,19 +116,36 @@ export function setupCloudAuth(app: Express) {
       // Validate credentials
       const user = await directUserStorage.validateCredentials(email, password);
       if (!user) {
+        console.log("Invalid credentials for:", email);
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      console.log("User successfully authenticated:", { id: user.id, email: user.email });
+
       // Store user in session
-      req.session.userId = user.id;
-      req.session.user = user;
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.user = {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        };
+        
+        console.log("User session created successfully");
+      } else {
+        console.error("Session object not available");
+        return res.status(500).json({ message: "Session error" });
+      }
 
       return res.json({
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
+        role: user.role,
+        authenticated: true
       });
     } catch (err) {
       console.error("Login error:", err);
@@ -139,33 +154,36 @@ export function setupCloudAuth(app: Express) {
   });
 
   // User logout endpoint
-  app.post("/api/cloud/logout", (req, res) => {
+  app.post("/api/cloud/logout", (req: Request, res: Response) => {
     if (req.session) {
       req.session.destroy((err) => {
         if (err) {
           return res.status(500).json({ message: "Could not log out" });
         }
-        return res.sendStatus(200);
+        return res.status(200).json({ message: "Logged out successfully" });
       });
     } else {
-      return res.sendStatus(200);
+      return res.status(200).json({ message: "Already logged out" });
     }
   });
 
   // Get current user endpoint
-  app.get("/api/cloud/user", (req, res) => {
-    if (!req.session || !req.session.userId) {
+  app.get("/api/cloud/user", (req: Request, res: Response) => {
+    if (!req.session || !req.session.userId || !req.session.user) {
       return res.status(401).json({ 
         message: "Not authenticated",
         authenticated: false
       });
     }
     
-    return res.json(req.session.user);
+    return res.json({
+      ...req.session.user,
+      authenticated: true
+    });
   });
 
   // Password reset request
-  app.post("/api/cloud/forgot-password", async (req, res) => {
+  app.post("/api/cloud/forgot-password", async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
 
@@ -199,6 +217,19 @@ export function setupCloudAuth(app: Express) {
         message: "An error occurred while processing your request. Please try again later."
       });
     }
+  });
+
+  // Test endpoint to check if cloud auth is working
+  app.get("/api/cloud/auth-test", (req: Request, res: Response) => {
+    return res.json({
+      message: "Cloud auth endpoints are working",
+      authenticated: req.session && req.session.userId ? true : false,
+      sessionData: {
+        hasSession: !!req.session,
+        hasUserId: req.session && !!req.session.userId,
+        hasUserData: req.session && !!req.session.user
+      }
+    });
   });
 
   console.log("Cloud storage authentication routes registered");
