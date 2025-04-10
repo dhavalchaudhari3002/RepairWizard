@@ -100,7 +100,7 @@ export class SQLUserStorageService {
         emailVerified: false,
         verificationToken: randomUUID(),
         tosAccepted: userData.tosAccepted,
-        metadata_url: cloudStorageUrl // Store the URL to cloud storage data
+        metadataUrl: cloudStorageUrl // Store the URL to cloud storage data
       }).returning();
       
       console.log(`User created in SQL database with ID: ${newUser[0].id}`);
@@ -255,18 +255,18 @@ export class SQLUserStorageService {
       // Get the user from database
       const user = await this.getUserById(userId);
       
-      if (!user || !user.metadata_url) {
+      if (!user || !user.metadataUrl) {
         console.log(`No metadata URL found for user ID: ${userId}`);
         return null;
       }
       
-      console.log(`Fetching extended profile from: ${user.metadata_url}`);
+      console.log(`Fetching extended profile from: ${user.metadataUrl}`);
       
       // Extract the file name from the metadata URL
-      const fileName = user.metadata_url.split('/').pop();
+      const fileName = user.metadataUrl.split('/').pop();
       
       if (!fileName) {
-        console.error(`Invalid metadata URL format: ${user.metadata_url}`);
+        console.error(`Invalid metadata URL format: ${user.metadataUrl}`);
         return null;
       }
       
@@ -332,8 +332,8 @@ export class SQLUserStorageService {
       
       // Generate a file name using the existing one or creating a new one
       let fileName = 'user-profile-' + randomUUID() + '.json';
-      if (user.metadata_url) {
-        const existingFileName = user.metadata_url.split('/').pop();
+      if (user.metadataUrl) {
+        const existingFileName = user.metadataUrl.split('/').pop();
         if (existingFileName) {
           fileName = existingFileName;
         }
@@ -353,9 +353,9 @@ export class SQLUserStorageService {
       console.log(`Updated extended profile uploaded to: ${cloudStorageUrl}`);
       
       // Update the metadata URL in database if it changed
-      if (cloudStorageUrl !== user.metadata_url) {
-        await db.update(users).set({ metadata_url: cloudStorageUrl }).where(eq(users.id, userId));
-        console.log(`Updated metadata_url in database for user ID: ${userId}`);
+      if (cloudStorageUrl !== user.metadataUrl) {
+        await db.update(users).set({ metadataUrl: cloudStorageUrl }).where(eq(users.id, userId));
+        console.log(`Updated metadataUrl in database for user ID: ${userId}`);
       }
       
       return cloudStorageUrl;

@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   verificationToken: text("verification_token"),
   tosAccepted: boolean("tos_accepted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  metadataUrl: text("metadata_url"), // URL to extended profile data in Cloud Storage
 });
 
 // Create a base schema for common fields
