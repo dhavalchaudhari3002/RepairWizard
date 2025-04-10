@@ -65,7 +65,7 @@ export class CloudDataSyncService {
    * @returns A SHA-256 hash of the buffer contents
    */
   public calculateContentHash(buffer: Buffer): string {
-    return require('crypto').createHash('sha256').update(buffer).digest('hex');
+    return createHash('sha256').update(buffer).digest('hex');
   }
   
   /**
@@ -86,7 +86,7 @@ export class CloudDataSyncService {
     // Generate a cache key for this folder/filename
     const cacheKey = `${folder}/${filename}`;
     const now = Date.now();
-    const contentHash = require('crypto').createHash('md5').update(buffer).digest('hex');
+    const contentHash = createHash('md5').update(buffer).digest('hex');
     
     // Check if we've recently uploaded this exact file (same path and content)
     const existing = this.recentUploads.get(cacheKey);
@@ -982,6 +982,50 @@ export class CloudDataSyncService {
     } catch (error) {
       console.error('Error creating training dataset:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Synchronize generic data to cloud storage with deduplication support
+   * This is a simplified method for storing any JSON data in the cloud
+   * @param folder The folder to store the data in (used for logical organization)
+   * @param filename The base filename (will be enhanced with timestamp and unique ID)
+   * @param data The data object to synchronize
+   * @returns The URL of the stored data in cloud storage
+   */
+  async syncGenericData(folder: string, filename: string, data: any): Promise<string> {
+    try {
+      console.log(`Syncing generic data to cloud: ${folder}/${filename}`);
+      
+      // Generate a unique filename with timestamp
+      const timestamp = Date.now();
+      const randomId = Math.floor(Math.random() * 10000);
+      const uniqueFilename = `${filename}_${timestamp}_${randomId}.json`;
+      
+      // Convert data to buffer
+      const buffer = Buffer.from(JSON.stringify(data, null, 2));
+      
+      // Use our uploadBuffer method which already has deduplication built-in
+      const url = await this.uploadBuffer(
+        buffer,
+        folder,
+        uniqueFilename,
+        'application/json'
+      );
+      
+      console.log(`Successfully stored generic data at: ${url}`);
+      return url;
+    } catch (error) {
+      console.error(`Error syncing generic data to cloud: ${error}`);
+      
+      // Use local fallback storage if cloud storage fails
+      try {
+        // Use 0 as a dummy session ID for non-session data
+        return this.saveLocalFallback(data, 0, `${folder}_${filename}`);
+      } catch {
+        console.error(`Complete failure syncing data - returning null`);
+        return null as any;
+      }
     }
   }
 }

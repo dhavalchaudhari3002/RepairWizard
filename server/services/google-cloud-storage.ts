@@ -109,19 +109,17 @@ class GoogleCloudStorageService {
       
       const file = this.storage.bucket(this.bucketName).file(filePath);
       
-      // Upload the buffer
+      // Upload the buffer with metadata but without ACL settings
+      // This avoids issues with Uniform Bucket-level Access
       await file.save(buffer, {
         contentType: options.contentType || 'application/octet-stream',
-        public: options.isPublic || false,
         metadata: {
           contentType: options.contentType || 'application/octet-stream'
         }
       });
       
-      // Make the file public if requested
-      if (options.isPublic) {
-        await file.makePublic();
-      }
+      // Note: We don't call makePublic() anymore, as it uses legacy ACLs
+      // Instead, we rely on bucket-level permissions
       
       // Get the public URL
       const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${filePath}`;
