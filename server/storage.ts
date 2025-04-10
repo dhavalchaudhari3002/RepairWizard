@@ -292,8 +292,8 @@ export class DatabaseStorage implements IStorage {
       console.log("User created successfully:", { id: user.id, email: user.email });
 
       // Store user registration data in Google Cloud Storage (user-data folder)
-      // Import at the function level to avoid circular dependencies
-      const { userDataSync } = require('./services/user-data-sync');
+      // Import dynamically to avoid circular dependencies
+      const { userDataSync } = await import('./services/user-data-sync');
       try {
         const cloudStorageUrl = await userDataSync.storeUserRegistrationData(user);
         console.log(`User registration data stored in cloud storage at: ${cloudStorageUrl}`);
@@ -1071,8 +1071,8 @@ export class DatabaseStorage implements IStorage {
   
   async createRepairSessionFile(fileData: Omit<InsertRepairSessionFile, 'id' | 'createdAt'>): Promise<RepairSessionFile> {
     try {
-      // Import cloudDataSync only when needed to avoid circular dependencies
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Import cloudDataSync dynamically to avoid circular dependencies
+      const { cloudDataSync } = await import('./services/cloud-data-sync');
       
       // Create the file record with the proper schema and field names
       const [file] = await db
