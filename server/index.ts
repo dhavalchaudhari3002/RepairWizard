@@ -4,6 +4,7 @@ import { setupVite, log } from "./vite";
 import session from "express-session";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { setupCloudAuth } from "./cloud-auth"; // Add cloud-based auth
 import path from "path";
 import fs from "fs";
 // Import Sentry modules 
@@ -53,8 +54,11 @@ const sessionSettings = {
 app.set("trust proxy", 1);
 app.use(session(sessionSettings));
 
-// Setup authentication before routes
+// Setup standard authentication
 setupAuth(app);
+
+// Setup cloud-based authentication that stores directly in Google Cloud Storage
+setupCloudAuth(app);
 
 // Simple request logging
 app.use((req, res, next) => {
