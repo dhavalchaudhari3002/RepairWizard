@@ -1,4 +1,3 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PrivacyStatus } from "@/components/privacy-status";
 import { Separator } from "@/components/ui/separator";
 
@@ -15,7 +14,7 @@ export default function PrivacyPolicy() {
       
       <Separator className="my-6" />
       
-      <ScrollArea className="h-[70vh] rounded-md border p-6 bg-card">
+      <div className="h-[70vh] rounded-md border p-6 bg-card overflow-y-auto">
         <div className="space-y-6">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. INFORMATION WE COLLECT</h2>
@@ -147,7 +146,7 @@ export default function PrivacyPolicy() {
             </a>
           </p>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
