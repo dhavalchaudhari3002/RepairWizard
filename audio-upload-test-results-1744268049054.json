@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-04-10T06:54:09.054Z",
+  "testId": "audio-upload-test-1744268049054",
+  "uploads": [
+    {
+      "filename": "test_audio_original_1744268049054.wav",
+      "filePath": "repair-session/test_audio_original_1744268049054.wav",
+      "contentType": "audio/wav",
+      "contentHash": "5f4f3de17fb32afbabf2a70993298cf5b2b42a68ff8fd5ca3fc7c3aed9cac096",
+      "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/repair-session/test_audio_original_1744268049054.wav"
+    },
+    {
+      "filename": "test_audio_modified_1744268049054.wav",
+      "filePath": "repair-session/test_audio_modified_1744268049054.wav",
+      "contentType": "audio/wav",
+      "contentHash": "953483571fde577619c5a6032660ff6afb497227edd0947e9caa6a13eddb6954",
+      "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/repair-session/test_audio_modified_1744268049054.wav"
+    },
+    {
+      "filename": "test_audio_duplicate_1744268049054.wav",
+      "filePath": "repair-session/test_audio_duplicate_1744268049054.wav",
+      "contentType": "audio/wav",
+      "contentHash": "5f4f3de17fb32afbabf2a70993298cf5b2b42a68ff8fd5ca3fc7c3aed9cac096",
+      "publicUrl": "https://storage.googleapis.com/reusehub-repaire-data/repair-session/test_audio_duplicate_1744268049054.wav"
+    }
+  ],
+  "originalUploadSuccess": true,
+  "modifiedUploadSuccess": true,
+  "hashesAreDifferent": true,
+  "duplicateUploadSuccess": true,
+  "hashesMatch": true,
+  "finalAudioCount": 3
+}
