@@ -53,6 +53,7 @@ export interface IStorage {
   // Repair request operations
   createRepairRequest(request: any): Promise<RepairRequest>;
   getRepairRequest(id: number): Promise<RepairRequest | undefined>;
+  updateRepairRequest(id: number, data: Partial<RepairRequest>): Promise<RepairRequest>;
   updateRepairRequestStatus(id: number, status: string): Promise<RepairRequest>;
 
   // Notification operations
@@ -207,6 +208,20 @@ export class DatabaseStorage implements IStorage {
       return request;
     } catch (error) {
       console.error("Error in updateRepairRequestStatus:", error);
+      throw error;
+    }
+  }
+  
+  async updateRepairRequest(id: number, data: Partial<RepairRequest>): Promise<RepairRequest> {
+    try {
+      const [request] = await db
+        .update(repairRequests)
+        .set(data)
+        .where(eq(repairRequests.id, id))
+        .returning();
+      return request;
+    } catch (error) {
+      console.error("Error in updateRepairRequest:", error);
       throw error;
     }
   }
