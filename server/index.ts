@@ -8,6 +8,8 @@ import path from "path";
 import fs from "fs";
 // Import Sentry modules 
 import * as Sentry from "@sentry/node";
+// Import test upload route
+import { addTestUploadRoute } from "./test-upload-route";
 // We don't need additional imports with the simplified approach
 
 // Initialize Express app
@@ -110,7 +112,10 @@ app.get('/debug-sentry', (_req, res) => {
     log("Registering routes...");
     const server = await registerRoutes(app);
     log("Routes registered successfully");
-
+    
+    // Add test upload route
+    addTestUploadRoute(app);
+    
     // Add catch-all route to handle client-side routing
     // This needs to be after all API routes
     app.get("*", (req, res, next) => {
