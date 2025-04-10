@@ -21,6 +21,8 @@ import UploadImagePage from '@/pages/upload-image-page';
 import VerificationPage from '@/pages/verification-page';
 import { CloudStoragePage } from '@/pages/cloud-storage-page';
 import { RepairJourneyPage } from '@/pages/repair-journey-page';
+import TermsOfService from '@/pages/terms-of-service';
+import PrivacyPolicy from '@/pages/privacy-policy';
 
 // Protected route wrapper
 import { ProtectedRoute } from '@/lib/protected-route';
@@ -71,6 +73,8 @@ export default function App() {
                       <Route path="/verification" component={VerificationPage} />
                       <Route path="/cloud-storage" component={() => <ProtectedRoute component={CloudStoragePage} />} />
                       <Route path="/repair-journey" component={() => <ProtectedRoute component={RepairJourneyPage} />} />
+                      <Route path="/terms-of-service" component={TermsOfService} />
+                      <Route path="/privacy-policy" component={PrivacyPolicy} />
                       <Route component={NotFound} />
                     </Switch>
                   </main>
