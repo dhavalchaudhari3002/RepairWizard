@@ -60,6 +60,15 @@ export class CloudDataSyncService {
   private DEDUPE_WINDOW_MS = 10000; // 10 second window for deduplication
   
   /**
+   * Calculate a content hash for a buffer to detect duplicate files
+   * @param buffer The buffer to calculate a hash for
+   * @returns A SHA-256 hash of the buffer contents
+   */
+  public calculateContentHash(buffer: Buffer): string {
+    return require('crypto').createHash('sha256').update(buffer).digest('hex');
+  }
+  
+  /**
    * Centralized file upload method with deduplication
    * This method provides content-based deduplication within a time window
    * @param buffer The file buffer to upload

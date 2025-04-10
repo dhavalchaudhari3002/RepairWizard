@@ -76,6 +76,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register database admin routes
   app.use('/api/db-admin', dbAdminRouter);
   console.log("Database admin routes registered");
+  
+  // Register test routes (only in development)
+  app.use('/api/test', testRoutes);
+  console.log("Test routes registered");
 
   // Add a simple ping endpoint for debugging
   app.get('/api/ping', (req, res) => {
