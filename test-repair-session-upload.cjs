@@ -1,90 +1,133 @@
 /**
- * Test script to verify repair-session folder uploads
+ * Test script to verify repair session uploads are working correctly
  */
-const { Storage } = require('@google-cloud/storage');
 const fs = require('fs');
+const path = require('path');
+const { Storage } = require('@google-cloud/storage');
+const fetch = require('node-fetch');
+
+// Load environment variables
+require('dotenv').config();
 
 // Configuration
-const TEST_SESSION_ID = 142;
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'reusehub-repaire-data';
-const FOLDER_NAME = 'repair-session';
+const bucketName = process.env.GCS_BUCKET_NAME;
 
-// Main function
-async function testRepairSessionUpload() {
+async function verifyBucketContents() {
   try {
-    console.log(`=== Testing Repair Session Folder Upload ===`);
-    
-    // Initialize Google Cloud Storage
-    console.log('Initializing Google Cloud Storage...');
+    if (!process.env.GCS_CREDENTIALS || !process.env.GCS_PROJECT_ID) {
+      console.error('Missing required GCS credentials or project ID');
+      return;
+    }
+
+    const credentials = JSON.parse(process.env.GCS_CREDENTIALS);
     const storage = new Storage({
       projectId: process.env.GCS_PROJECT_ID,
-      credentials: process.env.GCS_CREDENTIALS ? JSON.parse(process.env.GCS_CREDENTIALS) : undefined
+      credentials
     });
+
+    console.log(`Listing files in bucket: ${bucketName}`);
+    const [files] = await storage.bucket(bucketName).getFiles();
     
-    const bucket = storage.bucket(BUCKET_NAME);
-    
-    // Create dummy diagnostic data
-    const diagnosticData = {
-      sessionId: TEST_SESSION_ID,
-      deviceType: 'Smartphone',
-      deviceModel: 'Test Model X',
-      issueDescription: 'Testing repair session folder upload',
-      createdAt: new Date().toISOString(),
-      metadata: {
-        source: 'test-repair-session-upload.cjs',
-        type: 'folder-test'
-      }
-    };
-    
-    // Generate filename with timestamp to avoid conflicts
-    const timestamp = Date.now();
-    const filename = `test_session_${TEST_SESSION_ID}_diagnostic_${timestamp}.json`;
-    const filePath = `${FOLDER_NAME}/${filename}`;
-    
-    console.log(`Uploading test file to: ${filePath}`);
-    
-    // Create a file in the bucket
-    const file = bucket.file(filePath);
-    
-    // Upload the file
-    await file.save(JSON.stringify(diagnosticData, null, 2), {
-      contentType: 'application/json',
-      metadata: {
-        source: 'test-script',
-        type: 'repair-session-test'
-      }
+    console.log('Files in bucket:');
+    files.forEach(file => {
+      console.log(`- ${file.name}`);
     });
+
+    // Specifically check for repair-session folder
+    console.log('\nChecking for repair-session folder...');
+    const repairSessionFiles = files.filter(file => file.name.startsWith('repair-session/'));
     
-    // Verify the file was created
-    console.log(`Uploaded file to ${filePath}`);
-    
-    // Get public URL
-    const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filePath}`;
-    console.log(`Public URL: ${publicUrl}`);
-    
-    // Save test results
-    const results = {
-      testId: `repair-session-test-${timestamp}`,
-      sessionId: TEST_SESSION_ID,
-      bucket: BUCKET_NAME,
-      folder: FOLDER_NAME,
-      filename,
-      filePath,
-      publicUrl,
-      timestamp: new Date().toISOString(),
-      success: true
-    };
-    
-    const resultsFile = `repair-session-upload-test-results-${timestamp}.json`;
-    fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
-    console.log(`Test results saved to: ${resultsFile}`);
-    
-    console.log('=== Repair Session Folder Upload Test Completed Successfully ===');
+    if (repairSessionFiles.length > 0) {
+      console.log('\nFiles in repair-session folder:');
+      repairSessionFiles.forEach(file => {
+        console.log(`- ${file.name}`);
+      });
+    } else {
+      console.log('No files found in repair-session folder');
+    }
   } catch (error) {
-    console.error('Test failed:', error);
-    process.exit(1);
+    console.error('Error verifying bucket contents:', error);
   }
 }
 
-// Run the test
-testRepairSessionUpload();
+async function testRepairSessionUpload() {
+  try {
+    console.log('Testing repair session upload...');
+    
+    // Create a mock diagnostic data
+    const mockSessionId = Date.now().toString();
+    const diagnosticData = {
+      id: mockSessionId,
+      userId: 26, // Test user ID
+      deviceType: 'smartphone',
+      deviceBrand: 'Test Brand',
+      deviceModel: 'Test Model',
+      problemDescription: 'Test problem description for file upload',
+      diagnosticSteps: [
+        { id: 1, question: 'Does the device turn on?', answer: 'No' },
+        { id: 2, question: 'Do you see any lights?', answer: 'Yes' }
+      ],
+      timestamp: new Date().toISOString()
+    };
+    
+    // Send upload request to our API
+    const response = await fetch('http://localhost:5000/api/repair-session/diagnostic', {
+      method: 'POST',
+      body: JSON.stringify(diagnosticData),
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': 'connect.sid=s%3AIEeOdQBnRyWV6SxzecLRDNLRh4NlK_Qh.iXzb2EcO0YHpP9kHy4q7WG4O7PuOV%2BPOK9ZLLEj0%2FKE' // You need a valid session
+      }
+    });
+    
+    const result = await response.json();
+    
+    console.log('Upload API Response:', JSON.stringify(result, null, 2));
+    
+    if (response.ok) {
+      console.log(`Repair session data uploaded successfully for session ID: ${mockSessionId}`);
+      return true;
+    } else {
+      console.error('Repair session upload failed:', result.error || 'Unknown error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error performing repair session upload test:', error);
+    return false;
+  }
+}
+
+async function runTests() {
+  console.log('Starting repair session upload tests...');
+  console.log('---------------------------------------');
+  
+  // First check what's in the bucket
+  console.log('\n1. Checking current bucket contents:');
+  await verifyBucketContents();
+  
+  // Then test upload via API
+  console.log('\n2. Testing repair session upload via API:');
+  const uploadSuccess = await testRepairSessionUpload();
+  
+  // Check bucket contents again after upload
+  if (uploadSuccess) {
+    console.log('\n3. Checking bucket contents after upload:');
+    await verifyBucketContents();
+  }
+  
+  console.log('\nTests completed!');
+  // Save test results to a file
+  const results = {
+    timestamp: new Date().toISOString(),
+    repairSessionUploadSuccess: uploadSuccess,
+    testTime: new Date().toLocaleString()
+  };
+  
+  fs.writeFileSync(
+    `repair-session-upload-test-results-${Date.now()}.json`, 
+    JSON.stringify(results, null, 2)
+  );
+}
+
+// Run the tests
+runTests().catch(console.error);
