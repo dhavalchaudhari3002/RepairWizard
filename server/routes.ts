@@ -274,6 +274,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date().toISOString()
         };
         
+        // Handle base64 encoded image files if provided
+        if (data.imageUrls && data.imageUrls.length > 0) {
+          console.log(`Processing ${data.imageUrls.length} images for repair request #${repairRequest.id}`);
+          const uploadedImageUrls: string[] = [];
+          
+          for (let i = 0; i < data.imageUrls.length; i++) {
+            const imageUrl = data.imageUrls[i];
+            if (imageUrl && imageUrl.startsWith('data:image/')) {
+              try {
+                // Extract base64 data and file type
+                const matches = imageUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+                if (matches && matches.length === 3) {
+                  const fileType = matches[1];
+                  const base64Data = matches[2];
+                  const buffer = Buffer.from(base64Data, 'base64');
+                  
+                  // Generate unique filename
+                  const fileName = `repair_request_${repairRequest.id}_image_${i+1}_${Date.now()}.${fileType}`;
+                  
+                  // Upload to Google Cloud Storage
+                  const uploadedUrl = await googleCloudStorage.uploadBuffer(buffer, {
+                    folder: 'repair-session',
+                    customName: fileName,
+                    contentType: `image/${fileType}`,
+                    isPublic: true
+                  });
+                  
+                  // Add to uploaded URLs
+                  uploadedImageUrls.push(uploadedUrl);
+                  console.log(`Uploaded image ${i+1} for repair request #${repairRequest.id}: ${uploadedUrl}`);
+                  
+                  // Link file to repair session in database
+                  await storage.createRepairSessionFile({
+                    repairSessionId: repairRequest.id,
+                    userId: user.id,
+                    fileName,
+                    fileUrl: uploadedUrl,
+                    contentType: `image/${fileType}`,
+                    filePurpose: 'damage_photo',
+                    stepName: 'initial_submission'
+                  });
+                }
+              } catch (imgError) {
+                console.error(`Error uploading image ${i+1} for repair request #${repairRequest.id}:`, imgError);
+              }
+            } else if (imageUrl) {
+              // Already a URL, keep it
+              uploadedImageUrls.push(imageUrl);
+            }
+          }
+          
+          // Update the repair request with the actual image URLs
+          if (uploadedImageUrls.length > 0) {
+            await storage.updateRepairRequest(repairRequest.id, {
+              imageUrls: uploadedImageUrls,
+              imageUrl: uploadedImageUrls[0] // Set the primary image to the first one
+            });
+          }
+        }
+        
+        // Handle base64 encoded audio if provided
+        if (data.audioUrl && data.audioUrl.startsWith('data:audio/')) {
+          try {
+            console.log(`Processing audio for repair request #${repairRequest.id}`);
+            // Extract base64 data and file type
+            const matches = data.audioUrl.match(/^data:audio\/([a-zA-Z0-9]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const fileType = matches[1];
+              const base64Data = matches[2];
+              const buffer = Buffer.from(base64Data, 'base64');
+              
+              // Generate unique filename
+              const fileName = `repair_request_${repairRequest.id}_audio_${Date.now()}.${fileType}`;
+              
+              // Upload to Google Cloud Storage
+              const uploadedUrl = await googleCloudStorage.uploadBuffer(buffer, {
+                folder: 'repair-session',
+                customName: fileName,
+                contentType: `audio/${fileType}`,
+                isPublic: true
+              });
+              
+              console.log(`Uploaded audio for repair request #${repairRequest.id}: ${uploadedUrl}`);
+              
+              // Link file to repair session in database
+              await storage.createRepairSessionFile({
+                repairSessionId: repairRequest.id,
+                userId: user.id,
+                fileName,
+                fileUrl: uploadedUrl,
+                contentType: `audio/${fileType}`,
+                filePurpose: 'diagnostic_audio',
+                stepName: 'initial_submission'
+              });
+              
+              // Update the repair request with the actual audio URL
+              await storage.updateRepairRequest(repairRequest.id, {
+                audioUrl: uploadedUrl
+              });
+            }
+          } catch (audioError) {
+            console.error(`Error uploading audio for repair request #${repairRequest.id}:`, audioError);
+          }
+        }
+        
         // Store the data and log success
         await cloudDataSync.syncRepairSession(repairRequest.id);
         console.log(`Successfully stored repair request #${repairRequest.id} data to Google Cloud Storage`);

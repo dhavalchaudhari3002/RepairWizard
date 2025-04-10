@@ -973,6 +973,19 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  async createStorageFile(data: InsertStorageFile): Promise<StorageFile> {
+    try {
+      const [file] = await db
+        .insert(storageFiles)
+        .values(data)
+        .returning();
+      return file;
+    } catch (error) {
+      console.error("Error in createStorageFile:", error);
+      throw error;
+    }
+  }
 
   async deleteStorageFileByUrl(url: string): Promise<void> {
     try {
