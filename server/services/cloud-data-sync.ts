@@ -159,27 +159,33 @@ export class CloudDataSyncService {
         consolidatedData.repairGuide = additionalData.repairGuideData;
       }
       
-      // Simplified approach - no folder creation, just place files directly in the bucket
-      // This avoids creating empty folders that clutter the bucket
+      // Updated approach - place all repair-related files in the repair-session folder
+      // This ensures clean separation from user data (which goes in user-data folder)
       
       // Generate a unique filename with timestamp and randomized ID for ensuring uniqueness
       const timestamp = Date.now();
       const randomId = Math.floor(Math.random() * 10000); // Add some randomness
       const filename = `repair_session_${sessionId}_${timestamp}_${randomId}.json`;
       
-      // Store directly in the root of the bucket with a clear naming convention
-      // No nested folders needed - using the filename directly
-      const filePath = filename;
+      // IMPORTANT: Always store repair session data in the repair-session folder
+      // This ensures all AI-trainable data is properly organized
+      const folder = 'repair-session';
       
       // IMPROVED APPROACH: Upload file first, then attempt database updates
       // This ensures data is stored in GCS even if database operations fail
       let uploadedUrl = '';
       
       try {
-        // First: Upload the consolidated data file to Google Cloud Storage
-        uploadedUrl = await googleCloudStorage.uploadText(
-          filePath,
-          JSON.stringify(consolidatedData, null, 2)
+        // First: Upload the consolidated data file to Google Cloud Storage using uploadBuffer
+        // which correctly handles folder paths
+        uploadedUrl = await googleCloudStorage.uploadBuffer(
+          Buffer.from(JSON.stringify(consolidatedData, null, 2)),
+          {
+            contentType: 'application/json',
+            customName: filename,
+            folder: folder,
+            isPublic: true
+          }
         );
         
         console.log(`Successfully stored consolidated data for session #${sessionId} at: ${uploadedUrl}`);
@@ -202,12 +208,13 @@ export class CloudDataSyncService {
           originalName: filename,
           fileUrl: uploadedUrl,
           contentType: 'application/json',
-          folder: '',
+          folder: folder, // Store the folder name (repair-session) here
           fileSize: JSON.stringify(consolidatedData).length,
           metadata: {
             sessionId,
             type: 'consolidated_data',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            folder: folder // Also store it in metadata for clarity
           }
         }).returning({ id: storageFiles.id });
         
