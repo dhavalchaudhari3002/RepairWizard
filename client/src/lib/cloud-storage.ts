@@ -27,7 +27,7 @@ export const checkCloudStorageStatus = async (): Promise<{
 
 /**
  * Upload a file to the server using the /api/cloud-storage/upload endpoint
- * IMPORTANT: All files are stored directly at the bucket root, not in folders
+ * Files are now stored in the 'user-data' folder for better organization
  * @param file The file to upload
  * @returns A Promise resolving to the uploaded file data
  */
@@ -37,8 +37,8 @@ export const uploadFile = async (file: File): Promise<{ url: string; name: strin
     const formData = new FormData();
     formData.append('file', file);
     
-    // Note: We no longer pass folder parameter as files are stored directly in the bucket root
-    // This ensures that all files are stored at the top level of the bucket
+    // The server will automatically place user uploads in the 'user-data' folder
+    // for proper organization and separation from other data types
     
     const response = await fetch('/api/cloud-storage/upload', {
       method: 'POST',
@@ -303,8 +303,8 @@ export const fetchRepairSessionFiles = async (sessionId: number) => {
 
 /**
  * Upload a file to Google Cloud Storage via the server API
- * IMPORTANT: All files are stored directly at the bucket root to simplify data management
- * Files are identified by their metadata and descriptive filenames, not folder structure
+ * Files are now properly organized in folders based on their purpose
+ * Repair session files are stored in the 'repair-session' folder
  * 
  * @param sessionId The ID of the repair session
  * @param file The file to upload
@@ -325,12 +325,13 @@ export const uploadFileToCloudStorage = async (
     const fileExt = file.name.split('.').pop() || 'bin';
     const metadataFilename = `session_${sessionId}_${filePurpose}_${timestamp}_${randomId}.${fileExt}`;
     
-    // Create form data with all metadata as fields (not as folder path)
+    // Create form data with all necessary metadata
     const formData = new FormData();
     formData.append('file', file);
     formData.append('fileName', metadataFilename);
     formData.append('sessionId', sessionId.toString());
     formData.append('filePurpose', filePurpose);
+    // This file will be placed in the repair-session folder automatically by the server
     
     if (stepName) {
       formData.append('stepName', stepName);
