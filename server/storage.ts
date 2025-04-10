@@ -268,6 +268,21 @@ export class DatabaseStorage implements IStorage {
 
       console.log("User created successfully:", { id: user.id, email: user.email });
 
+      // Store user registration data in Google Cloud Storage (user-data folder)
+      // Import at the function level to avoid circular dependencies
+      const { userDataSync } = require('./services/user-data-sync');
+      try {
+        const cloudStorageUrl = await userDataSync.storeUserRegistrationData(user);
+        console.log(`User registration data stored in cloud storage at: ${cloudStorageUrl}`);
+        
+        // Update user with metadata_url if needed
+        if (users.metadata_url) {
+          await this.updateUser(user.id, { metadata_url: cloudStorageUrl });
+        }
+      } catch (cloudError) {
+        console.error("Error storing user data in cloud storage (non-blocking):", cloudError);
+      }
+
       // Try to send welcome email, but don't block registration if it fails
       try {
         const emailSent = await sendWelcomeEmail(user.email, user.firstName);
