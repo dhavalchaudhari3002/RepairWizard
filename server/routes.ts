@@ -5,6 +5,7 @@ import { WebSocket } from 'ws';
 import { storage } from "./storage";
 import cloudStorageRoutes from './routes/cloud-storage-routes';
 import { dbAdminRouter } from './routes/db-admin';
+import testRoutes from './routes/test-routes';
 import { 
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
