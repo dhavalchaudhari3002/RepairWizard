@@ -1559,42 +1559,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Google Cloud Storage is not configured" 
         });
       }
-
-      if (!req.body.file) {
-        return res.status(400).json({ error: "No file data provided" });
-      }
-
-      // Extract file data from the request
-      // Client should send base64 encoded data
-      const { file, contentType, fileName, folder } = req.body;
       
-      if (!file || !contentType) {
-        return res.status(400).json({ 
-          error: "File data and content type are required" 
+      // Set up multer for handling multipart/form-data
+      const multer = (await import('multer')).default;
+      const storage = multer.memoryStorage();
+      const upload = multer({ 
+        storage,
+        limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+      }).single('file');
+      
+      // Use multer middleware to process the file upload
+      const processUpload = () => {
+        return new Promise<{buffer: Buffer, originalname: string, mimetype: string}>((resolve, reject) => {
+          upload(req, res, (err) => {
+            if (err) {
+              return reject(err);
+            }
+            
+            if (!req.file) {
+              return reject(new Error("No file uploaded"));
+            }
+            
+            resolve({
+              buffer: req.file.buffer,
+              originalname: req.file.originalname,
+              mimetype: req.file.mimetype
+            });
+          });
         });
-      }
-
-      // Convert base64 to buffer
-      let fileBuffer;
-      try {
-        // Handle data URIs (e.g., "data:image/jpeg;base64,/9j/4AAQSkZJRg...")
-        const base64Data = file.includes('base64,') 
-          ? file.split('base64,')[1] 
-          : file;
-          
-        fileBuffer = Buffer.from(base64Data, 'base64');
-      } catch (error) {
-        console.error("Error decoding base64 data:", error);
-        return res.status(400).json({ error: "Invalid file data" });
-      }
-
+      };
+      
+      // Process the file upload with multer
+      const { buffer: fileBuffer, originalname, mimetype } = await processUpload();
+      
+      console.log(`Received file upload: ${originalname}, type: ${mimetype}, size: ${fileBuffer.length} bytes`);
+      
       // Always use 'user-data' folder for user uploads
       const actualFolder = 'user-data';
-      const actualFileName = fileName || `user_${req.user.id}_file_${Date.now()}`;
+      const actualFileName = `user_${req.user.id}_${Date.now()}_${originalname}`;
 
       // Upload to Google Cloud Storage with proper folder
       const url = await googleCloudStorage.uploadBuffer(fileBuffer, {
-        contentType,
+        contentType: mimetype,
         customName: actualFileName,
         folder: actualFolder,
         isPublic: true
@@ -1606,10 +1612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createStorageFile({
           userId: req.user.id,
           fileName: actualFileName,
-          originalName: fileName || "unknown",
+          originalName: originalname,
           fileUrl: url,
           fileSize: fileBuffer.length,
-          contentType: contentType,
+          contentType: mimetype,
           folder: actualFolder,
           metadata: {
             uploadedAt: new Date().toISOString(),
@@ -1627,7 +1633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         url,
         fileName: actualFileName,
-        contentType,
+        contentType: mimetype,
         fileSize: fileBuffer.length,
         message: "File uploaded successfully" 
       });
