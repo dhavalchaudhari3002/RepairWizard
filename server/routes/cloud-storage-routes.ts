@@ -224,8 +224,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Generate a unique filename
     const filename = `${randomUUID()}_${file.originalname}`;
     
-    // Import cloudDataSync for deduplication support
-    const { cloudDataSync } = require('../services/cloud-data-sync');
+    // Using the cloudDataSync imported at the top of the file
     
     // Upload to Google Cloud Storage using the deduplication service
     // This prevents multiple identical files from being uploaded
