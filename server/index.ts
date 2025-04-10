@@ -57,16 +57,19 @@ const sessionSettings = {
 app.set("trust proxy", 1);
 app.use(session(sessionSettings));
 
-// Setup standard authentication
-setupAuth(app);
+// DISABLED: Standard authentication (not used)
+// setupAuth(app);
 
-// Setup cloud-based authentication that stores directly in Google Cloud Storage
-setupCloudAuth(app);
+// DISABLED: Cloud-based authentication that stores directly in Google Cloud Storage
+// setupCloudAuth(app);
 
-// Setup SQL-based authentication with hybrid storage approach (SQL + Cloud Storage)
-setupSQLAuth(app);
+// DISABLED: SQL-based authentication with hybrid storage approach
+// setupSQLAuth(app);
 
-// Setup SQL-only authentication with no cloud storage for user data
+// ENABLED: SQL-only authentication with no cloud storage for user data
+// User data is stored exclusively in Replit PostgreSQL for now
+// This supports up to ~50k-100k users before migration to Google Cloud SQL becomes necessary
+console.log('CONFIGURING APPLICATION TO USE SQL-ONLY STORAGE FOR USER DATA');
 setupSQLOnlyAuth(app);
 
 // Simple request logging

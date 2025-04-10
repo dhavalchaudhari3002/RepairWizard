@@ -1,15 +1,21 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+/**
+ * Main database module - re-exports database connection from abstraction layer
+ * This allows easy switching between Replit PostgreSQL and Google Cloud SQL
+ */
+import { pool, db, getDatabaseInfo, testDatabaseConnection } from './db-connection';
 
-neonConfig.webSocketConstructor = ws;
+// Check database connection on startup
+testDatabaseConnection()
+  .then(result => {
+    if (result === true) {
+      console.log('Database connection successful');
+    } else {
+      console.error('Database connection failed:', result);
+    }
+  })
+  .catch(error => {
+    console.error('Error testing database connection:', error);
+  });
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Re-export database connection and ORM
+export { pool, db, getDatabaseInfo, testDatabaseConnection };
