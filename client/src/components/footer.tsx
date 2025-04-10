@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { Separator } from "@/components/ui/separator";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -18,6 +19,12 @@ export function Footer() {
               <Link href="/terms-of-service">
                 <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   Terms of Service
+                </a>
+              </Link>
+              <Separator orientation="vertical" className="h-4 hidden md:block" />
+              <Link href="/privacy-policy">
+                <a className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  Privacy Policy
                 </a>
               </Link>
             </nav>
