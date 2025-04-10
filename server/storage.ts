@@ -99,16 +99,6 @@ export interface IStorage {
   getFailurePatternsBySymptoms(symptoms: string[]): Promise<FailurePattern[]>;
   
   // Storage Files Management
-  createStorageFile(fileData: {
-    userId: number;
-    fileName: string;
-    originalName: string;
-    fileUrl: string;
-    fileSize: number;
-    contentType: string;
-    folder: string;
-    metadata: Record<string, any>;
-  }): Promise<{ id: number; fileName: string; fileUrl: string }>;
   
   // Repair Session Files
   createRepairSessionFile(fileData: {
