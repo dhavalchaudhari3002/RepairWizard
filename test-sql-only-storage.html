@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL-Only User Storage Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input, textarea, select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .secondary {
+            background-color: #2196F3;
+        }
+        .danger {
+            background-color: #f44336;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: black;
+            border-radius: 0;
+            margin: 0;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #ccc;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SQL-Only User Storage Test</h1>
+    <p>
+        This page demonstrates storing <strong>ALL</strong> user data in SQL database:
+        <ul>
+            <li>All user information is stored directly in PostgreSQL database</li>
+            <li>No user data is kept in Cloud Storage</li>
+            <li>Only repair sessions, diagnostics, and uploaded files use Cloud Storage</li>
+        </ul>
+    </p>
+    
+    <div class="card">
+        <h2>Register a User</h2>
+        <p>Create a new user with SQL-only storage approach</p>
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'BasicInfo')">Basic Info</button>
+            <button class="tablinks" onclick="openTab(event, 'ContactInfo')">Contact Info</button>
+            <button class="tablinks" onclick="openTab(event, 'Preferences')">Preferences</button>
+        </div>
+        
+        <div id="BasicInfo" class="tabcontent" style="display: block;">
+            <h3>Basic Information</h3>
+            <input type="text" id="firstName" placeholder="First Name">
+            <input type="text" id="lastName" placeholder="Last Name">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="tosAccepted" style="width: auto;">
+                <label for="tosAccepted">I accept the Terms of Service</label>
+            </div>
+        </div>
+        
+        <div id="ContactInfo" class="tabcontent">
+            <h3>Contact Information</h3>
+            <input type="text" id="phone" placeholder="Phone Number">
+            <textarea id="address" placeholder="Address" rows="3"></textarea>
+        </div>
+        
+        <div id="Preferences" class="tabcontent">
+            <h3>User Preferences</h3>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="regDarkMode" style="width: auto;">
+                <label for="regDarkMode">Dark Mode</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="regMarketingEmails" style="width: auto;">
+                <label for="regMarketingEmails">Receive Marketing Emails</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="regPushNotifications" style="width: auto;" checked>
+                <label for="regPushNotifications">Push Notifications</label>
+            </div>
+            
+            <h3>Settings</h3>
+            <label for="regLanguage">Language</label>
+            <select id="regLanguage">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+            </select>
+            
+            <label for="regTimezone">Timezone</label>
+            <select id="regTimezone">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time (US & Canada)</option>
+                <option value="America/Chicago">Central Time (US & Canada)</option>
+                <option value="America/Denver">Mountain Time (US & Canada)</option>
+                <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+            </select>
+        </div>
+        
+        <button id="registerBtn" style="margin-top: 15px;">Register User</button>
+        <div id="registerResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Login</h2>
+        <p>Login with an existing user account</p>
+        <div>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginBtn">Login</button>
+            <button id="authTestBtn" class="secondary" style="margin-left: 10px;">Check Auth Status</button>
+        </div>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Get Current User</h2>
+        <p>Get the currently logged in user from session</p>
+        <button id="getCurrentUserBtn">Get Current User</button>
+        <div id="currentUserResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Get User Profile</h2>
+        <p>Get the complete user profile from SQL database</p>
+        <button id="getProfileBtn">Get Profile</button>
+        <div id="profileResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Update User Profile</h2>
+        <p>Update the user profile data in SQL database</p>
+        <h3>Contact Information</h3>
+        <div>
+            <input type="text" id="updatePhone" placeholder="Phone Number">
+            <textarea id="updateAddress" placeholder="Address" rows="3"></textarea>
+        </div>
+        
+        <h3>Preferences</h3>
+        <div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="darkMode" style="width: auto;">
+                <label for="darkMode">Dark Mode</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="receiveMarketingEmails" style="width: auto;">
+                <label for="receiveMarketingEmails">Receive Marketing Emails</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="pushNotifications" style="width: auto;">
+                <label for="pushNotifications">Push Notifications</label>
+            </div>
+        </div>
+        
+        <h3>Settings</h3>
+        <div>
+            <label for="language">Language</label>
+            <select id="language">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+            </select>
+            
+            <label for="timezone">Timezone</label>
+            <select id="timezone">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time (US & Canada)</option>
+                <option value="America/Chicago">Central Time (US & Canada)</option>
+                <option value="America/Denver">Mountain Time (US & Canada)</option>
+                <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+            </select>
+        </div>
+        
+        <h3>Additional Information</h3>
+        <div>
+            <textarea id="bio" placeholder="Bio" rows="3"></textarea>
+        </div>
+        
+        <button id="updateProfileBtn">Update Profile</button>
+        <div id="updateProfileResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Update Password</h2>
+        <p>Change your account password</p>
+        <div>
+            <input type="password" id="currentPassword" placeholder="Current Password">
+            <input type="password" id="newPassword" placeholder="New Password">
+            <button id="updatePasswordBtn">Update Password</button>
+        </div>
+        <div id="updatePasswordResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Logout</h2>
+        <p>Log out the current user session</p>
+        <button id="logoutBtn" class="danger">Logout</button>
+        <div id="logoutResult"></div>
+    </div>
+
+    <script>
+        // Tab functionality
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        // Function to register a user
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            try {
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const email = document.getElementById('regEmail').value.trim();
+                const password = document.getElementById('regPassword').value;
+                const tosAccepted = document.getElementById('tosAccepted').checked;
+                
+                // Contact information
+                const phone = document.getElementById('phone').value.trim();
+                const address = document.getElementById('address').value.trim();
+                
+                // Preferences
+                const preferences = {
+                    darkMode: document.getElementById('regDarkMode').checked,
+                    receiveMarketingEmails: document.getElementById('regMarketingEmails').checked,
+                    pushNotifications: document.getElementById('regPushNotifications').checked
+                };
+                
+                // Settings
+                const settings = {
+                    language: document.getElementById('regLanguage').value,
+                    timezone: document.getElementById('regTimezone').value
+                };
+                
+                if (!firstName || !lastName || !email || !password) {
+                    document.getElementById('registerResult').innerHTML = '<p>Please fill in all required fields</p>';
+                    return;
+                }
+                
+                if (!tosAccepted) {
+                    document.getElementById('registerResult').innerHTML = '<p>You must accept the Terms of Service</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/sql-only/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email,
+                        password,
+                        tosAccepted,
+                        phone,
+                        address,
+                        preferences,
+                        settings
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('registerResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // If user was created successfully, fill in the login fields
+                if (response.ok && data.user && data.user.email) {
+                    document.getElementById('loginEmail').value = data.user.email;
+                    document.getElementById('loginPassword').value = password;
+                }
+            } catch (error) {
+                document.getElementById('registerResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            try {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!email || !password) {
+                    document.getElementById('loginResult').innerHTML = '<p>Please enter both email and password</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/sql-only/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to check auth status
+        document.getElementById('authTestBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql-only/auth-test', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Auth Status Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to get current user
+        document.getElementById('getCurrentUserBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql-only/user', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('currentUserResult');
+                resultDiv.innerHTML = '<h3>Current User Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('currentUserResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to get user profile
+        document.getElementById('getProfileBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql-only/user/profile', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('profileResult');
+                resultDiv.innerHTML = '<h3>Profile Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Populate form fields with data if successful
+                if (response.ok && data) {
+                    // Contact info
+                    document.getElementById('updatePhone').value = data.phone || '';
+                    document.getElementById('updateAddress').value = data.address || '';
+                    
+                    // Preferences
+                    if (data.preferences) {
+                        document.getElementById('darkMode').checked = !!data.preferences.darkMode;
+                        document.getElementById('receiveMarketingEmails').checked = !!data.preferences.receiveMarketingEmails;
+                        document.getElementById('pushNotifications').checked = !!data.preferences.pushNotifications;
+                    }
+                    
+                    // Settings
+                    if (data.settings) {
+                        document.getElementById('language').value = data.settings.language || 'en';
+                        document.getElementById('timezone').value = data.settings.timezone || 'UTC';
+                    }
+                    
+                    document.getElementById('bio').value = data.bio || '';
+                }
+            } catch (error) {
+                document.getElementById('profileResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to update profile
+        document.getElementById('updateProfileBtn').addEventListener('click', async () => {
+            try {
+                // Gather profile data from form fields
+                const profileData = {
+                    // Contact info
+                    phone: document.getElementById('updatePhone').value.trim(),
+                    address: document.getElementById('updateAddress').value.trim(),
+                    
+                    // Preferences
+                    preferences: {
+                        darkMode: document.getElementById('darkMode').checked,
+                        receiveMarketingEmails: document.getElementById('receiveMarketingEmails').checked,
+                        pushNotifications: document.getElementById('pushNotifications').checked
+                    },
+                    
+                    // Settings
+                    settings: {
+                        language: document.getElementById('language').value,
+                        timezone: document.getElementById('timezone').value
+                    },
+                    
+                    // Additional info
+                    bio: document.getElementById('bio').value.trim()
+                };
+                
+                const response = await fetch('/api/sql-only/user/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('updateProfileResult');
+                resultDiv.innerHTML = '<h3>Update Profile Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('updateProfileResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to update password
+        document.getElementById('updatePasswordBtn').addEventListener('click', async () => {
+            try {
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                
+                if (!currentPassword || !newPassword) {
+                    document.getElementById('updatePasswordResult').innerHTML = '<p>Please enter both current and new passwords</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/sql-only/user/password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('updatePasswordResult');
+                resultDiv.innerHTML = '<h3>Update Password Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Clear password fields if successful
+                if (response.ok) {
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                }
+            } catch (error) {
+                document.getElementById('updatePasswordResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql-only/logout', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('logoutResult');
+                resultDiv.innerHTML = '<h3>Logout Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('logoutResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

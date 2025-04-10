@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupCloudAuth } from "./cloud-auth"; // Add cloud-based auth
 import { setupSQLAuth } from "./sql-auth"; // Add SQL-based auth with hybrid storage
+import { setupSQLOnlyAuth } from "./sql-only-auth"; // Add SQL-only auth with no cloud storage for user data
 import { addDirectUserStorageTestRoutes } from "./test-direct-user-storage"; // Add direct user storage test routes
 import path from "path";
 import fs from "fs";
@@ -64,6 +65,9 @@ setupCloudAuth(app);
 
 // Setup SQL-based authentication with hybrid storage approach (SQL + Cloud Storage)
 setupSQLAuth(app);
+
+// Setup SQL-only authentication with no cloud storage for user data
+setupSQLOnlyAuth(app);
 
 // Simple request logging
 app.use((req, res, next) => {
