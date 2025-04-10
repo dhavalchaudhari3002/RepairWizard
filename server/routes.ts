@@ -27,6 +27,7 @@ import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
 import { promisify } from "util";
+import { cloudDataSync } from './services/cloud-data-sync';
 import type { SessionData } from "express-session";
 import { getProductRecommendations, updateProductPrices, updateProductReviews } from "./services/product-service";
 import { setupRepairCostAPI } from "./ml-services/repair-cost-api";

@@ -83,18 +83,29 @@ export class CloudDataSyncService {
     filename: string,
     contentType: string = 'application/octet-stream'
   ): Promise<string> {
-    // Generate a cache key for this folder/filename
-    const cacheKey = `${folder}/${filename}`;
-    const now = Date.now();
+    // Generate a content hash first for deduplication
     const contentHash = createHash('md5').update(buffer).digest('hex');
+    const now = Date.now();
     
-    // Check if we've recently uploaded this exact file (same path and content)
+    // Check if we've recently uploaded this exact content (content-based deduplication)
+    // Search all recent uploads for matching content hash
+    for (const [key, entry] of this.recentUploads.entries()) {
+      if (entry.contentHash === contentHash && now - entry.timestamp < this.DEDUPE_WINDOW_MS) {
+        console.log(`CONTENT DEDUPLICATION: Reusing existing file with same content hash: ${contentHash.substring(0, 8)}...`);
+        console.log(`Original upload: ${key}, URL: ${entry.url}`);
+        return entry.url;
+      }
+    }
+    
+    // If we got here, no content match was found
+    // Generate a cache key for this folder/filename for path-based deduplication
+    const cacheKey = `${folder}/${filename}`;
+    
+    // Check if we've recently uploaded to this exact path (path-based deduplication)
     const existing = this.recentUploads.get(cacheKey);
     if (existing && now - existing.timestamp < this.DEDUPE_WINDOW_MS) {
-      if (existing.contentHash === contentHash) {
-        console.log(`DEDUPLICATION: Using existing upload for ${cacheKey} (${existing.url})`);
-        return existing.url;
-      }
+      console.log(`PATH DEDUPLICATION: Using existing path upload for ${cacheKey} (${existing.url})`);
+      return existing.url;
     }
     
     // Content is different or outside window, proceed with upload
