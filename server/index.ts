@@ -5,6 +5,7 @@ import session from "express-session";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupCloudAuth } from "./cloud-auth"; // Add cloud-based auth
+import { addDirectUserStorageTestRoutes } from "./test-direct-user-storage"; // Add direct user storage test routes
 import path from "path";
 import fs from "fs";
 // Import Sentry modules 
@@ -72,6 +73,13 @@ app.get('/ping', (_req, res) => {
   res.send('pong');
 });
 
+// Serve the test HTML file for direct user storage
+app.get('/test-direct-storage', (_req, res) => {
+  log("Serving direct user storage test page");
+  const filePath = path.resolve(process.cwd(), 'test-direct-user-storage.html');
+  res.sendFile(filePath);
+});
+
 // Test endpoint for Sentry error tracking
 app.get('/debug-sentry', (_req, res) => {
   log("Testing Sentry error tracking");
@@ -119,6 +127,9 @@ app.get('/debug-sentry', (_req, res) => {
     
     // Add test upload route
     addTestUploadRoute(app);
+    
+    // Add direct user storage test routes
+    addDirectUserStorageTestRoutes(app);
     
     // Add catch-all route to handle client-side routing
     // This needs to be after all API routes

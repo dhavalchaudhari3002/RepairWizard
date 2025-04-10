@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct User Storage Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Direct User Storage to Google Cloud</h1>
+    
+    <div class="card">
+        <h2>Create a User</h2>
+        <p>This will create a test user and store the data directly in Google Cloud Storage's 'user-data' folder.</p>
+        <button id="createUserBtn">Create Test User</button>
+        <div id="createUserResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Find User by Email</h2>
+        <p>Look up a user by email address directly from Google Cloud Storage.</p>
+        <input type="email" id="emailInput" placeholder="Enter email to search">
+        <button id="findUserBtn">Find User</button>
+        <div id="findUserResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Test Cloud Auth Login</h2>
+        <div>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginBtn">Login</button>
+        </div>
+        <div id="loginResult"></div>
+    </div>
+
+    <script>
+        // Function to create a test user
+        document.getElementById('createUserBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/test/direct-user-storage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('createUserResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // If user was created successfully, fill in the email field for convenience
+                if (response.ok && data.userData && data.userData.email) {
+                    document.getElementById('emailInput').value = data.userData.email;
+                    document.getElementById('loginEmail').value = data.userData.email;
+                    document.getElementById('loginPassword').value = 'TestPassword123!';
+                }
+            } catch (error) {
+                document.getElementById('createUserResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to find user by email
+        document.getElementById('findUserBtn').addEventListener('click', async () => {
+            const email = document.getElementById('emailInput').value.trim();
+            
+            if (!email) {
+                document.getElementById('findUserResult').innerHTML = '<p>Please enter an email address</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/test/direct-user-storage/${encodeURIComponent(email)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('findUserResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('findUserResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to test login with cloud auth
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                document.getElementById('loginResult').innerHTML = '<p>Please enter both email and password</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cloud/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
