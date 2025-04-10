@@ -372,7 +372,7 @@ export class CloudDataSyncService {
       const randomId = Math.floor(Math.random() * 10000); 
       const journeyFilename = `complete_session_${sessionId}_${timestamp}_${randomId}.json`;
       
-      // Step 7: Store data directly in bucket root (no folders at all)
+      // Step 7: Store data in the repair-session folder
       let metadataUrl: string;
       try {
         // Create a comprehensive data structure with all session data
@@ -394,12 +394,20 @@ export class CloudDataSyncService {
           journeyData: completeJourney
         };
         
-        console.log(`Uploading complete session data directly to bucket root: ${journeyFilename}`);
+        // IMPORTANT: Use the repair-session folder to organize all repair data for AI training
+        const folder = 'repair-session';
         
-        // Upload directly to bucket root (no folder structure)
-        metadataUrl = await googleCloudStorage.uploadText(
-          journeyFilename,
-          JSON.stringify(journeyMetadata, null, 2)
+        console.log(`Uploading complete session data to ${folder} folder: ${journeyFilename}`);
+        
+        // Upload using uploadBuffer which properly handles folders
+        metadataUrl = await googleCloudStorage.uploadBuffer(
+          Buffer.from(JSON.stringify(journeyMetadata, null, 2)),
+          {
+            contentType: 'application/json',
+            customName: journeyFilename,
+            folder: folder,
+            isPublic: true
+          }
         );
         console.log(`Successfully synced repair session #${sessionId} metadata to Google Cloud Storage: ${metadataUrl}`);
       } catch (gcsError) {
@@ -587,11 +595,17 @@ export class CloudDataSyncService {
         const randomId = Math.floor(Math.random() * 10000);
         const fileName = `interaction_${interaction.repairRequestId}_${interaction.id}_${interaction.interactionType}_${timestamp}_${randomId}.json`;
         
-        // Store directly in bucket root (no folder structure)
-        console.log(`Uploading interaction data directly to bucket root: ${fileName}`);
-        const url = await googleCloudStorage.uploadText(
-          fileName,
-          JSON.stringify(interaction, null, 2)
+        // Store in the repair-session folder for AI training
+        const folder = 'repair-session';
+        console.log(`Uploading interaction data to ${folder} folder: ${fileName}`);
+        const url = await googleCloudStorage.uploadBuffer(
+          Buffer.from(JSON.stringify(interaction, null, 2)),
+          {
+            contentType: 'application/json',
+            customName: fileName,
+            folder: folder,
+            isPublic: true
+          }
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
         
@@ -604,14 +618,15 @@ export class CloudDataSyncService {
             originalName: fileName,
             fileUrl: url,
             contentType: 'application/json',
-            folder: '',
+            folder: folder, // Store the folder name (repair-session) here
             fileSize: JSON.stringify(interaction).length,
             metadata: {
               sessionId: interaction.repairRequestId,
               interactionId: interaction.id,
               type: 'interaction_data',
               interactionType: interaction.interactionType,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              folder: folder // Also store it in metadata for clarity
             }
           }).returning({ id: storageFiles.id });
           
@@ -670,11 +685,17 @@ export class CloudDataSyncService {
         const randomId = Math.floor(Math.random() * 10000);
         const filename = `diagnostic_tree_${tree.id}_${tree.productCategory}${tree.subCategory ? '_' + tree.subCategory : ''}_v${tree.version}_${timestamp}_${randomId}.json`;
         
-        // Store directly in bucket root (no folder structure)
-        console.log(`Uploading diagnostic tree directly to bucket root: ${filename}`);
-        const url = await googleCloudStorage.uploadText(
-          filename,
-          JSON.stringify(tree, null, 2)
+        // Store in the repair-session folder for AI training
+        const folder = 'repair-session';
+        console.log(`Uploading diagnostic tree to ${folder} folder: ${filename}`);
+        const url = await googleCloudStorage.uploadBuffer(
+          Buffer.from(JSON.stringify(tree, null, 2)),
+          {
+            contentType: 'application/json',
+            customName: filename,
+            folder: folder,
+            isPublic: true
+          }
         );
         urls.push(url);
       }
@@ -763,24 +784,32 @@ export class CloudDataSyncService {
         }
       }
       
-      // Save the complete training dataset directly in bucket root (no folder structure)
+      // Save the complete training dataset in the repair-session folder for AI training
       const timestamp = Date.now();
       const randomId = Math.floor(Math.random() * 10000);
       const trainingDatasetFilename = `repair_training_dataset_${timestamp}_${randomId}.json`;
+      const folder = 'repair-session';
       
-      console.log(`Uploading training dataset directly to bucket root: ${trainingDatasetFilename}`);
+      console.log(`Uploading training dataset to ${folder} folder: ${trainingDatasetFilename}`);
       
-      const trainingDatasetUrl = await googleCloudStorage.uploadText(
-        trainingDatasetFilename,
-        JSON.stringify({
+      // Use uploadBuffer which properly handles folders
+      const trainingDatasetUrl = await googleCloudStorage.uploadBuffer(
+        Buffer.from(JSON.stringify({
           metadata: {
             generatedAt: new Date().toISOString(),
             version: '1.0',
             sessionCount: trainingData.length,
             source: 'repair-ai-assistant',
+            folder: folder
           },
           data: trainingData,
-        }, null, 2)
+        }, null, 2)),
+        {
+          contentType: 'application/json',
+          customName: trainingDatasetFilename,
+          folder: folder,
+          isPublic: true
+        }
       );
       
       console.log(`Successfully created training dataset with ${trainingData.length} repair journeys: ${trainingDatasetUrl}`);
