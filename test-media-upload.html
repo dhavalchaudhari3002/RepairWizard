@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Upload Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    .output {
+      margin-top: 10px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cloud Storage Media Upload Test</h1>
+  
+  <div class="test-section">
+    <h2>1. Image Upload Test</h2>
+    <p>Upload the same image twice to test deduplication:</p>
+    <input type="file" id="imageFile" accept="image/*">
+    <button id="uploadImageBtn">Upload Image</button>
+    <div class="output" id="imageOutput"></div>
+    <div>
+      <h3>Results:</h3>
+      <pre id="imageResults"></pre>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Audio Upload Test</h2>
+    <p>Upload the same audio file twice to test deduplication:</p>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button id="uploadAudioBtn">Upload Audio</button>
+    <div class="output" id="audioOutput"></div>
+    <div>
+      <h3>Results:</h3>
+      <pre id="audioResults"></pre>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Text File Upload Test</h2>
+    <p>Upload the same text file twice to test deduplication:</p>
+    <input type="file" id="textFile" accept=".txt,.json,.md">
+    <button id="uploadTextBtn">Upload Text File</button>
+    <div class="output" id="textOutput"></div>
+    <div>
+      <h3>Results:</h3>
+      <pre id="textResults"></pre>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Test Results Summary</h2>
+    <pre id="testSummary">
+No tests run yet.
+    </pre>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Test results storage
+      const testResults = {
+        image: [],
+        audio: [], 
+        text: []
+      };
+      
+      // Image upload test
+      document.getElementById('uploadImageBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('imageFile');
+        const outputDiv = document.getElementById('imageOutput');
+        const resultsDiv = document.getElementById('imageResults');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+          outputDiv.innerHTML = '<p class="error">Please select an image file first</p>';
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        outputDiv.innerHTML = '<p>Uploading image...</p>';
+        
+        try {
+          // First upload
+          const result1 = await uploadFile(file);
+          
+          // Second upload of same file
+          const result2 = await uploadFile(file);
+          
+          // Record results
+          testResults.image.push({
+            fileName: file.name,
+            firstUploadUrl: result1.url,
+            secondUploadUrl: result2.url,
+            deduplicationWorking: result1.url === result2.url
+          });
+          
+          // Display results
+          outputDiv.innerHTML = '<p class="success">Upload completed!</p>';
+          resultsDiv.textContent = JSON.stringify(testResults.image, null, 2);
+          
+          updateSummary();
+        } catch (error) {
+          console.error('Image upload failed:', error);
+          outputDiv.innerHTML = `<p class="error">Upload failed: ${error.message}</p>`;
+        }
+      });
+      
+      // Audio upload test
+      document.getElementById('uploadAudioBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('audioFile');
+        const outputDiv = document.getElementById('audioOutput');
+        const resultsDiv = document.getElementById('audioResults');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+          outputDiv.innerHTML = '<p class="error">Please select an audio file first</p>';
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        outputDiv.innerHTML = '<p>Uploading audio...</p>';
+        
+        try {
+          // First upload
+          const result1 = await uploadFile(file);
+          
+          // Second upload of same file
+          const result2 = await uploadFile(file);
+          
+          // Record results
+          testResults.audio.push({
+            fileName: file.name,
+            firstUploadUrl: result1.url,
+            secondUploadUrl: result2.url,
+            deduplicationWorking: result1.url === result2.url
+          });
+          
+          // Display results
+          outputDiv.innerHTML = '<p class="success">Upload completed!</p>';
+          resultsDiv.textContent = JSON.stringify(testResults.audio, null, 2);
+          
+          updateSummary();
+        } catch (error) {
+          console.error('Audio upload failed:', error);
+          outputDiv.innerHTML = `<p class="error">Upload failed: ${error.message}</p>`;
+        }
+      });
+      
+      // Text file upload test
+      document.getElementById('uploadTextBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('textFile');
+        const outputDiv = document.getElementById('textOutput');
+        const resultsDiv = document.getElementById('textResults');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+          outputDiv.innerHTML = '<p class="error">Please select a text file first</p>';
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        outputDiv.innerHTML = '<p>Uploading text file...</p>';
+        
+        try {
+          // First upload
+          const result1 = await uploadFile(file);
+          
+          // Second upload of same file
+          const result2 = await uploadFile(file);
+          
+          // Record results
+          testResults.text.push({
+            fileName: file.name,
+            firstUploadUrl: result1.url,
+            secondUploadUrl: result2.url,
+            deduplicationWorking: result1.url === result2.url
+          });
+          
+          // Display results
+          outputDiv.innerHTML = '<p class="success">Upload completed!</p>';
+          resultsDiv.textContent = JSON.stringify(testResults.text, null, 2);
+          
+          updateSummary();
+        } catch (error) {
+          console.error('Text file upload failed:', error);
+          outputDiv.innerHTML = `<p class="error">Upload failed: ${error.message}</p>`;
+        }
+      });
+      
+      // Helper function to upload a file
+      async function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/cloud-storage/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server responded with ${response.status}: ${errorText}`);
+        }
+        
+        return await response.json();
+      }
+      
+      // Update the test summary
+      function updateSummary() {
+        const summaryDiv = document.getElementById('testSummary');
+        
+        const summary = {
+          imageTests: testResults.image.length,
+          audioTests: testResults.audio.length,
+          textTests: testResults.text.length,
+          deduplicationSuccess: 0,
+          deduplicationFail: 0
+        };
+        
+        // Count successes and failures
+        for (const category of ['image', 'audio', 'text']) {
+          for (const result of testResults[category]) {
+            if (result.deduplicationWorking) {
+              summary.deduplicationSuccess++;
+            } else {
+              summary.deduplicationFail++;
+            }
+          }
+        }
+        
+        // Create summary text
+        summaryDiv.textContent = JSON.stringify(summary, null, 2);
+      }
+    });
+  </script>
+</body>
+</html>

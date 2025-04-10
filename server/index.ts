@@ -14,6 +14,7 @@ import fs from "fs";
 import * as Sentry from "@sentry/node";
 // Import test upload route
 import { addTestUploadRoute } from "./test-upload-route";
+import { addTestMediaUploadRoute } from "./routes/test-upload-route";
 // We don't need additional imports with the simplified approach
 
 // Initialize Express app
@@ -143,8 +144,9 @@ app.get('/debug-sentry', (_req, res) => {
     const server = await registerRoutes(app);
     log("Routes registered successfully");
     
-    // Add test upload route
+    // Add test upload routes
     addTestUploadRoute(app);
+    addTestMediaUploadRoute(app);
     
     // Add direct user storage test routes
     addDirectUserStorageTestRoutes(app);
