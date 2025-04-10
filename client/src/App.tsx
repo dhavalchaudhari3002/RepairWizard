@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import { NavBar } from '@/components/navbar';
+import { Footer } from '@/components/footer';
 import { ThemeProvider } from '@/components/theme-provider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query-client';
@@ -60,9 +61,9 @@ export default function App() {
           <AuthProvider>
             <NotificationsProvider>
               <Suspense fallback={<LoadingFallback />}>
-                <div className="min-h-screen bg-background">
+                <div className="min-h-screen bg-background flex flex-col">
                   <NavBar />
-                  <main>
+                  <main className="flex-grow">
                     <Switch>
                       <Route path="/" component={Home} />
                       <Route path="/auth" component={AuthPage} />
@@ -78,6 +79,7 @@ export default function App() {
                       <Route component={NotFound} />
                     </Switch>
                   </main>
+                  <Footer />
                   <Toaster />
                 </div>
               </Suspense>
