@@ -5,6 +5,8 @@ type PrivacyContextType = {
   isGPCEnabled: boolean | null;
   isLoaded: boolean;
   canShareData: boolean;
+  manualOptOut: boolean;
+  setManualOptOut: (value: boolean) => void;
 };
 
 // Create the context with default values
@@ -12,6 +14,8 @@ const PrivacyContext = createContext<PrivacyContextType>({
   isGPCEnabled: null,
   isLoaded: false,
   canShareData: false,
+  manualOptOut: false,
+  setManualOptOut: () => {},
 });
 
 /**

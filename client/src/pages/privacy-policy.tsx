@@ -1,10 +1,11 @@
 import { PrivacyStatus } from "@/components/privacy-status";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function PrivacyPolicy() {
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-4xl font-bold mb-6 text-center">PRIVACY POLICY</h1>
+      <h1 className="text-4xl font-bold mb-6 text-center">PRIVACY NOTICE</h1>
       <p className="text-sm text-muted-foreground mb-8 text-center">Last updated April 10, 2025</p>
       
       <div className="mb-6">
@@ -14,139 +15,187 @@ export default function PrivacyPolicy() {
       
       <Separator className="my-6" />
       
-      <div className="h-[70vh] rounded-md border p-6 bg-card overflow-y-auto">
+      <ScrollArea className="h-[70vh] rounded-md border p-6 bg-card">
         <div className="space-y-6">
           <section>
-            <h2 className="text-2xl font-semibold mb-4">1. INFORMATION WE COLLECT</h2>
             <p className="mb-4">
-              At ReuseHub, we collect personal information that you provide to us when registering on our platform, 
-              including but not limited to your name, email address, and device information related to repairs.
+              This Privacy Notice for ReuseHub ("we," "us," or "our"), describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you:
             </p>
-            <p className="mb-4">
-              We may also collect information automatically when you use our Services, including:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>Device information (including device model, operating system, and diagnostic data)</li>
-              <li>Log and usage data</li>
-              <li>Location data (with your permission)</li>
-              <li>Cookies and tracking technologies</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">2. HOW WE USE YOUR INFORMATION</h2>
-            <p className="mb-4">
-              We use the information we collect for various purposes, including:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>Providing, operating, and maintaining our Services</li>
-              <li>Improving, personalizing, and expanding our Services</li>
-              <li>Understanding and analyzing how you use our Services</li>
-              <li>Developing new products, services, features, and functionality</li>
-              <li>Communicating with you about service-related notices and updates</li>
-              <li>Protecting against, identifying, and preventing fraud and other illegal activity</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">3. SHARING YOUR INFORMATION</h2>
-            <p className="mb-4">
-              We may share your information with:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>Service providers who help us operate our platform</li>
-              <li>Business partners with your consent</li>
-              <li>Legal authorities when required by law or to protect our rights</li>
-            </ul>
-            <p className="mb-4">
-              We do not sell your personal information to third parties.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">4. DATA STORAGE AND SECURITY</h2>
-            <p className="mb-4">
-              We use Google Cloud Storage and other secure data storage solutions to store your information.
-              We implement appropriate technical and organizational measures to protect your personal data
-              against unauthorized or unlawful processing, accidental loss, destruction, or damage.
-            </p>
-            <p className="mb-4">
-              While we strive to use commercially acceptable means to protect your personal data,
-              we cannot guarantee its absolute security.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">5. YOUR DATA RIGHTS</h2>
-            <p className="mb-4">
-              Depending on your location, you may have certain rights regarding your personal information, including:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>The right to access your personal data</li>
-              <li>The right to rectification of inaccurate data</li>
-              <li>The right to erasure of your data (the "right to be forgotten")</li>
-              <li>The right to restrict processing of your data</li>
-              <li>The right to data portability</li>
-              <li>The right to object to how your data is processed</li>
-            </ul>
-            <p className="mb-4">
-              To exercise any of these rights, please contact us at <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
+            <p className="mb-4 font-medium">
+              Questions or concerns? Reading this Privacy Notice will help you understand your privacy rights and choices. If you do not agree with our policies and practices, please do not use our Services.
             </p>
           </section>
           
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. GLOBAL PRIVACY CONTROL</h2>
+            <h2 className="text-2xl font-semibold mb-4">1. WHAT INFORMATION DO WE COLLECT?</h2>
+            
+            <h3 className="text-lg font-medium mt-4 mb-2">Personal information you disclose to us</h3>
+            <p className="mb-2 italic">In Short: We collect personal information that you provide to us.</p>
             <p className="mb-4">
-              We support the Global Privacy Control (GPC) signal, a mechanism that allows users to communicate their privacy preferences through their browser settings.
+              We collect personal information that you voluntarily provide to us when you register on the Services, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Services, or otherwise when you contact us.
             </p>
             <p className="mb-4">
-              When we detect the GPC signal from your browser:
+              <span className="font-medium">Sensitive Information.</span> We do not process sensitive information.
+            </p>
+            <p className="mb-4">
+              All personal information that you provide to us must be true, complete, and accurate, and you must notify us of any changes to such personal information.
+            </p>
+            
+            <h3 className="text-lg font-medium mt-4 mb-2">Information automatically collected</h3>
+            <p className="mb-2 italic">In Short: Some information — such as your Internet Protocol (IP) address and/or browser and device characteristics — is collected automatically when you visit our Services.</p>
+            <p className="mb-4">
+              We automatically collect certain information when you visit, use, or navigate the Services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, browser and device characteristics, operating system, language preferences, referring URLs, device name, country, location, information about how and when you use our Services, and other technical information. This information is primarily needed to maintain the security and operation of our Services, and for our internal analytics and reporting purposes.
+            </p>
+            <p className="mb-4">
+              Like many businesses, we also collect information through cookies and similar technologies.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">2. HOW DO WE PROCESS YOUR INFORMATION?</h2>
+            <p className="mb-2 italic">In Short: We process your information to provide, improve, and administer our Services, communicate with you, for security and fraud prevention, and to comply with law. We may also process your information for other purposes with your consent.</p>
+            <p className="mb-4">
+              We process your personal information for a variety of reasons, depending on how you interact with our Services, including:
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">3. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?</h2>
+            <p className="mb-2 italic">In Short: We may share information in specific situations described in this section and/or with the following third parties.</p>
+            <p className="mb-4">
+              We may need to share your personal information in the following situations:
             </p>
             <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li>We will not sell or share your personal information with third parties.</li>
-              <li>We will treat the signal as a valid request to opt-out of personal information sales or sharing.</li>
-              <li>We will limit the use of your personal information to the purposes necessary to provide our services.</li>
+              <li>
+                <span className="font-medium">Business Transfers.</span> We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.
+              </li>
+              <li>
+                <span className="font-medium">Affiliates.</span> We may share your information with our affiliates, in which case we will require those affiliates to honor this Privacy Notice. Affiliates include our parent company and any subsidiaries, joint venture partners, or other companies that we control or that are under common control with us.
+              </li>
+              <li>
+                <span className="font-medium">Business Partners.</span> We may share your information with our business partners to offer you certain products, services, or promotions.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">4. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?</h2>
+            <p className="mb-2 italic">In Short: We may use cookies and other tracking technologies to collect and store your information.</p>
+            <p className="mb-4">
+              We may use cookies and similar tracking technologies (like web beacons and pixels) to gather information when you interact with our Services. Some online tracking technologies help us maintain the security of our Services, prevent crashes, fix bugs, save your preferences, and assist with basic site functions.
+            </p>
+            <p className="mb-4">
+              We also permit third parties and service providers to use online tracking technologies on our Services for analytics and advertising, including to help manage and display advertisements, to tailor advertisements to your interests, or to send abandoned shopping cart reminders (depending on your communication preferences). The third parties and service providers use their technology to provide advertising about products and services tailored to your interests which may appear either on our Services or on other websites.
+            </p>
+            <p className="mb-4">
+              Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">5. HOW DO WE HANDLE YOUR SOCIAL LOGINS?</h2>
+            <p className="mb-2 italic">In Short: If you choose to register or log in to our Services using a social media account, we may have access to certain information about you.</p>
+            <p className="mb-4">
+              Our Services offer you the ability to register and log in using your third-party social media account details (like your Facebook or X logins). Where you choose to do this, we will receive certain profile information about you from your social media provider. The profile information we receive may vary depending on the social media provider concerned, but will often include your name, email address, friends list, and profile picture, as well as other information you choose to make public on such a social media platform.
+            </p>
+            <p className="mb-4">
+              We will use the information we receive only for the purposes that are described in this Privacy Notice or that are otherwise made clear to you on the relevant Services. Please note that we do not control, and are not responsible for, other uses of your personal information by your third-party social media provider. We recommend that you review their privacy notice to understand how they collect, use, and share your personal information, and how you can set your privacy preferences on their sites and apps.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">6. IS YOUR INFORMATION TRANSFERRED INTERNATIONALLY?</h2>
+            <p className="mb-2 italic">In Short: We may transfer, store, and process your information in countries other than your own.</p>
+            <p className="mb-4">
+              Our servers are located in the United States. If you are accessing our Services from outside, please be aware that your information may be transferred to, stored by, and processed by us in our facilities and in the facilities of the third parties with whom we may share your personal information (see "WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?" above), in and other countries.
+            </p>
+            <p className="mb-4">
+              If you are a resident in the European Economic Area (EEA), United Kingdom (UK), or Switzerland, then these countries may not necessarily have data protection laws or other similar laws as comprehensive as those in your country. However, we will take all necessary measures to protect your personal information in accordance with this Privacy Notice and applicable law.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">7. HOW LONG DO WE KEEP YOUR INFORMATION?</h2>
+            <p className="mb-2 italic">In Short: We keep your information for as long as necessary to fulfill the purposes outlined in this Privacy Notice unless otherwise required by law.</p>
+            <p className="mb-4">
+              We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements).
+            </p>
+            <p className="mb-4">
+              When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">8. DO WE COLLECT INFORMATION FROM MINORS?</h2>
+            <p className="mb-2 italic">In Short: We do not knowingly collect data from or market to children under 18 years of age.</p>
+            <p className="mb-4">
+              We do not knowingly collect, solicit data from, or market to children under 18 years of age, nor do we knowingly sell such personal information. By using the Services, you represent that you are at least 18 or that you are the parent or guardian of such a minor and consent to such minor dependent's use of the Services. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at reusehubteam@gmail.com.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">9. WHAT ARE YOUR PRIVACY RIGHTS?</h2>
+            <p className="mb-2 italic">In Short: You may review, change, or terminate your account at any time, depending on your country, province, or state of residence.</p>
+            <p className="mb-4">
+              <span className="font-medium">Withdrawing your consent:</span> If we are relying on your consent to process your personal information, which may be express and/or implied consent depending on the applicable law, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section "HOW CAN YOU CONTACT US ABOUT THIS NOTICE?" below.
+            </p>
+            <p className="mb-4">
+              However, please note that this will not affect the lawfulness of the processing before its withdrawal nor, when applicable law allows, will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent.
+            </p>
+            <h3 className="text-lg font-medium mt-4 mb-2">Account Information</h3>
+            <p className="mb-4">
+              If you would at any time like to review or change the information in your account or terminate your account, you can:
+              </p>
+              <p className="mb-4">
+                Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements.
+              </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">10. CONTROLS FOR DO-NOT-TRACK FEATURES AND GPC</h2>
+            <p className="mb-4">
+              Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track ("DNT") feature or setting you can activate to signal your privacy preference not to have data about your online browsing activities monitored and collected. At this stage, no uniform technology standard for recognizing and implementing DNT signals has been finalized. As such, we do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Notice.
+            </p>
+            <p className="mb-4">
+              <span className="font-medium">Global Privacy Control (GPC):</span> Unlike DNT, we DO support and respect the Global Privacy Control (GPC) signal. When we detect a GPC signal from your browser, we will:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>Not sell or share your personal information with third parties</li>
+              <li>Treat the GPC signal as a valid opt-out request for all participating services</li>
+              <li>Apply these protections globally, regardless of your location</li>
+              <li>Store your preference in our system to ensure consistent enforcement</li>
             </ul>
             <p className="mb-4">
-              The GPC signal is supported by various privacy-focused browsers and browser extensions. You can check if your browser is sending the GPC signal at the top of this page.
-            </p>
-            <p className="mb-4">
-              For more information about GPC, please visit <a href="https://globalprivacycontrol.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">globalprivacycontrol.org</a>.
+              You can also manually control your privacy settings through our privacy controls panel above.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">7. COOKIES POLICY</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. DO WE MAKE UPDATES TO THIS NOTICE?</h2>
+            <p className="mb-2 italic">In Short: Yes, we will update this notice as necessary to stay compliant with relevant laws.</p>
             <p className="mb-4">
-              We use cookies and similar tracking technologies to track activity on our Services and store certain information.
-              Cookies are files with a small amount of data that may include an anonymous unique identifier.
-            </p>
-            <p className="mb-4">
-              You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
-              However, if you do not accept cookies, you may not be able to use some portions of our Services.
+              We may update this Privacy Notice from time to time. The updated version will be indicated by an updated "Revised" date at the top of this Privacy Notice. If we make material changes to this Privacy Notice, we may notify you either by prominently posting a notice of such changes or by directly sending you a notification. We encourage you to review this Privacy Notice frequently to be informed of how we are protecting your information.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">8. CHANGES TO THIS PRIVACY POLICY</h2>
+            <h2 className="text-2xl font-semibold mb-4">12. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?</h2>
             <p className="mb-4">
-              We may update our Privacy Policy from time to time. We will notify you of any changes by posting
-              the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy.
-            </p>
-            <p className="mb-4">
-              You are advised to review this Privacy Policy periodically for any changes. Changes to this
-              Privacy Policy are effective when they are posted on this page.
+              If you have questions or comments about this notice, you may contact us by email at:
+              <a href="mailto:reusehubteam@gmail.com" className="text-primary font-semibold ml-1">
+                reusehubteam@gmail.com
+              </a>
             </p>
           </section>
 
-          <p className="mt-10 text-center">
-            For any questions or concerns about your privacy, please contact us at:
-            <a href="mailto:reusehubteam@gmail.com" className="text-primary font-semibold ml-1">
-              reusehubteam@gmail.com
-            </a>
-          </p>
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">13. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?</h2>
+            <p className="mb-4">
+              Based on the applicable laws of your country, you may have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law. To request to review, update, or delete your personal information, please submit a data subject access request by emailing us at <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
+            </p>
+          </section>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
