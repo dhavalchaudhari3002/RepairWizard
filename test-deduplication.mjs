@@ -6,7 +6,6 @@
  * 2. Verify that the URLs returned are identical
  * 3. Confirm that only one file was created in storage
  */
-import fs from 'fs';
 import { cloudDataSync } from './server/services/cloud-data-sync.js';
 
 async function testDeduplication() {
