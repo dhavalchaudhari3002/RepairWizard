@@ -99,11 +99,15 @@ class DirectUserStorageService {
   public async getUserByEmail(email: string): Promise<any | undefined> {
     try {
       const lowerEmail = email.toLowerCase();
+      console.log(`Looking up user with email: ${lowerEmail}`);
       
       // Check memory cache first
       if (this.activeUsers.has(lowerEmail)) {
+        console.log(`User found in memory cache: ${lowerEmail}`);
         return this.activeUsers.get(lowerEmail);
       }
+      
+      console.log(`User not in memory cache, searching Google Cloud Storage for: ${lowerEmail}`);
       
       // Query cloud storage to find the user
       // Note: In a production system, you would use a database index or search service
@@ -114,30 +118,46 @@ class DirectUserStorageService {
         .bucket(googleCloudStorage.bucketName)
         .getFiles({ prefix: 'user-data/' });
       
+      console.log(`Found ${files.length} files in the user-data folder`);
+      
       // Find file with user data
       for (const file of files) {
         // Only process user JSON files
         if (file.name.endsWith('.json') && file.name.includes('user-')) {
+          console.log(`Examining file: ${file.name}`);
+          
           // Download the file content
           const [content] = await file.download();
-          const userData = JSON.parse(content.toString());
+          let userData;
+          
+          try {
+            userData = JSON.parse(content.toString());
+            console.log(`Parsed user data from ${file.name}, email: ${userData.email || 'undefined'}`);
+          } catch (parseError) {
+            console.error(`Error parsing JSON from ${file.name}:`, parseError);
+            console.error(`File content: ${content.toString().substring(0, 200)}...`);
+            continue;
+          }
           
           // Check if this is the user we're looking for
           if (userData.email && userData.email.toLowerCase() === lowerEmail) {
-            // Cache the user for future lookups
-            const { password, ...safeUser } = userData;
-            this.activeUsers.set(userData.id, safeUser);
-            this.activeUsers.set(lowerEmail, safeUser);
+            console.log(`User found in cloud storage: ${lowerEmail}, ID: ${userData.id}`);
+            
+            // Store the full user data including the password for authentication
+            this.activeUsers.set(userData.id, userData);
+            this.activeUsers.set(lowerEmail, userData);
             
             return userData; // Return the full user data including password for authentication
           }
         }
       }
       
+      console.log(`User not found in cloud storage: ${lowerEmail}`);
       // User not found
       return undefined;
     } catch (error) {
       console.error('Error finding user by email:', error);
+      console.error(error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
@@ -150,16 +170,23 @@ class DirectUserStorageService {
    */
   public async validateCredentials(email: string, password: string): Promise<any | null> {
     try {
+      console.log(`Validating credentials for email: ${email}`);
+      
       // Get the user data
       const user = await this.getUserByEmail(email);
       
       // If user not found, return null
       if (!user) {
+        console.log(`User with email ${email} not found`);
         return null;
       }
       
+      console.log(`User found, comparing passwords for: ${email}`);
+      
       // Verify password
       const passwordValid = await bcrypt.compare(password, user.password);
+      
+      console.log(`Password validation result for ${email}: ${passwordValid}`);
       
       if (!passwordValid) {
         return null;
@@ -167,9 +194,11 @@ class DirectUserStorageService {
       
       // Return user data without password
       const { password: _, ...safeUser } = user;
+      console.log(`Returning authenticated user data for: ${email}`, safeUser);
       return safeUser;
     } catch (error) {
       console.error('Error validating credentials:', error);
+      console.error(error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
