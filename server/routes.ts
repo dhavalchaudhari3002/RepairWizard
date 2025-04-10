@@ -606,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Save diagnostic data to Google Cloud Storage
         if (repairRequestId) {
           try {
-            console.log(`Storing diagnostic data for request #${repairRequestId} directly in Google Cloud Storage`);
+            console.log(`Storing diagnostic data for request #${repairRequestId} using cloud data sync service`);
             
             // Create complete diagnostic data package
             const diagnosticData = {
@@ -617,16 +617,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: new Date().toISOString()
             };
             
-            // Generate a unique filename with timestamp
-            const timestamp = Date.now();
-            const randomId = Math.floor(Math.random() * 10000);
-            const filename = `diagnostic_${repairRequestId}_${timestamp}_${randomId}.json`;
+            // Import cloudDataSync instead of using direct storage
+            const { cloudDataSync } = require('./services/cloud-data-sync');
             
-            // Save directly to Google Cloud Storage root without any folder structure
-            const dataUrl = await googleCloudStorage.uploadText(
-              filename,  // No folder path, just the filename
-              JSON.stringify(diagnosticData, null, 2)
-            );
+            // Use the centralized service with deduplication built in
+            const dataUrl = await cloudDataSync.storeDiagnosticData(repairRequestId, diagnosticData);
             
             console.log(`Successfully stored diagnostic data to Google Cloud Storage at: ${dataUrl}`);
             
@@ -642,8 +637,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // If session exists, record the file in storage_files
                 const result = await db.insert(storageFiles).values({
                   userId: 1, // Default user ID since this isn't an authenticated request
-                  fileName: filename,
-                  originalName: filename,
+                  fileName: `diagnostic_${repairRequestId}_${Date.now()}.json`,
+                  originalName: `diagnostic_${repairRequestId}_${Date.now()}.json`,
                   fileUrl: dataUrl,
                   contentType: 'application/json',
                   folder: '',
@@ -1088,19 +1083,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`Database error when checking session #${sessionId}, continuing with cloud storage:`, dbError);
       }
 
-      // DIRECT APPROACH: Always save to Google Cloud Storage, even if database operations fail
-      console.log(`Storing diagnostic data for session #${sessionId} directly in Google Cloud Storage`);
+      // Use cloud data sync service to avoid duplication
+      console.log(`Storing diagnostic data for session #${sessionId} using cloud data sync service`);
       
-      // Generate a unique filename with timestamp
-      const timestamp = Date.now();
-      const randomId = Math.floor(Math.random() * 10000);
-      const filename = `diagnosis_${sessionId}_${timestamp}_${randomId}.json`;
+      // Import cloudDataSync to use our centralized service with deduplication
+      const { cloudDataSync } = require('./services/cloud-data-sync');
       
-      // Save directly to Google Cloud Storage root without any folder structure
-      const dataUrl = await googleCloudStorage.uploadText(
-        filename,  // No folder path, just the filename
-        JSON.stringify(diagnosisData, null, 2)
-      );
+      // Use the centralized service which implements deduplication
+      const dataUrl = await cloudDataSync.storeDiagnosticData(sessionId, diagnosisData);
       
       // Log success
       console.log(`Successfully stored diagnostic data for session #${sessionId} at: ${dataUrl}`);
@@ -1111,8 +1101,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Record this file in the storage_files table
           const result = await db.insert(storageFiles).values({
             userId: req.user.id,
-            fileName: filename,
-            originalName: filename,
+            fileName: `diagnostic_${sessionId}_${Date.now()}.json`,
+            originalName: `diagnostic_${sessionId}_${Date.now()}.json`,
             fileUrl: dataUrl,
             contentType: 'application/json',
             folder: '',
