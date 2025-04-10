@@ -2185,16 +2185,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         folder += `/${filePurpose}`;
       }
       
-      // Upload the file to Google Cloud Storage
-      const fileUrl = await googleCloudStorage.uploadFile(fileBuffer, {
-        folder,
-        customName: fileName,
-        contentType,
-        isPublic: true // Make files public so they can be viewed in the UI
-      });
+      // Use cloudDataSync service to avoid duplication
+      // cloudDataSync is already imported at the top of the file
       
-      // Import cloudDataSync only when needed to avoid circular dependencies
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Upload using deduplication service
+      const fileUrl = await cloudDataSync.uploadBuffer(
+        fileBuffer,
+        folder,
+        fileName,
+        contentType
+      );
       
       // Save the file reference in the database (uploadedAt and createdAt will be auto-generated)
       const fileRecord = await storage.createRepairSessionFile({
