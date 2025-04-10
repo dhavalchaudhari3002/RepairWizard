@@ -1,10 +1,19 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PrivacyStatus } from "@/components/privacy-status";
+import { Separator } from "@/components/ui/separator";
 
 export default function PrivacyPolicy() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-4xl font-bold mb-6 text-center">PRIVACY POLICY</h1>
       <p className="text-sm text-muted-foreground mb-8 text-center">Last updated April 10, 2025</p>
+      
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-4">Your Privacy Controls</h2>
+        <PrivacyStatus />
+      </div>
+      
+      <Separator className="my-6" />
       
       <ScrollArea className="h-[70vh] rounded-md border p-6 bg-card">
         <div className="space-y-6">
@@ -82,12 +91,33 @@ export default function PrivacyPolicy() {
               <li>The right to object to how your data is processed</li>
             </ul>
             <p className="mb-4">
-              To exercise any of these rights, please contact us at reusehubteam@gmail.com.
+              To exercise any of these rights, please contact us at <a href="mailto:reusehubteam@gmail.com" className="text-primary hover:underline">reusehubteam@gmail.com</a>.
+            </p>
+          </section>
+          
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">6. GLOBAL PRIVACY CONTROL</h2>
+            <p className="mb-4">
+              We support the Global Privacy Control (GPC) signal, a mechanism that allows users to communicate their privacy preferences through their browser settings.
+            </p>
+            <p className="mb-4">
+              When we detect the GPC signal from your browser:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>We will not sell or share your personal information with third parties.</li>
+              <li>We will treat the signal as a valid request to opt-out of personal information sales or sharing.</li>
+              <li>We will limit the use of your personal information to the purposes necessary to provide our services.</li>
+            </ul>
+            <p className="mb-4">
+              The GPC signal is supported by various privacy-focused browsers and browser extensions. You can check if your browser is sending the GPC signal at the top of this page.
+            </p>
+            <p className="mb-4">
+              For more information about GPC, please visit <a href="https://globalprivacycontrol.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">globalprivacycontrol.org</a>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. COOKIES POLICY</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. COOKIES POLICY</h2>
             <p className="mb-4">
               We use cookies and similar tracking technologies to track activity on our Services and store certain information.
               Cookies are files with a small amount of data that may include an anonymous unique identifier.
@@ -99,7 +129,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">7. CHANGES TO THIS PRIVACY POLICY</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. CHANGES TO THIS PRIVACY POLICY</h2>
             <p className="mb-4">
               We may update our Privacy Policy from time to time. We will notify you of any changes by posting
               the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy.

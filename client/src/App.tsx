@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { AuthProvider } from '@/hooks/use-auth';
 import { NotificationsProvider } from '@/hooks/use-notifications-context';
 import { DarkModeProvider } from '@/hooks/use-dark-mode';
+import { PrivacyProvider } from '@/context/privacy-context';
 
 // Pages
 import Home from '@/pages/home';
@@ -58,33 +59,35 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <DarkModeProvider>
-          <AuthProvider>
-            <NotificationsProvider>
-              <Suspense fallback={<LoadingFallback />}>
-                <div className="min-h-screen bg-background flex flex-col">
-                  <NavBar />
-                  <main className="flex-grow">
-                    <Switch>
-                      <Route path="/" component={Home} />
-                      <Route path="/auth" component={AuthPage} />
-                      <Route path="/reset-password" component={ResetPassword} />
-                      <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
-                      <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
-                      <Route path="/upload-image" component={UploadImagePage} />
-                      <Route path="/verification" component={VerificationPage} />
-                      <Route path="/cloud-storage" component={() => <ProtectedRoute component={CloudStoragePage} />} />
-                      <Route path="/repair-journey" component={() => <ProtectedRoute component={RepairJourneyPage} />} />
-                      <Route path="/terms-of-service" component={TermsOfService} />
-                      <Route path="/privacy-policy" component={PrivacyPolicy} />
-                      <Route component={NotFound} />
-                    </Switch>
-                  </main>
-                  <Footer />
-                  <Toaster />
-                </div>
-              </Suspense>
-            </NotificationsProvider>
-          </AuthProvider>
+          <PrivacyProvider>
+            <AuthProvider>
+              <NotificationsProvider>
+                <Suspense fallback={<LoadingFallback />}>
+                  <div className="min-h-screen bg-background flex flex-col">
+                    <NavBar />
+                    <main className="flex-grow">
+                      <Switch>
+                        <Route path="/" component={Home} />
+                        <Route path="/auth" component={AuthPage} />
+                        <Route path="/reset-password" component={ResetPassword} />
+                        <Route path="/analytics" component={() => <ProtectedRoute component={AnalyticsDashboard} />} />
+                        <Route path="/tools" component={() => <ProtectedRoute component={ToolsPage} />} />
+                        <Route path="/upload-image" component={UploadImagePage} />
+                        <Route path="/verification" component={VerificationPage} />
+                        <Route path="/cloud-storage" component={() => <ProtectedRoute component={CloudStoragePage} />} />
+                        <Route path="/repair-journey" component={() => <ProtectedRoute component={RepairJourneyPage} />} />
+                        <Route path="/terms-of-service" component={TermsOfService} />
+                        <Route path="/privacy-policy" component={PrivacyPolicy} />
+                        <Route component={NotFound} />
+                      </Switch>
+                    </main>
+                    <Footer />
+                    <Toaster />
+                  </div>
+                </Suspense>
+              </NotificationsProvider>
+            </AuthProvider>
+          </PrivacyProvider>
         </DarkModeProvider>
       </ThemeProvider>
     </QueryClientProvider>
