@@ -3,6 +3,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function TermsOfService() {
   return (
     <div className="container mx-auto py-8 px-4">
+      <div className="bg-destructive/10 border border-destructive rounded-md p-4 mb-6">
+        <h2 className="text-xl font-bold text-destructive mb-2">Important Safety Disclaimer</h2>
+        <p className="text-destructive-foreground">
+          Repair activities involve inherent risks. Users must be 18+ to access these instructions. 
+          By proceeding, you confirm you are of legal age and assume all responsibility for your actions.
+        </p>
+      </div>
+      
       <h1 className="text-4xl font-bold mb-6 text-center">TERMS OF SERVICE</h1>
       <p className="text-sm text-muted-foreground mb-8 text-center">Last updated April 10, 2025</p>
       
@@ -37,6 +45,10 @@ export default function TermsOfService() {
             <p className="mb-4">
               The Services are intended for users who are at least 18 years old. Persons under the age
               of 18 are not permitted to use or register for the Services.
+            </p>
+            <p className="mb-4 font-semibold bg-muted/50 p-3 rounded-md">
+              Repair activities involve inherent risks. Users must be 18+ to access these instructions. 
+              By proceeding, you confirm you are of legal age and assume all responsibility for your actions.
             </p>
             <p className="mb-4">
               We recommend that you print a copy of these Legal Terms for your records.
@@ -158,7 +170,22 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">5. PROHIBITED ACTIVITIES</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-destructive">5. REPAIR RISKS AND LIABILITY</h2>
+            <p className="mb-4">
+              By using our repair guidance services, you acknowledge and agree that:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mb-4">
+              <li>Repair activities involve inherent risks, including but not limited to personal injury, property damage, and voiding of manufacturer warranties.</li>
+              <li>We provide repair guidance as informational content only, and the decision to attempt repairs is made at your own risk.</li>
+              <li>You must be at least 18 years of age to access or use our repair instructions.</li>
+              <li>You assume all responsibility for your actions and any consequences that may result from following our repair guidance.</li>
+              <li>We expressly disclaim any liability for damages or injuries resulting from your use of our repair instructions.</li>
+              <li>You will take all necessary safety precautions when attempting repairs, including but not limited to wearing protective equipment and following safety protocols.</li>
+            </ul>
+          </section>
+            
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">6. PROHIBITED ACTIVITIES</h2>
             <p className="mb-4">
               You may not access or use the Services for any purpose other than that for which we make
               the Services available. The Services may not be used in connection with any commercial
