@@ -27,7 +27,6 @@ import { setupAuth } from "./auth";
 import type { IncomingMessage } from "http";
 import { parse as parseCookie } from "cookie";
 import { promisify } from "util";
-import { cloudDataSync } from './services/cloud-data-sync';
 import type { SessionData } from "express-session";
 import { getProductRecommendations, updateProductPrices, updateProductReviews } from "./services/product-service";
 import { setupRepairCostAPI } from "./ml-services/repair-cost-api";
@@ -624,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             // Import cloudDataSync instead of using direct storage
-            const { cloudDataSync } = require('./services/cloud-data-sync');
+            // Using globally imported cloudDataSync
             
             // Use the centralized service with deduplication built in
             const dataUrl = await cloudDataSync.storeDiagnosticData(repairRequestId, diagnosticData);
@@ -1093,7 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Storing diagnostic data for session #${sessionId} using cloud data sync service`);
       
       // Import cloudDataSync to use our centralized service with deduplication
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Use the centralized service which implements deduplication
       const dataUrl = await cloudDataSync.storeDiagnosticData(sessionId, diagnosisData);
@@ -1345,7 +1344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const folder = `repair-sessions/${sessionId}/${filePurpose}`;
 
       // Use cloud data sync service to avoid duplication
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Upload to Google Cloud Storage using deduplication service
       const url = await cloudDataSync.uploadBuffer(
@@ -1603,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const actualFileName = `user_${req.user.id}_${Date.now()}_${originalname}`;
 
       // Use cloud data sync service to avoid duplication
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Upload to Google Cloud Storage using deduplication service
       const url = await cloudDataSync.uploadBuffer(
@@ -1815,7 +1814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Import cloudDataSync for deduplication
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Store initial data using the cloudDataSync service (which has deduplication)
       const folder = `repair-sessions/${session.id}/initial`;
@@ -1955,7 +1954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Import cloudDataSync only when needed to avoid circular dependencies
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Store the diagnostic data in Google Cloud Storage using the dedicated cloud sync service
       const diagnosticData = {
@@ -2033,7 +2032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Import cloudDataSync only when needed to avoid circular dependencies
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Store the issue confirmation data in Google Cloud Storage using the cloud sync service
       const issueData = {
@@ -2111,7 +2110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Import cloudDataSync only when needed to avoid circular dependencies
-      const { cloudDataSync } = require('./services/cloud-data-sync');
+      // Using globally imported cloudDataSync
       
       // Store the repair guide data in Google Cloud Storage using the cloud sync service
       const repairGuideData = {
