@@ -26,7 +26,7 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
-  role: z.enum(["customer", "repairer"] as const).default("customer"),
+  role: z.enum(["customer", "admin"] as const).default("customer"),
   tosAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the Terms of Service and Privacy Policy to continue",
   }),
@@ -454,7 +454,7 @@ export function AuthDialog({ mode = "login", isOpen, onOpenChange }: AuthDialogP
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       >
                         <option value="customer">Customer</option>
-                        <option value="repairer">Repair Professional</option>
+                        <option value="admin">Administrator</option>
                       </select>
                     </FormControl>
                     <FormMessage />
