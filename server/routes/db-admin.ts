@@ -4,8 +4,29 @@
  */
 import { Router } from 'express';
 import { getUserDatabaseStats, checkUserTableScaling, optimizeUserTableIndexes } from '../utils/db-helpers';
+import { getDatabaseInfo } from '../db';
 
 export const dbAdminRouter = Router();
+
+// Public endpoint for database connection status - available to all users
+dbAdminRouter.get('/connection-info', async (req, res) => {
+  try {
+    const info = getDatabaseInfo();
+    // Return limited information to regular users
+    res.json({
+      status: 'connected',
+      provider: info.provider,
+      message: 'Database is configured to store user information only. Other application data is stored in Google Cloud Storage.',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting database connection info:', error);
+    res.status(500).json({
+      error: 'Failed to get database connection info',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
 
 // Get user database statistics
 dbAdminRouter.get('/stats', async (req, res) => {

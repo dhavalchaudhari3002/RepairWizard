@@ -4,6 +4,7 @@ import { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { storage } from "./storage";
 import cloudStorageRoutes from './routes/cloud-storage-routes';
+import { dbAdminRouter } from './routes/db-admin';
 import { 
   insertRepairRequestSchema,
   insertUserInteractionSchema, 
@@ -70,6 +71,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register cloud storage routes
   app.use('/api/cloud-storage', cloudStorageRoutes);
   console.log("Cloud storage routes registered");
+  
+  // Register database admin routes
+  app.use('/api/db-admin', dbAdminRouter);
+  console.log("Database admin routes registered");
 
   // Add a simple ping endpoint for debugging
   app.get('/api/ping', (req, res) => {
