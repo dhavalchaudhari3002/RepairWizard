@@ -55,6 +55,10 @@ export class CloudDataSyncService {
   // Track the sessions we've processed to avoid duplicate folder creation
   private processedSessions = new Set<number>();
   
+  // Track uploads within a time window to prevent duplicates
+  private recentUploads = new Map<string, { timestamp: number, url: string }>();
+  private DEDUPE_WINDOW_MS = 10000; // 10 second window for deduplication
+  
   /**
    * Store all data for a repair session in a single consolidated file
    * This is a simplified approach that puts all data in one file for easier AI training
@@ -465,10 +469,34 @@ export class CloudDataSyncService {
         console.log(`Note: Diagnostic data has different repairRequestId (${requestId}) than sessionId (${sessionId}). Using sessionId.`);
       }
       
+      // DEDUPLICATION: Check if we've recently uploaded diagnostic data for this session
+      const dedupeKey = `diagnostic_${sessionId}`;
+      const now = Date.now();
+      const recentUpload = this.recentUploads.get(dedupeKey);
+      
+      // If we have a recent upload for this session within our time window, return the existing URL
+      if (recentUpload && (now - recentUpload.timestamp) < this.DEDUPE_WINDOW_MS) {
+        console.log(`Deduplication: Found recent diagnostic upload for session #${sessionId} from ${now - recentUpload.timestamp}ms ago`);
+        console.log(`Reusing existing URL: ${recentUpload.url}`);
+        return recentUpload.url;
+      }
+      
+      // Otherwise, proceed with the upload
+      console.log(`No recent diagnostic upload found for session #${sessionId}, creating new file`);
+      
       // Store diagnostic data in a consolidated file format
-      return this.storeConsolidatedSessionData(sessionId, { 
+      const url = await this.storeConsolidatedSessionData(sessionId, { 
         diagnosticData: diagnosticData 
       });
+      
+      // Save this upload in our tracking map
+      this.recentUploads.set(dedupeKey, {
+        timestamp: now,
+        url: url
+      });
+      
+      // Return the new URL
+      return url;
     } catch (error) {
       console.error(`Error storing diagnostic data for session #${sessionId}:`, error);
       // Last resort fallback
@@ -491,10 +519,30 @@ export class CloudDataSyncService {
       // Log which session ID we're processing
       console.log(`Processing issue confirmation data for session ID: ${sessionId}`);
       
-      // Store issue confirmation data in a consolidated file format
-      return this.storeConsolidatedSessionData(sessionId, { 
+      // DEDUPLICATION: Check if we've recently uploaded issue data for this session
+      const dedupeKey = `issue_confirmation_${sessionId}`;
+      const now = Date.now();
+      const recentUpload = this.recentUploads.get(dedupeKey);
+      
+      // If we have a recent upload for this session within our time window, return the existing URL
+      if (recentUpload && (now - recentUpload.timestamp) < this.DEDUPE_WINDOW_MS) {
+        console.log(`Deduplication: Found recent issue confirmation upload for session #${sessionId} from ${now - recentUpload.timestamp}ms ago`);
+        console.log(`Reusing existing URL: ${recentUpload.url}`);
+        return recentUpload.url;
+      }
+      
+      // Otherwise, proceed with the upload
+      const url = await this.storeConsolidatedSessionData(sessionId, { 
         issueConfirmationData: issueData 
       });
+      
+      // Save this upload in our tracking map
+      this.recentUploads.set(dedupeKey, {
+        timestamp: now,
+        url: url
+      });
+      
+      return url;
     } catch (error) {
       console.error(`Error storing issue confirmation data for session #${sessionId}:`, error);
       // Last resort fallback
@@ -517,10 +565,30 @@ export class CloudDataSyncService {
       // Log which session ID we're processing
       console.log(`Processing repair guide data for session ID: ${sessionId}`);
       
-      // Store repair guide data in a consolidated file format
-      return this.storeConsolidatedSessionData(sessionId, { 
+      // DEDUPLICATION: Check if we've recently uploaded repair guide data for this session
+      const dedupeKey = `repair_guide_${sessionId}`;
+      const now = Date.now();
+      const recentUpload = this.recentUploads.get(dedupeKey);
+      
+      // If we have a recent upload for this session within our time window, return the existing URL
+      if (recentUpload && (now - recentUpload.timestamp) < this.DEDUPE_WINDOW_MS) {
+        console.log(`Deduplication: Found recent repair guide upload for session #${sessionId} from ${now - recentUpload.timestamp}ms ago`);
+        console.log(`Reusing existing URL: ${recentUpload.url}`);
+        return recentUpload.url;
+      }
+      
+      // Otherwise, proceed with the upload
+      const url = await this.storeConsolidatedSessionData(sessionId, { 
         repairGuideData: repairGuideData 
       });
+      
+      // Save this upload in our tracking map
+      this.recentUploads.set(dedupeKey, {
+        timestamp: now,
+        url: url
+      });
+      
+      return url;
     } catch (error) {
       console.error(`Error storing repair guide data for session #${sessionId}:`, error);
       // Last resort fallback
@@ -543,6 +611,18 @@ export class CloudDataSyncService {
       // Log which session ID we're processing
       console.log(`Processing initial submission data for session ID: ${sessionId}`);
       
+      // DEDUPLICATION: Check if we've recently uploaded initial data for this session
+      const dedupeKey = `initial_submission_${sessionId}`;
+      const now = Date.now();
+      const recentUpload = this.recentUploads.get(dedupeKey);
+      
+      // If we have a recent upload for this session within our time window, return the existing URL
+      if (recentUpload && (now - recentUpload.timestamp) < this.DEDUPE_WINDOW_MS) {
+        console.log(`Deduplication: Found recent initial submission upload for session #${sessionId} from ${now - recentUpload.timestamp}ms ago`);
+        console.log(`Reusing existing URL: ${recentUpload.url}`);
+        return recentUpload.url;
+      }
+      
       // Check if we already have files for this session in GCS to prevent duplication
       const existingSessionData = await db
         .select()
@@ -559,9 +639,17 @@ export class CloudDataSyncService {
       }
       
       // Store submission data in the consolidated file
-      return this.storeConsolidatedSessionData(sessionId, { 
+      const url = await this.storeConsolidatedSessionData(sessionId, { 
         initialSubmissionData: initialData 
       });
+      
+      // Save this upload in our tracking map
+      this.recentUploads.set(dedupeKey, {
+        timestamp: now,
+        url: url
+      });
+      
+      return url;
     } catch (error) {
       console.error(`Error storing initial submission data for session #${sessionId}:`, error);
       // Last resort fallback
@@ -588,6 +676,18 @@ export class CloudDataSyncService {
       // Log which session/request ID we're processing
       console.log(`Processing interaction data for repair request ID: ${interaction.repairRequestId}`);
       
+      // DEDUPLICATION: Check if we've recently uploaded this specific interaction
+      const dedupeKey = `interaction_${interaction.repairRequestId}_${interaction.id}_${interaction.interactionType}`;
+      const now = Date.now();
+      const recentUpload = this.recentUploads.get(dedupeKey);
+      
+      // If we have a recent upload for this interaction within our time window, return the existing URL
+      if (recentUpload && (now - recentUpload.timestamp) < this.DEDUPE_WINDOW_MS) {
+        console.log(`Deduplication: Found recent interaction upload for session #${interaction.repairRequestId}, interaction #${interaction.id} from ${now - recentUpload.timestamp}ms ago`);
+        console.log(`Reusing existing URL: ${recentUpload.url}`);
+        return recentUpload.url;
+      }
+      
       // Use the same simplified pattern for interactions - no folders needed
       try {
         // Generate a descriptive filename with interaction and session IDs
@@ -608,6 +708,12 @@ export class CloudDataSyncService {
           }
         );
         console.log(`Successfully stored interaction data #${interaction.id} to GCS`);
+        
+        // Save this upload in our tracking map
+        this.recentUploads.set(dedupeKey, {
+          timestamp: now,
+          url: url
+        });
         
         // Record this file in the database to track it
         try {
