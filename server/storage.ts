@@ -97,6 +97,29 @@ export interface IStorage {
   getFailurePatternsByCategory(category: string): Promise<FailurePattern[]>;
   getFailurePatternsBySymptoms(symptoms: string[]): Promise<FailurePattern[]>;
   
+  // Storage Files Management
+  createStorageFile(fileData: {
+    userId: number;
+    fileName: string;
+    originalName: string;
+    fileUrl: string;
+    fileSize: number;
+    contentType: string;
+    folder: string;
+    metadata: Record<string, any>;
+  }): Promise<{ id: number; fileName: string; fileUrl: string }>;
+  
+  // Repair Session Files
+  createRepairSessionFile(fileData: {
+    repairSessionId: number;
+    userId: number;
+    fileName: string;
+    fileUrl: string;
+    contentType: string;
+    filePurpose: string;
+    stepName: string | null;
+  }): Promise<{ id: number; fileName: string; fileUrl: string }>;
+  
   // Repair History
   createRepairHistory(history: InsertRepairHistory): Promise<RepairHistory>;
   getRepairHistoryByRequestId(repairRequestId: number): Promise<RepairHistory | undefined>;
