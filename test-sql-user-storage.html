@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL + Cloud Hybrid User Storage Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input, textarea {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .secondary {
+            background-color: #2196F3;
+        }
+        .danger {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>SQL + Cloud Hybrid User Storage Test</h1>
+    <p>
+        This page demonstrates the hybrid approach of storing user data:
+        <ul>
+            <li>Core user authentication data is stored in PostgreSQL</li>
+            <li>Extended user profile data is stored in Google Cloud Storage</li>
+            <li>The SQL database stores a reference to the cloud storage file</li>
+        </ul>
+    </p>
+    
+    <div class="card">
+        <h2>Register a User</h2>
+        <p>Create a new user with the hybrid storage approach</p>
+        <div>
+            <input type="text" id="firstName" placeholder="First Name">
+            <input type="text" id="lastName" placeholder="Last Name">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="tosAccepted" style="width: auto;">
+                <label for="tosAccepted">I accept the Terms of Service</label>
+            </div>
+            <button id="registerBtn">Register User</button>
+        </div>
+        <div id="registerResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Login</h2>
+        <p>Login with an existing user account</p>
+        <div>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginBtn">Login</button>
+            <button id="authTestBtn" class="secondary" style="margin-left: 10px;">Check Auth Status</button>
+        </div>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Get Current User</h2>
+        <p>Get the currently logged in user from session</p>
+        <button id="getCurrentUserBtn">Get Current User</button>
+        <div id="currentUserResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Get Extended Profile</h2>
+        <p>Get the extended profile data from Google Cloud Storage</p>
+        <button id="getProfileBtn">Get Extended Profile</button>
+        <div id="profileResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Update Extended Profile</h2>
+        <p>Update the extended profile data in Google Cloud Storage</p>
+        <h3>Preferences</h3>
+        <div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="darkMode" style="width: auto;">
+                <label for="darkMode">Dark Mode</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="receiveMarketingEmails" style="width: auto;">
+                <label for="receiveMarketingEmails">Receive Marketing Emails</label>
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="checkbox" id="pushNotifications" style="width: auto;">
+                <label for="pushNotifications">Push Notifications</label>
+            </div>
+        </div>
+        <h3>Settings</h3>
+        <div>
+            <label for="language">Language</label>
+            <select id="language" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+            </select>
+            
+            <label for="timezone">Timezone</label>
+            <select id="timezone" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time (US & Canada)</option>
+                <option value="America/Chicago">Central Time (US & Canada)</option>
+                <option value="America/Denver">Mountain Time (US & Canada)</option>
+                <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+            </select>
+        </div>
+        <h3>Additional Information</h3>
+        <div>
+            <textarea id="bio" placeholder="Bio" rows="3"></textarea>
+        </div>
+        <button id="updateProfileBtn">Update Extended Profile</button>
+        <div id="updateProfileResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Logout</h2>
+        <p>Log out the current user session</p>
+        <button id="logoutBtn" class="danger">Logout</button>
+        <div id="logoutResult"></div>
+    </div>
+
+    <script>
+        // Function to register a user
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            try {
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const email = document.getElementById('regEmail').value.trim();
+                const password = document.getElementById('regPassword').value;
+                const tosAccepted = document.getElementById('tosAccepted').checked;
+                
+                if (!firstName || !lastName || !email || !password) {
+                    document.getElementById('registerResult').innerHTML = '<p>Please fill in all fields</p>';
+                    return;
+                }
+                
+                if (!tosAccepted) {
+                    document.getElementById('registerResult').innerHTML = '<p>You must accept the Terms of Service</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/sql/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email,
+                        password,
+                        tosAccepted
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('registerResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // If user was created successfully, fill in the login fields
+                if (response.ok && data.user && data.user.email) {
+                    document.getElementById('loginEmail').value = data.user.email;
+                    document.getElementById('loginPassword').value = password;
+                }
+            } catch (error) {
+                document.getElementById('registerResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            try {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!email || !password) {
+                    document.getElementById('loginResult').innerHTML = '<p>Please enter both email and password</p>';
+                    return;
+                }
+                
+                const response = await fetch('/api/sql/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to check auth status
+        document.getElementById('authTestBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql/auth-test', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.innerHTML = '<h3>Auth Status Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to get current user
+        document.getElementById('getCurrentUserBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql/user', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('currentUserResult');
+                resultDiv.innerHTML = '<h3>Current User Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('currentUserResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to get extended profile
+        document.getElementById('getProfileBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql/user/profile', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('profileResult');
+                resultDiv.innerHTML = '<h3>Extended Profile Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Populate form fields with data if successful
+                if (response.ok && data) {
+                    if (data.preferences) {
+                        document.getElementById('darkMode').checked = !!data.preferences.darkMode;
+                        document.getElementById('receiveMarketingEmails').checked = !!data.preferences.receiveMarketingEmails;
+                        document.getElementById('pushNotifications').checked = !!data.preferences.pushNotifications;
+                    }
+                    
+                    if (data.settings) {
+                        document.getElementById('language').value = data.settings.language || 'en';
+                        document.getElementById('timezone').value = data.settings.timezone || 'UTC';
+                    }
+                    
+                    document.getElementById('bio').value = data.bio || '';
+                }
+            } catch (error) {
+                document.getElementById('profileResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to update extended profile
+        document.getElementById('updateProfileBtn').addEventListener('click', async () => {
+            try {
+                // Gather profile data from form fields
+                const profileData = {
+                    preferences: {
+                        darkMode: document.getElementById('darkMode').checked,
+                        receiveMarketingEmails: document.getElementById('receiveMarketingEmails').checked,
+                        pushNotifications: document.getElementById('pushNotifications').checked
+                    },
+                    settings: {
+                        language: document.getElementById('language').value,
+                        timezone: document.getElementById('timezone').value
+                    },
+                    bio: document.getElementById('bio').value
+                };
+                
+                const response = await fetch('/api/sql/user/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('updateProfileResult');
+                resultDiv.innerHTML = '<h3>Update Profile Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('updateProfileResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        // Function to logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/sql/logout', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('logoutResult');
+                resultDiv.innerHTML = '<h3>Logout Response:</h3>';
+                resultDiv.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('logoutResult').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

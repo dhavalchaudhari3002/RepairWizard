@@ -5,6 +5,7 @@ import session from "express-session";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupCloudAuth } from "./cloud-auth"; // Add cloud-based auth
+import { setupSQLAuth } from "./sql-auth"; // Add SQL-based auth with hybrid storage
 import { addDirectUserStorageTestRoutes } from "./test-direct-user-storage"; // Add direct user storage test routes
 import path from "path";
 import fs from "fs";
@@ -61,6 +62,9 @@ setupAuth(app);
 // Setup cloud-based authentication that stores directly in Google Cloud Storage
 setupCloudAuth(app);
 
+// Setup SQL-based authentication with hybrid storage approach (SQL + Cloud Storage)
+setupSQLAuth(app);
+
 // Simple request logging
 app.use((req, res, next) => {
   log(`${req.method} ${req.path}`);
@@ -77,6 +81,13 @@ app.get('/ping', (_req, res) => {
 app.get('/test-direct-storage', (_req, res) => {
   log("Serving direct user storage test page");
   const filePath = path.resolve(process.cwd(), 'test-direct-user-storage.html');
+  res.sendFile(filePath);
+});
+
+// Serve the test HTML file for SQL user storage with hybrid approach
+app.get('/test-sql-storage', (_req, res) => {
+  log("Serving SQL user storage test page");
+  const filePath = path.resolve(process.cwd(), 'test-sql-user-storage.html');
   res.sendFile(filePath);
 });
 
