@@ -12,6 +12,9 @@ export function Footer() {
             <p className="text-sm text-muted-foreground">
               © {currentYear} ReuseHub. All rights reserved.
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              AI-generated content may contain inaccuracies
+            </p>
           </div>
           
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0">
