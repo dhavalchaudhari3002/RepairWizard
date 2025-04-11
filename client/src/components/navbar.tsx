@@ -21,6 +21,7 @@ import { NotificationsPopover } from "@/components/notifications";
 import { AuthDialog } from "@/components/auth-dialog";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "../styles/theme-toggle";
+import { TestNotificationButton } from "@/components/test-notification-button";
 import { 
   Dialog, 
   DialogContent, 
