@@ -275,8 +275,17 @@ export function NavBar() {
                       </div>
                     </div>
                     
-                    <DialogFooter className="text-xs text-muted-foreground">
-                      <p>Preferences are saved automatically</p>
+                    <DialogFooter className="flex flex-col gap-4">
+                      <div className="w-full flex justify-center">
+                        {/* Import the test notification button component */}
+                        {notificationsEnabled && (
+                          <div className="border rounded-md p-3 w-full text-center">
+                            <p className="text-xs text-muted-foreground mb-2">Send a test notification to verify your settings</p>
+                            <TestNotificationButton />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Preferences are saved automatically</p>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

@@ -427,6 +427,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Test endpoint to create and send a notification (for testing only)
+  app.post("/api/notifications/test", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      console.log("Unauthorized test notification request");
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const user = req.user as Express.User;
+      const title = req.body.title || "Test Notification";
+      const message = req.body.message || "This is a test notification";
+      
+      console.log(`Creating test notification for user ${user.id}`);
+      
+      // Create the notification in the database
+      const notification = await storage.createNotification({
+        userId: user.id,
+        title,
+        message,
+        type: "system",
+        read: false
+      });
+      
+      // Send the notification via WebSocket if client is connected
+      const userWs = clients.get(user.id);
+      if (userWs?.readyState === WebSocket.OPEN) {
+        console.log(`Sending WebSocket test notification to user ${user.id}`);
+        userWs.send(JSON.stringify({
+          type: 'notification',
+          data: notification,
+          timestamp: new Date().toISOString()
+        }));
+        
+        res.status(200).json({ 
+          success: true, 
+          message: "Test notification sent successfully",
+          notification
+        });
+      } else {
+        console.log(`User ${user.id} not connected via WebSocket, notification created but not sent in real-time`);
+        res.status(200).json({ 
+          success: true, 
+          message: "Notification created but user not connected via WebSocket",
+          notification
+        });
+      }
+    } catch (error) {
+      console.error("Error sending test notification:", error);
+      res.status(500).json({ 
+        error: "Failed to send test notification",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.patch("/api/notifications/:id/read", async (req, res) => {
     if (!req.isAuthenticated()) {
